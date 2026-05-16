@@ -1,0 +1,71 @@
+{{define "experiences"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body>
+    {{template "skip" .}}
+    {{template "header" .}}
+
+    <section class="hero-page" aria-labelledby="page-title">
+      <p class="hero-eyebrow">Stories of faith</p>
+      <h1 id="page-title">Mission Experiences</h1>
+      <p class="lede">Share how the Lord has blessed you as you live the ward mission plan</p>
+    </section>
+
+    <main id="main">
+      <div class="wrap">
+        {{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+
+        <section class="panel panel-elevated" aria-labelledby="share-h">
+          <p class="eyebrow">Submit</p>
+          <h2 id="share-h" style="margin-top: 0.15rem">Share an experience</h2>
+          <p class="lead" style="margin-top: 0">
+            No account is needed. Leaders review each submission before it appears. To protect
+            privacy, please <strong>do not include full names</strong> of friends, investigators,
+            or ward members. Use initials or roles (for example, &ldquo;our neighbor&rdquo; or &ldquo;a friend in my
+            quorum&rdquo;) instead.
+          </p>
+          <form method="post" action="/experiences" class="form-stack">
+            {{.CSRFField}}
+            <label class="hp-field" aria-hidden="true">
+              Leave blank
+              <input type="text" name="website" tabindex="-1" autocomplete="off" />
+            </label>
+            <label>
+              How you&rsquo;d like to be listed (optional)
+              <input type="text" name="author" value="{{.AuthorDraft}}" maxlength="120" placeholder="First name or &ldquo;Anonymous&rdquo;" />
+            </label>
+            <label>
+              Your experience
+              <textarea name="body" rows="8" required maxlength="8000" placeholder="What happened? How were you blessed as you ministered, invited, or lived the mission focus?">{{.BodyDraft}}</textarea>
+            </label>
+            <button type="submit" class="btn-primary">Submit for review</button>
+          </form>
+        </section>
+
+        {{template "ornament" .}}
+
+        <p class="eyebrow">From the ward</p>
+        <h2>Published experiences</h2>
+        {{if .Experiences}}
+        <div class="testimonial-stack">
+          {{range .Experiences}}
+          <article class="testimonial-card">
+            <p class="testimonial-body">{{.Body}}</p>
+            <p class="testimonial-meta">{{.Author}}{{if .When}} &middot; {{.When}}{{end}}</p>
+          </article>
+          {{end}}
+        </div>
+        {{else}}
+        <p class="lead">Nothing published yet&mdash;be the first after leader review.</p>
+        {{end}}
+      </div>
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

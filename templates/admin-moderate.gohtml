@@ -1,0 +1,88 @@
+{{define "admin-moderate"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body class="admin-body">
+    {{template "skip" .}}
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/admin">
+          {{template "brand-mark" .}}
+          <span class="brand-name">
+            <span class="brand-eyebrow">Leader Tools</span>
+            Albertson Ward
+          </span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap">
+      <p class="admin-crumb"><a href="/admin">&larr; Back to leader tools</a></p>
+      <p class="eyebrow">Moderation</p>
+      <h1>Review mission experiences</h1>
+      <p class="lead">
+        Edit the text below to remove <strong>full names</strong> or other identifying details, then
+        publish. What you put in the box is exactly what the ward will see. Reject if it needs a full
+        rewrite from the member (they do not see internal reject notes).
+      </p>
+      <p class="privacy-hint-note">
+        <strong>Automatic hints</strong> (below each submission) flag common name-like patterns. They
+        are imperfect&mdash;use your judgment.
+      </p>
+      {{if .AdminFlash}}<p class="flash">{{.AdminFlash}}</p>{{end}}
+
+      {{if .Pending}}
+        {{range .Pending}}
+        <div class="panel moderate-card">
+          <p class="moderate-meta">Submitted {{.When}} &middot; #{{.ID}}{{if .Author}} &middot; From: {{.Author}}{{end}}</p>
+
+          {{if .PrivacyHints}}
+          <div class="privacy-hints" role="status">
+            <p class="privacy-hints-title">Optional automated checks</p>
+            <ul>
+              {{range .PrivacyHints}}<li>{{.}}</li>{{end}}
+            </ul>
+          </div>
+          {{end}}
+
+          <form method="post" action="/admin/moderate" class="form-stack moderate-approve-form">
+            {{$.CSRFField}}
+            <input type="hidden" name="id" value="{{.ID}}" />
+            <input type="hidden" name="action" value="approve" />
+            <label>
+              Text to publish (edit to protect privacy)
+              <textarea name="body" rows="10" maxlength="8000" required>{{.Body}}</textarea>
+            </label>
+            <label>
+              Display name on site (optional)
+              <input type="text" name="author" value="{{.Author}}" maxlength="120" placeholder="e.g. Anonymous, or a first name only" />
+            </label>
+            <button type="submit" class="btn-primary">Publish</button>
+          </form>
+
+          <form method="post" action="/admin/moderate" class="inline-form reject-form">
+            {{$.CSRFField}}
+            <input type="hidden" name="id" value="{{.ID}}" />
+            <input type="hidden" name="action" value="reject" />
+            <label>
+              Note (optional, leaders only)
+              <input type="text" name="note" maxlength="500" placeholder="Reason if rejecting" />
+            </label>
+            <button type="submit" class="btn-danger">Reject</button>
+          </form>
+        </div>
+        {{end}}
+      {{else}}
+        <div class="panel">
+          <p class="lead" style="margin: 0">No submissions waiting. Check back later.</p>
+        </div>
+      {{end}}
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

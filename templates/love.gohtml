@@ -1,0 +1,88 @@
+{{define "love-share-invite"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body>
+    {{template "skip" .}}
+    {{template "header" .}}
+
+    <div class="hero-visual" role="banner">
+      <div>
+        <p class="hero-eyebrow">A Christlike pattern</p>
+        <h1>Love, Share, and Invite</h1>
+      </div>
+    </div>
+    <p class="hero-banner">Simple ways to Love, Share, and Invite</p>
+
+    <main id="main">
+      <div class="wrap">
+        <div class="video-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/F_DDHtVZcco"
+            title="How can I Love, Share, and Invite as Jesus did?"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            loading="lazy"
+          ></iframe>
+        </div>
+
+        <p class="lead" style="margin-top: 2.25rem">
+          Love, Share, and Invite are principles that help us share the gospel in ways that are right
+          for each of God&rsquo;s children. As you think about these ideas, pray for guidance and
+          opportunities to love like the Savior.
+        </p>
+
+        {{template "ornament" .}}
+
+        <p class="eyebrow">For youth</p>
+        <h2>Living it as a young person</h2>
+        <div class="panel">
+          <ul class="clean">
+            <li>Look for someone who needs a friend at school or in your quorum or class.</li>
+            <li>Share what you believe naturally&mdash;in conversation, not performance.</li>
+            <li>Invite others to uplifting activities, not only Sunday meetings.</li>
+          </ul>
+          <p style="margin-bottom: 0; color: var(--ink-faint); font-size: 0.92rem; font-style: italic">
+            Edit this list with ideas from your ward youth council or full-time missionaries.
+          </p>
+        </div>
+
+        <p class="eyebrow">For young adults</p>
+        <h2>Living it in college and early career</h2>
+        <div class="panel">
+          <ul class="clean">
+            <li>Build genuine friendships first; invitations flow from trust.</li>
+            <li>Share gospel resources when they connect to what someone is already going through.</li>
+            <li>Invite friends to experiences (service, gatherings, scripture discussion) where they can feel the Spirit.</li>
+          </ul>
+          <p style="margin-bottom: 0; color: var(--ink-faint); font-size: 0.92rem; font-style: italic">
+            Replace or expand these bullets with ward&#8209;specific examples.
+          </p>
+        </div>
+
+        <p class="eyebrow">For families</p>
+        <h2>Living it together</h2>
+        <div class="panel panel-highlight">
+          <p style="margin-top: 0; margin-bottom: 0">
+            Consider adding a short family goal here&mdash;one simple invitation per month, one service
+            project per quarter, or a recurring &ldquo;who needs us?&rdquo; conversation at dinner.
+          </p>
+        </div>
+
+        {{template "ornament" .}}
+
+        <p style="text-align: center; color: var(--ink-muted); font-size: 0.97rem">
+          For Church resources on sharing the gospel, see
+          <a href="https://www.churchofjesuschrist.org/?lang=eng" rel="noopener noreferrer">ChurchofJesusChrist.org</a>.
+          Align local messages with your bishopric and missionary leaders.
+        </p>
+      </div>
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

@@ -1,0 +1,49 @@
+{{define "admin"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body class="admin-body">
+    {{template "skip" .}}
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/">
+          {{template "brand-mark" .}}
+          <span class="brand-name">
+            <span class="brand-eyebrow">Leader Tools</span>
+            Albertson Ward
+          </span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap">
+      <p class="eyebrow">Admin</p>
+      <h1>Leader tools</h1>
+      {{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+
+      {{if .UserEmail}}
+        <p class="lead">Signed in as <strong>{{.UserEmail}}</strong></p>
+
+        <ul class="admin-links" role="list">
+          <li><a href="/admin/moderate">Review mission experiences</a></li>
+          <li><a href="/admin/ward-plan">Edit ward plan goals</a></li>
+          <li><a href="/">View public site</a></li>
+        </ul>
+
+        <form method="post" action="/auth/logout" class="form-stack" style="margin-top: 2rem">
+          {{.CSRFField}}
+          <button type="submit" class="btn-secondary">Sign out</button>
+        </form>
+      {{else}}
+        <p class="lead">Sign in with Google to moderate member experiences and update organization goals.</p>
+        <p><a class="btn btn-primary" href="/auth/google">Continue with Google</a></p>
+      {{end}}
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

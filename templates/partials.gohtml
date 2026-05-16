@@ -1,0 +1,82 @@
+{{define "head"}}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Description}}" />
+<meta name="theme-color" content="#1f3c63" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="/static/css/site.css" />
+{{end}}
+
+{{define "skip"}}
+<a class="skip" href="#main">Skip to main content</a>
+{{end}}
+
+{{define "brand-mark"}}
+<span class="brand-mark" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2.5c-2 3-5 4-5 8a5 5 0 0 0 10 0c0-4-3-5-5-8Z" fill="currentColor" opacity="0.95"/>
+    <path d="M12 6.5c-1 2-2.5 2.5-2.5 4.5a2.5 2.5 0 1 0 5 0c0-2-1.5-2.5-2.5-4.5Z" fill="#fff" opacity="0.85"/>
+  </svg>
+</span>
+{{end}}
+
+{{define "header"}}
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      {{template "brand-mark" .}}
+      <span class="brand-name">
+        <span class="brand-eyebrow">Mission Plan</span>
+        Albertson Ward
+      </span>
+    </a>
+    <button
+      type="button"
+      class="nav-toggle"
+      aria-expanded="false"
+      aria-controls="site-nav"
+      aria-label="Open menu"
+    >
+      <span aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="/" {{if eq .Active "home"}}aria-current="page"{{end}}>Home</a></li>
+        <li><a href="/ward-plan" {{if eq .Active "ward-plan"}}aria-current="page"{{end}}>Ward Plan</a></li>
+        <li>
+          <a href="/monthly-challenges" {{if eq .Active "monthly-challenges"}}aria-current="page"{{end}}>Monthly Challenges</a>
+        </li>
+        <li>
+          <a href="/experiences" {{if eq .Active "experiences"}}aria-current="page"{{end}}>Mission Experiences</a>
+        </li>
+        <li>
+          <a href="/love-share-invite" {{if eq .Active "love-share-invite"}}aria-current="page"{{end}}>Love, Share, Invite</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+{{end}}
+
+{{define "ornament"}}
+<div class="ornament" role="presentation" aria-hidden="true">
+  <span class="ornament-mark"></span>
+</div>
+{{end}}
+
+{{define "footer"}}
+<footer class="site-footer">
+  <p>Albertson Ward &middot; Ward Mission &middot; <a href="/admin">Leader sign&#8209;in</a></p>
+  {{if .FooterNote}}<p class="attribution">{{.FooterNote}}</p>{{end}}
+</footer>
+{{end}}
+
+{{define "scripts"}}
+<script src="/static/js/site.js" defer></script>
+{{end}}

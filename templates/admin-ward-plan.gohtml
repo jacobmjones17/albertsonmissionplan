@@ -1,0 +1,60 @@
+{{define "admin-ward-plan"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body class="admin-body">
+    {{template "skip" .}}
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/admin">
+          {{template "brand-mark" .}}
+          <span class="brand-name">
+            <span class="brand-eyebrow">Leader Tools</span>
+            Albertson Ward
+          </span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap-wide">
+      <p class="admin-crumb"><a href="/admin">&larr; Back to leader tools</a></p>
+      <p class="eyebrow">Editing</p>
+      <h1>Edit ward plan</h1>
+      <p class="lead">
+        One goal per line. Changes appear on the public ward plan immediately after you save.
+      </p>
+      {{if .AdminFlash}}<p class="flash">{{.AdminFlash}}</p>{{end}}
+
+      <form method="post" action="/admin/ward-plan" class="form-stack ward-plan-editor">
+        {{.CSRFField}}
+        <fieldset>
+          <legend>Ward&#8209;wide goals</legend>
+          <label>
+            Bullets (one per line)
+            <textarea name="ward_goals" rows="12">{{range $i, $g := .WardGoals}}{{if $i}}
+{{end}}{{$g}}{{end}}</textarea>
+          </label>
+        </fieldset>
+
+        {{range .Orgs}}
+        <fieldset>
+          <legend>{{.Title}}</legend>
+          <label>
+            Goals (one per line)
+            <textarea name="org_{{.Slug}}" rows="10">{{range $i, $b := .Bullets}}{{if $i}}
+{{end}}{{$b}}{{end}}</textarea>
+          </label>
+        </fieldset>
+        {{end}}
+
+        <button type="submit" class="btn-primary">Save all changes</button>
+      </form>
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

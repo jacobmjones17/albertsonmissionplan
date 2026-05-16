@@ -1,0 +1,85 @@
+{{define "home"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body>
+    {{template "skip" .}}
+    {{template "header" .}}
+
+    <section class="hero-page" aria-labelledby="hero-title">
+      <p class="hero-eyebrow">Welcome to</p>
+      <h1 id="hero-title">Albertson Ward</h1>
+      <p class="lede">Ward Mission Website</p>
+    </section>
+
+    <main id="main">
+      <div class="wrap">
+        <p class="lead intro-lead">
+          The ward mission plan is a simple document that outlines goals to help ward and auxiliary
+          leaders participate in missionary work, retention, and activation.
+        </p>
+
+        <section class="feature-band" aria-labelledby="sec-plan">
+          <div class="feature-band-inner">
+            <p class="eyebrow">Our plan</p>
+            <h2 id="sec-plan">Strengthening our ward through missionary work</h2>
+            <p class="feature-band-text">
+              See what our quorums and organizations are doing to increase the ward mission efforts.
+            </p>
+            <div class="btn-row">
+              <a class="btn btn-primary" href="/ward-plan">View the ward plan</a>
+              <a class="btn btn-secondary" href="/monthly-challenges">Browse monthly challenges</a>
+            </div>
+          </div>
+        </section>
+
+        {{template "ornament" .}}
+
+        <section class="content-block" aria-labelledby="sec-missionaries">
+          <p class="eyebrow">A shared calling</p>
+          <h2 id="sec-missionaries">We are all missionaries</h2>
+          <p>
+            This website is here to encourage and inspire you and your family in doing the Lord's work.
+          </p>
+          <blockquote class="quote">
+            Ministering is Christlike caring for others. It is motivated by our desire to follow the
+            commandment to love our neighbor and include serving people out of concern for their
+            spiritual and temporal well-being.
+          </blockquote>
+        </section>
+
+        {{template "ornament" .}}
+
+        <section class="content-block content-block--experiences" aria-labelledby="sec-experiences">
+          <div class="section-heading">
+            <p class="eyebrow">From our ward</p>
+            <h2 id="sec-experiences">Mission experiences</h2>
+            <p class="section-sub">
+              Miracles and spiritual impressions from living the ward mission plan&mdash;shared by members and
+              published after a quick leader review.
+            </p>
+          </div>
+          {{if .Experiences}}
+          <div class="testimonial-stack">
+            {{range .Experiences}}
+            <article class="testimonial-card">
+              <p class="testimonial-body">{{.Body}}</p>
+              <p class="testimonial-meta">{{.Author}}{{if .When}} &middot; {{.When}}{{end}}</p>
+            </article>
+            {{end}}
+          </div>
+          {{end}}
+          <p class="cta-row">
+            <a class="btn btn-primary" href="/experiences">Read more &amp; share an experience</a>
+          </p>
+        </section>
+      </div>
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}

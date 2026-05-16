@@ -1,0 +1,72 @@
+{{define "ward-plan"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {{template "head" .}}
+  </head>
+  <body>
+    {{template "skip" .}}
+    {{template "header" .}}
+
+    <section class="hero-page" aria-labelledby="page-title">
+      <p class="hero-eyebrow">Albertson Ward</p>
+      <h1 id="page-title">Ward Mission Plan</h1>
+      <p class="lede">For sharing the gospel and strengthening new and returning members</p>
+    </section>
+
+    <main id="main">
+      <div class="wrap">
+        <p class="lead intro-lead">
+          The ward mission plan is a simple document that outlines goals to help ward and auxiliary
+          leaders participate in missionary work, retention, and activation.
+        </p>
+
+        <section aria-labelledby="ward-goals">
+          <p class="eyebrow">Together</p>
+          <h2 id="ward-goals">Ward goals</h2>
+          <p><strong>We will strengthen our ward by:</strong></p>
+          <ul class="clean">
+            {{range .WardGoals}}<li>{{.}}</li>{{end}}
+          </ul>
+        </section>
+
+        {{template "ornament" .}}
+
+        <section aria-labelledby="org-goals">
+          <p class="eyebrow">By organization</p>
+          <h2 id="org-goals">Auxiliary and quorum goals</h2>
+          <p>Select an organization below to see how we can accomplish our ward goals.</p>
+
+          {{range $i, $o := .Orgs}}
+          <details class="org" {{if eq $i 0}}open{{end}}>
+            <summary>{{$o.Title}}</summary>
+            <div class="org-body">
+              <ul class="clean">
+                {{range $o.Bullets}}<li>{{.}}</li>{{end}}
+              </ul>
+            </div>
+          </details>
+          {{end}}
+        </section>
+
+        <h2 class="scripture-pull" id="scripture">
+          Matthew 28:19 &mdash; &ldquo;Go ye therefore, and teach all nations, baptizing them in the name of the
+          Father, and of the Son, and of the Holy Ghost.&rdquo;
+        </h2>
+
+        <div class="panel panel-highlight">
+          <p class="eyebrow">Get in touch</p>
+          <h2 style="margin-top: 0">Contact</h2>
+          <p style="margin-bottom: 0">
+            To request changes or share concerns, contact the ward mission leaders assigned to this
+            site: <strong>Brother Jacob Jones</strong> or <strong>Brother Michael Hallenberger</strong>.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    {{template "footer" .}}
+    {{template "scripts" .}}
+  </body>
+</html>
+{{end}}
