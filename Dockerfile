@@ -18,7 +18,6 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=backend /wardmission ./wardmission
-ENV DATABASE_PATH=/data/wardmission.db
+# DATABASE_URL must be set at runtime (e.g. Render Postgres internal URL).
 EXPOSE 8080
-VOLUME ["/data"]
 ENTRYPOINT ["./wardmission"]

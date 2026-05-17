@@ -1,84 +1,113 @@
 # Deploying Albertson Ward Mission Plan
 
-The production artifact is a single Go binary that serves the React SPA and JSON API from one process. SQLite stores data on disk (`DATABASE_PATH`).
+The production artifact is a single Go binary that serves the React SPA and JSON API from one process. Data lives in **PostgreSQL** (`DATABASE_URL`).
 
 **Production domain:** `albertsonwardplan.com`  
-**Hosting target for this repo:** [Render](https://render.com/) via **`render.yaml`** (Dockerfile build).
+**Hosting target:** [Render](https://render.com/) — **free Web Service** + **free Postgres** via **`render.yaml`**.
 
 ---
 
-## Important: Render pricing vs SQLite
+## Free-tier caveats (Render)
 
-Render’s **free Web Service tier uses an ephemeral filesystem** — **SQLite would not survive redeploys/restarts reliably**, so **do not run this app on Render Free** if you care about keeping leaders, logins, and ward data.
-
-To use **SQLite on Render**, you need a **paid instance** (this blueprint uses **`plan: starter`**) plus the **persistent disk** defined in `render.yaml` (mounted at **`/data`**). That avoids Fly.io, but **Render still bills for compute + disk** (see [Render pricing](https://render.com/pricing)).
+- **Postgres:** Free databases **expire 30 days after creation** unless you upgrade ([Render docs](https://render.com/docs/free)). Plan ahead for upgrade or export before expiry.
+- **Web:** Free instances **spin down after ~15 minutes idle**; first request after idle may take ~1 minute ([docs](https://render.com/docs/free)).
+- **SMTP:** Free Web Services **cannot send outbound mail on ports 25 / 465 / 587**. Password-reset and leader notification emails via classic SMTP often **will not work on Free**; use a paid tier or an HTTPS email API later.
 
 ---
 
 ## What you need to do (checklist)
 
-1. **Push this repository** to GitHub or GitLab (Render deploys from Git).
-2. In the [Render Dashboard](https://dashboard.render.com/), click **New → Blueprint**.
-3. Connect the repository and approve the **`render.yaml`** in the repo root. When prompted for **`PUBLIC_BASE_URL`**, use your service’s **`https://<name>.onrender.com`** URL first (you’ll change it after the custom domain works).
-4. After the first deploy succeeds, open **`https://<name>.onrender.com`**, then **`/admin`**, and register the **first leader** (auto-approved).
-5. **Custom domain (`albertsonwardplan.com`):** in the Web Service → **Settings → Custom Domains**, add **`albertsonwardplan.com`**. Render shows the **DNS records** to add at **Namecheap → Advanced DNS** (often **CNAME** for `www`, and their instructions for apex).
-6. When **`https://albertsonwardplan.com`** loads with TLS, update the **`PUBLIC_BASE_URL`** environment variable to **`https://albertsonwardplan.com`** (no trailing slash) and **trigger a manual deploy** or **Clear build cache & deploy** if needed so the running service picks it up.
-7. **Optional mail:** add `MAIL_ENABLED`, `SMTP_*`, `MAIL_FROM`, `MAIL_FROM_NAME` in **Environment** (same as `.env.example`).
+1. **Push this repository** to GitHub/GitLab with **`render.yaml`** at the repo root.
+2. Render Dashboard → **New → Blueprint** → select repo → branch **`main`**.
+3. Provide **`PUBLIC_BASE_URL`** when prompted — start with **`https://<your-service-name>.onrender.com`** (shown after deploy), then change to **`https://albertsonwardplan.com`** once DNS works.
+4. After deploy: **Custom domains** on the Web Service → add **`albertsonwardplan.com`** → copy DNS instructions into **Namecheap Advanced DNS**.
+5. When production HTTPS works, set **`PUBLIC_BASE_URL=https://albertsonwardplan.com`** (no slash) on the Web Service and redeploy.
+
+`DATABASE_URL` is wired automatically from the **Render Postgres** instance defined in `render.yaml`.
 
 ---
 
-## Build locally
+## Local development with Postgres
 
-From the repository root:
+Run PostgreSQL locally (Docker example):
+
+```bash
+docker run --name wardmission-pg -e POSTGRES_USER=wardmission -e POSTGRES_PASSWORD=wardmission \
+  -e POSTGRES_DB=wardmission -p 5432:5432 -d postgres:16-alpine
+```
+
+In `.env` at repo root:
+
+```bash
+DATABASE_URL=postgres://wardmission:wardmission@localhost:5432/wardmission?sslmode=disable
+SESSION_SECRET=change-me-to-a-long-random-string-at-least-16-chars
+COOKIE_SECURE=false
+PUBLIC_BASE_URL=http://localhost:8080
+```
+
+Then:
+
+```bash
+cd backend && go run ./cmd/main.go
+```
+
+Frontend against this backend (optional): `cd frontend && npm run dev` with `DEV_TRUST_VITE=true` if needed.
+
+Bootstrap an admin without the UI:
+
+```bash
+cd backend && DATABASE_URL='postgres://wardmission:wardmission@127.0.0.1:5432/wardmission?sslmode=disable' \
+  go run ./cmd/seedadmin -email you@example.org -password 'your-password'
+```
+
+---
+
+## Build locally (binary only)
 
 ```bash
 cd frontend && npm ci && npm run build
 cd ../backend && go build -o wardmission ./cmd/main.go
 ```
 
-Run `./wardmission` from `backend/` (or set `DATABASE_PATH` to an absolute path). Copy `.env.example` to `.env` and tune variables.
+Run with **`DATABASE_URL`** set.
 
-## Docker
+## Docker (single container)
+
+The image expects **`DATABASE_URL`** at runtime (points at any reachable Postgres):
 
 ```bash
 docker build -t wardmission:latest .
 docker run --rm -p 8080:8080 \
+  -e DATABASE_URL='postgres://USER:PASS@HOST:5432/DBNAME?sslmode=require' \
   -e SESSION_SECRET="$(openssl rand -hex 24)" \
   -e PUBLIC_BASE_URL=https://albertsonwardplan.com \
   -e COOKIE_SECURE=true \
-  -v ward-data:/data \
   wardmission:latest
 ```
 
-Mount a volume on `/data` so `wardmission.db` survives container restarts.
+---
 
 ## Environment variables
 
 | Variable | Notes |
 |----------|--------|
-| `SESSION_SECRET` | Required; random string ≥16 chars (`render.yaml` can generate one) |
-| `DATABASE_PATH` | Use **`/data/wardmission.db`** with the Render disk (set in blueprint) |
-| `PUBLIC_BASE_URL` | Canonical HTTPS URL **without** trailing slash — **`https://albertsonwardplan.com`** in production |
-| `COOKIE_SECURE` | `true` when served over HTTPS (set in blueprint) |
-| `PORT` | Render injects `PORT`; the Go server reads it automatically |
-| `MAIL_ENABLED` | `true` to enable SMTP |
-| `SMTP_*`, `MAIL_FROM`, `MAIL_FROM_NAME` | See `.env.example` |
-| `PASSWORD_RESET_HOURS` | Lifetime of password-reset links (default 24) |
+| `DATABASE_URL` | **Required.** PostgreSQL URL (Render sets this from Postgres) |
+| `SESSION_SECRET` | Required random string ≥16 chars |
+| `PUBLIC_BASE_URL` | Canonical HTTPS URL **without** trailing slash |
+| `COOKIE_SECURE` | `true` behind HTTPS |
+| `PORT` | Listen port (default `:8080`; Render sets `PORT`) |
+| `MAIL_*` | See `.env.example` |
 
-## Hosted options
-
-**Render** — primary blueprint (`render.yaml`): Dockerfile Web Service + persistent disk at `/data`.
-
-**Fly.io / Railway / VPS** — same Docker image pattern; persistent disk or volume required anywhere you run SQLite.
+---
 
 ## Namecheap + Render DNS
 
-- Use **Advanced DNS** unless nameservers point elsewhere.
-- Follow **exactly** what Render shows under **Custom Domains** for your service (targets change per workspace).
-- **`PUBLIC_BASE_URL`** must match the URL users actually use (`https://albertsonwardplan.com` once cut over).
+Match **`PUBLIC_BASE_URL`** to the hostname visitors use. Email links use **`PUBLIC_BASE_URL`**.
+
+---
 
 ## After deploy
 
-1. Visit **`https://albertsonwardplan.com/admin`** (or `*.onrender.com` until DNS is ready); register the first leader account (auto-approved).
-2. Turn on outbound mail so pending signups and mission experiences notify leaders.
+1. Visit **`/admin`**, register the first leader (auto-approved), or use **`seedadmin`** against production **`DATABASE_URL`** (run locally with prod URL — be careful).
+2. Plan Postgres lifecycle on Free (upgrade before 30‑day expiry).
 3. Confirm **`PUBLIC_BASE_URL`** matches the live URL.

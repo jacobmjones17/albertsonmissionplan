@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
@@ -36,13 +36,18 @@ type Testimonial struct {
 	ModeratorNote sql.NullString
 }
 
-// Open opens the SQLite database and runs migrations.
-func Open(ctx context.Context, path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "file:"+path+"?_foreign_keys=on")
+// Open opens a PostgreSQL database and runs migrations (DATABASE_URL).
+func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {
+	databaseURL = strings.TrimSpace(databaseURL)
+	if databaseURL == "" {
+		return nil, errors.New("DATABASE_URL is empty")
+	}
+	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1)
+	db.SetMaxOpenConns(25)
+	db.SetConnMaxLifetime(time.Hour)
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -63,27 +68,27 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			sort_order INTEGER NOT NULL
 		);`,
 		`CREATE TABLE IF NOT EXISTS ward_goals (
-			id INTEGER PRIMARY KEY CHECK (id = 1),
+			id SMALLINT PRIMARY KEY CHECK (id = 1),
 			bullets TEXT NOT NULL,
-			updated_at TEXT,
+			updated_at TIMESTAMPTZ,
 			updated_by TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS testimonials (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id BIGSERIAL PRIMARY KEY,
 			body TEXT NOT NULL,
 			author_label TEXT NOT NULL DEFAULT '',
 			status TEXT NOT NULL DEFAULT 'pending',
-			created_at TEXT NOT NULL,
-			reviewed_at TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			reviewed_at TIMESTAMPTZ,
 			reviewed_by TEXT,
 			moderator_note TEXT
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_testimonials_status ON testimonials(status);`,
 		`CREATE TABLE IF NOT EXISTS leader_roles (
 			email TEXT PRIMARY KEY NOT NULL,
-			is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)),
-			created_at TEXT NOT NULL DEFAULT '',
-			updated_at TEXT NOT NULL DEFAULT ''
+			is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);`,
 		`CREATE TABLE IF NOT EXISTS leader_org_scopes (
 			email TEXT NOT NULL REFERENCES leader_roles(email) ON DELETE CASCADE,
@@ -95,39 +100,19 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			password_hash TEXT NOT NULL,
 			first_name TEXT NOT NULL DEFAULT '',
 			last_name TEXT NOT NULL DEFAULT '',
-			created_at TEXT NOT NULL DEFAULT (datetime('now')),
-			approved_at TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			approved_at TIMESTAMPTZ,
 			approved_by TEXT
 		);`,
-	}
-	for _, s := range stmts {
-		if _, err := db.ExecContext(ctx, s); err != nil {
-			return err
-		}
-	}
-	// Additive migrations for older databases. We run these unconditionally and ignore
-	// "duplicate column" errors so a fresh CREATE TABLE above stays valid too.
-	additive := []string{
-		`ALTER TABLE leader_credentials ADD COLUMN approved_at TEXT;`,
-		`ALTER TABLE leader_credentials ADD COLUMN approved_by TEXT;`,
-		`ALTER TABLE leader_credentials ADD COLUMN first_name TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE leader_credentials ADD COLUMN last_name TEXT NOT NULL DEFAULT '';`,
-	}
-	for _, s := range additive {
-		if _, err := db.ExecContext(ctx, s); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column name") {
-			return err
-		}
-	}
-	tableCreates := []string{
 		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
 			token_hash TEXT PRIMARY KEY NOT NULL,
 			email TEXT NOT NULL,
-			expires_at TEXT NOT NULL,
-			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+			expires_at BIGINT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
 	}
-	for _, s := range tableCreates {
+	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {
 			return err
 		}
@@ -218,7 +203,7 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 	}
 	for _, r := range seeds {
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO org_sections (slug, title, bullets, sort_order) VALUES (?, ?, ?, ?)`,
+			`INSERT INTO org_sections (slug, title, bullets, sort_order) VALUES ($1, $2, $3, $4)`,
 			r.slug, r.title, r.bullets, r.sort,
 		); err != nil {
 			_ = tx.Rollback()
@@ -250,7 +235,7 @@ func seedWardGoalsIfEmpty(ctx context.Context, db *sql.DB) error {
 		"Encouraging each active household to create their own **family mission plan**.",
 	}, "\n")
 	_, err := db.ExecContext(ctx,
-		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, ?, '', '')`,
+		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, NOW(), '')`,
 		bullets,
 	)
 	return err
@@ -283,7 +268,7 @@ func ListOrgSections(ctx context.Context, db *sql.DB) ([]OrgSection, error) {
 // UpdateOrgBullets updates bullet list for one org (leaders).
 func UpdateOrgBullets(ctx context.Context, db *sql.DB, slug, bullets string) error {
 	res, err := db.ExecContext(ctx,
-		`UPDATE org_sections SET bullets = ? WHERE slug = ?`,
+		`UPDATE org_sections SET bullets = $1 WHERE slug = $2`,
 		strings.TrimSpace(bullets), slug,
 	)
 	if err != nil {
@@ -327,7 +312,7 @@ func GetWardGoals(ctx context.Context, db *sql.DB) ([]string, error) {
 // SetWardGoals replaces ward-wide bullets (one per line in storage).
 func SetWardGoals(ctx context.Context, db *sql.DB, bullets string, editor string) error {
 	res, err := db.ExecContext(ctx,
-		`UPDATE ward_goals SET bullets = ?, updated_at = datetime('now'), updated_by = ? WHERE id = 1`,
+		`UPDATE ward_goals SET bullets = $1, updated_at = NOW(), updated_by = $2 WHERE id = 1`,
 		strings.TrimSpace(bullets), editor,
 	)
 	if err != nil {
@@ -341,7 +326,7 @@ func SetWardGoals(ctx context.Context, db *sql.DB, bullets string, editor string
 		return nil
 	}
 	_, err = db.ExecContext(ctx,
-		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, ?, datetime('now'), ?)`,
+		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, NOW(), $2)`,
 		strings.TrimSpace(bullets), editor,
 	)
 	return err
@@ -349,14 +334,15 @@ func SetWardGoals(ctx context.Context, db *sql.DB, bullets string, editor string
 
 // InsertTestimonial creates a pending testimonial.
 func InsertTestimonial(ctx context.Context, db *sql.DB, body, authorLabel string) (int64, error) {
-	res, err := db.ExecContext(ctx,
-		`INSERT INTO testimonials (body, author_label, status, created_at) VALUES (?, ?, 'pending', datetime('now'))`,
+	var id int64
+	err := db.QueryRowContext(ctx,
+		`INSERT INTO testimonials (body, author_label, status, created_at) VALUES ($1, $2, 'pending', NOW()) RETURNING id`,
 		body, strings.TrimSpace(authorLabel),
-	)
+	).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
 // ListApprovedTestimonials returns recent approved posts for public display.
@@ -366,7 +352,7 @@ func ListApprovedTestimonials(ctx context.Context, db *sql.DB, limit int) ([]Tes
 	}
 	rows, err := db.QueryContext(ctx,
 		`SELECT id, body, author_label, status, created_at, reviewed_at, reviewed_by, moderator_note
-		 FROM testimonials WHERE status = 'approved' ORDER BY datetime(created_at) DESC LIMIT ?`,
+		 FROM testimonials WHERE status = 'approved' ORDER BY created_at DESC LIMIT $1`,
 		limit,
 	)
 	if err != nil {
@@ -380,7 +366,7 @@ func ListApprovedTestimonials(ctx context.Context, db *sql.DB, limit int) ([]Tes
 func ListPendingTestimonials(ctx context.Context, db *sql.DB) ([]Testimonial, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT id, body, author_label, status, created_at, reviewed_at, reviewed_by, moderator_note
-		 FROM testimonials WHERE status = 'pending' ORDER BY datetime(created_at) ASC`,
+		 FROM testimonials WHERE status = 'pending' ORDER BY created_at ASC`,
 	)
 	if err != nil {
 		return nil, err
@@ -395,8 +381,8 @@ func SetTestimonialStatus(ctx context.Context, db *sql.DB, id int64, status stri
 		return errors.New("invalid status for SetTestimonialStatus")
 	}
 	res, err := db.ExecContext(ctx,
-		`UPDATE testimonials SET status = ?, reviewed_at = datetime('now'), reviewed_by = ?, moderator_note = ?
-		 WHERE id = ? AND status = 'pending'`,
+		`UPDATE testimonials SET status = $1, reviewed_at = NOW(), reviewed_by = $2, moderator_note = $3
+		 WHERE id = $4 AND status = 'pending'`,
 		status, reviewer, strings.TrimSpace(note), id,
 	)
 	if err != nil {
@@ -422,9 +408,9 @@ func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorL
 		return ErrApproveBodyTooLong
 	}
 	res, err := db.ExecContext(ctx,
-		`UPDATE testimonials SET body = ?, author_label = ?, status = 'approved',
-			reviewed_at = datetime('now'), reviewed_by = ?, moderator_note = ''
-		 WHERE id = ? AND status = 'pending'`,
+		`UPDATE testimonials SET body = $1, author_label = $2, status = 'approved',
+			reviewed_at = NOW(), reviewed_by = $3, moderator_note = ''
+		 WHERE id = $4 AND status = 'pending'`,
 		body, strings.TrimSpace(authorLabel), reviewer, id,
 	)
 	if err != nil {
@@ -440,10 +426,7 @@ func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorL
 	return nil
 }
 
-// UpdateApprovedTestimonial edits an already-published experience. Used by admins to fix typos,
-// redact identifying details that slipped through review, or update the author label. Re-stamps
-// reviewed_at/reviewed_by so the audit trail records who last touched the live row. Refuses to
-// operate on pending/rejected rows (those go through ApproveTestimonial / SetTestimonialStatus).
+// UpdateApprovedTestimonial edits an already-published experience.
 func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorLabel, editor string) error {
 	body = strings.TrimSpace(body)
 	if len(body) < 10 {
@@ -453,9 +436,9 @@ func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, 
 		return ErrApproveBodyTooLong
 	}
 	res, err := db.ExecContext(ctx,
-		`UPDATE testimonials SET body = ?, author_label = ?,
-			reviewed_at = datetime('now'), reviewed_by = ?
-		 WHERE id = ? AND status = 'approved'`,
+		`UPDATE testimonials SET body = $1, author_label = $2,
+			reviewed_at = NOW(), reviewed_by = $3
+		 WHERE id = $4 AND status = 'approved'`,
 		body, strings.TrimSpace(authorLabel), editor, id,
 	)
 	if err != nil {
@@ -471,11 +454,9 @@ func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, 
 	return nil
 }
 
-// DeleteTestimonial permanently removes a row regardless of status. Used by admins to take a
-// published experience down. No soft-delete: once removed it cannot be restored, which is what
-// you want when the goal is "get this off the public site immediately."
+// DeleteTestimonial permanently removes a row regardless of status.
 func DeleteTestimonial(ctx context.Context, db *sql.DB, id int64) error {
-	res, err := db.ExecContext(ctx, `DELETE FROM testimonials WHERE id = ?`, id)
+	res, err := db.ExecContext(ctx, `DELETE FROM testimonials WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -493,42 +474,13 @@ func scanTestimonials(rows *sql.Rows) ([]Testimonial, error) {
 	var out []Testimonial
 	for rows.Next() {
 		var t Testimonial
-		var created string
-		var reviewed sql.NullString
-		var reviewedBy, modNote sql.NullString
-		if err := rows.Scan(&t.ID, &t.Body, &t.AuthorLabel, &t.Status, &created, &reviewed, &reviewedBy, &modNote); err != nil {
+		if err := rows.Scan(
+			&t.ID, &t.Body, &t.AuthorLabel, &t.Status,
+			&t.CreatedAt, &t.ReviewedAt, &t.ReviewedBy, &t.ModeratorNote,
+		); err != nil {
 			return nil, err
 		}
-		t.CreatedAt = parseSQLiteTime(created)
-		if reviewed.Valid {
-			if rt := parseSQLiteTime(reviewed.String); !rt.IsZero() {
-				t.ReviewedAt = sql.NullTime{Time: rt, Valid: true}
-			}
-		}
-		t.ReviewedBy = reviewedBy
-		t.ModeratorNote = modNote
 		out = append(out, t)
 	}
 	return out, rows.Err()
-}
-
-func parseSQLiteTime(s string) time.Time {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return time.Time{}
-	}
-	layouts := []string{
-		"2006-01-02 15:04:05",
-		time.RFC3339,
-		"2006-01-02T15:04:05Z07:00",
-	}
-	for _, l := range layouts {
-		if t, err := time.ParseInLocation(l, s, time.Local); err == nil {
-			return t
-		}
-		if t, err := time.Parse(l, s); err == nil {
-			return t
-		}
-	}
-	return time.Time{}
 }

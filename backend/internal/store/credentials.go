@@ -21,16 +21,15 @@ func normLeaderEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
-func isSQLiteUniqueViolation(err error) bool {
+func isUniqueViolation(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(strings.ToLower(err.Error()), "unique constraint failed")
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint")
 }
 
 // HasApprovedLeaderAccount reports whether any leader_credentials row has been approved.
-// Used to auto-approve the very first registration so the system can bootstrap without
-// an existing admin.
 func HasApprovedLeaderAccount(ctx context.Context, db *sql.DB) (bool, error) {
 	var n int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM leader_credentials WHERE approved_at IS NOT NULL`).Scan(&n); err != nil {
@@ -39,9 +38,7 @@ func HasApprovedLeaderAccount(ctx context.Context, db *sql.DB) (bool, error) {
 	return n > 0, nil
 }
 
-// IsApprovedLeaderAccount reports whether this specific email has an approved row. Used to
-// validate that an active session still maps to a real, approved account on every privileged
-// request (so deleting/denying an account immediately revokes access on next request).
+// IsApprovedLeaderAccount reports whether this specific email has an approved row.
 func IsApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) (bool, error) {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -49,7 +46,7 @@ func IsApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) (boo
 	}
 	var n int
 	if err := db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM leader_credentials WHERE email = ? AND approved_at IS NOT NULL`, em,
+		`SELECT COUNT(*) FROM leader_credentials WHERE email = $1 AND approved_at IS NOT NULL`, em,
 	).Scan(&n); err != nil {
 		return false, err
 	}
@@ -57,12 +54,6 @@ func IsApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) (boo
 }
 
 // InsertLeaderCredential stores a bcrypt hash for password sign-in.
-// When autoApprovedBy is non-empty the row is created already approved (used to bootstrap the
-// first admin); otherwise the account is pending until an existing leader approves it.
-//
-// firstName/lastName are stored verbatim (after trimming) so the admin reviewing a pending
-// request can see who is asking for access. They are required at the API layer but tolerated
-// as empty here for legacy callers / migrations.
 func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, lastName, passwordHash, autoApprovedBy string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -74,18 +65,18 @@ func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, l
 	if strings.TrimSpace(autoApprovedBy) != "" {
 		_, err = db.ExecContext(ctx,
 			`INSERT INTO leader_credentials (email, password_hash, first_name, last_name, created_at, approved_at, approved_by)
-			 VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), ?)`,
+			 VALUES ($1, $2, $3, $4, NOW(), NOW(), $5)`,
 			em, passwordHash, fn, ln, strings.TrimSpace(autoApprovedBy),
 		)
 	} else {
 		_, err = db.ExecContext(ctx,
 			`INSERT INTO leader_credentials (email, password_hash, first_name, last_name, created_at)
-			 VALUES (?, ?, ?, ?, datetime('now'))`,
+			 VALUES ($1, $2, $3, $4, NOW())`,
 			em, passwordHash, fn, ln,
 		)
 	}
 	if err != nil {
-		if isSQLiteUniqueViolation(err) {
+		if isUniqueViolation(err) {
 			return ErrLeaderAlreadyRegistered
 		}
 		return err
@@ -94,8 +85,6 @@ func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, l
 }
 
 // LeaderName returns the stored first + last name for an account (either pending or approved).
-// Empty strings are valid and mean "not provided" (e.g. accounts seeded via the CLI before names
-// were collected). Returns sql.ErrNoRows if the account does not exist.
 func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastName string, err error) {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -103,7 +92,7 @@ func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastN
 	}
 	var fn, ln sql.NullString
 	err = db.QueryRowContext(ctx,
-		`SELECT first_name, last_name FROM leader_credentials WHERE email = ?`, em,
+		`SELECT first_name, last_name FROM leader_credentials WHERE email = $1`, em,
 	).Scan(&fn, &ln)
 	if err != nil {
 		return "", "", err
@@ -112,19 +101,17 @@ func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastN
 }
 
 // LeaderCredentialHash returns the stored bcrypt hash if the account exists AND is approved.
-// Returns ErrLeaderAccountPending when the row exists but has not been approved yet.
-// Returns sql.ErrNoRows when no account exists.
 func LeaderCredentialHash(ctx context.Context, db *sql.DB, email string) (string, error) {
 	em := normLeaderEmail(email)
 	var h string
-	var approvedAt sql.NullString
+	var approvedAt sql.NullTime
 	err := db.QueryRowContext(ctx,
-		`SELECT password_hash, approved_at FROM leader_credentials WHERE email = ?`, em,
+		`SELECT password_hash, approved_at FROM leader_credentials WHERE email = $1`, em,
 	).Scan(&h, &approvedAt)
 	if err != nil {
 		return "", err
 	}
-	if !approvedAt.Valid || strings.TrimSpace(approvedAt.String) == "" {
+	if !approvedAt.Valid {
 		return "", ErrLeaderAccountPending
 	}
 	return h, nil
@@ -142,7 +129,7 @@ type PendingLeaderAccount struct {
 func ListPendingLeaderAccounts(ctx context.Context, db *sql.DB) ([]PendingLeaderAccount, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT email, COALESCE(first_name, ''), COALESCE(last_name, ''), created_at
-		   FROM leader_credentials WHERE approved_at IS NULL ORDER BY datetime(created_at) ASC`,
+		   FROM leader_credentials WHERE approved_at IS NULL ORDER BY created_at ASC`,
 	)
 	if err != nil {
 		return nil, err
@@ -151,13 +138,11 @@ func ListPendingLeaderAccounts(ctx context.Context, db *sql.DB) ([]PendingLeader
 	var out []PendingLeaderAccount
 	for rows.Next() {
 		var p PendingLeaderAccount
-		var created string
-		if err := rows.Scan(&p.Email, &p.FirstName, &p.LastName, &created); err != nil {
+		if err := rows.Scan(&p.Email, &p.FirstName, &p.LastName, &p.CreatedAt); err != nil {
 			return nil, err
 		}
 		p.FirstName = strings.TrimSpace(p.FirstName)
 		p.LastName = strings.TrimSpace(p.LastName)
-		p.CreatedAt = parseSQLiteTime(created)
 		out = append(out, p)
 	}
 	return out, rows.Err()
@@ -193,7 +178,7 @@ func ApproveLeaderAccount(ctx context.Context, db *sql.DB, email, approvedBy str
 		return errors.New("empty email")
 	}
 	res, err := db.ExecContext(ctx,
-		`UPDATE leader_credentials SET approved_at = datetime('now'), approved_by = ? WHERE email = ? AND approved_at IS NULL`,
+		`UPDATE leader_credentials SET approved_at = NOW(), approved_by = $1 WHERE email = $2 AND approved_at IS NULL`,
 		strings.TrimSpace(approvedBy), em,
 	)
 	if err != nil {
@@ -209,15 +194,14 @@ func ApproveLeaderAccount(ctx context.Context, db *sql.DB, email, approvedBy str
 	return nil
 }
 
-// DeletePendingLeaderAccount removes a pending account (deny request). Refuses to touch an
-// already-approved row so an admin cannot accidentally delete an active account via this path.
+// DeletePendingLeaderAccount removes a pending account (deny request).
 func DeletePendingLeaderAccount(ctx context.Context, db *sql.DB, email string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return errors.New("empty email")
 	}
 	res, err := db.ExecContext(ctx,
-		`DELETE FROM leader_credentials WHERE email = ? AND approved_at IS NULL`,
+		`DELETE FROM leader_credentials WHERE email = $1 AND approved_at IS NULL`,
 		em,
 	)
 	if err != nil {
@@ -245,7 +229,7 @@ type ApprovedLeaderAccount struct {
 func ListApprovedLeaderAccounts(ctx context.Context, db *sql.DB) ([]ApprovedLeaderAccount, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT email, COALESCE(first_name, ''), COALESCE(last_name, ''), approved_at
-		   FROM leader_credentials WHERE approved_at IS NOT NULL ORDER BY datetime(approved_at) ASC`,
+		   FROM leader_credentials WHERE approved_at IS NOT NULL ORDER BY approved_at ASC`,
 	)
 	if err != nil {
 		return nil, err
@@ -254,20 +238,17 @@ func ListApprovedLeaderAccounts(ctx context.Context, db *sql.DB) ([]ApprovedLead
 	var out []ApprovedLeaderAccount
 	for rows.Next() {
 		var a ApprovedLeaderAccount
-		var approved string
-		if err := rows.Scan(&a.Email, &a.FirstName, &a.LastName, &approved); err != nil {
+		if err := rows.Scan(&a.Email, &a.FirstName, &a.LastName, &a.ApprovedAt); err != nil {
 			return nil, err
 		}
 		a.FirstName = strings.TrimSpace(a.FirstName)
 		a.LastName = strings.TrimSpace(a.LastName)
-		a.ApprovedAt = parseSQLiteTime(approved)
 		out = append(out, a)
 	}
 	return out, rows.Err()
 }
 
-// DeleteApprovedLeaderAccount removes an approved leader credential row. Refuses when it would
-// leave zero approved leaders. Clears outstanding password-reset tokens for that email.
+// DeleteApprovedLeaderAccount removes an approved leader credential row.
 func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -290,7 +271,7 @@ func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) 
 	}
 
 	res, err := tx.ExecContext(ctx,
-		`DELETE FROM leader_credentials WHERE email = ? AND approved_at IS NOT NULL`,
+		`DELETE FROM leader_credentials WHERE email = $1 AND approved_at IS NOT NULL`,
 		em,
 	)
 	if err != nil {
@@ -304,7 +285,7 @@ func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) 
 		return errors.New("no approved leader account for that email")
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = ?`, em); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em); err != nil {
 		return err
 	}
 

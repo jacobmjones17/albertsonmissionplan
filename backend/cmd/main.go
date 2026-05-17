@@ -49,13 +49,13 @@ func loadDotenv() {
 func main() {
 	loadDotenv()
 
-	dbPath := strings.TrimSpace(os.Getenv("DATABASE_PATH"))
-	if dbPath == "" {
-		dbPath = "wardmission.db"
+	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL must be set (PostgreSQL connection string, e.g. from Render Postgres)")
 	}
-	db, err := store.Open(context.Background(), dbPath)
+	db, err := store.Open(context.Background(), dbURL)
 	if err != nil {
-		log.Fatalf("database %s: %v", dbPath, err)
+		log.Fatalf("database: %v", err)
 	}
 	defer db.Close()
 
@@ -181,7 +181,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	fmt.Fprintf(os.Stderr, "ward mission SPA + API on http://localhost%s (db %s)\n", addr, dbPath)
+	fmt.Fprintf(os.Stderr, "ward mission SPA + API on http://localhost%s (PostgreSQL)\n", addr)
 	fmt.Fprintf(os.Stderr, "dev: copy .env.example to .env at repo root; run frontend with \"cd frontend && npm run dev\"\n")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)

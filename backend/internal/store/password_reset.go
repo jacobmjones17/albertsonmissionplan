@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -25,7 +24,7 @@ func DeletePasswordResetTokensForEmail(ctx context.Context, db *sql.DB, email st
 	if em == "" {
 		return errors.New("empty email")
 	}
-	_, err := db.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = ?`, em)
+	_, err := db.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em)
 	return err
 }
 
@@ -37,8 +36,8 @@ func InsertPasswordResetToken(ctx context.Context, db *sql.DB, email, tokenHashH
 	}
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO password_reset_tokens (token_hash, email, expires_at, created_at)
-		 VALUES (?, ?, ?, datetime('now'))`,
-		strings.TrimSpace(tokenHashHex), em, fmt.Sprintf("%d", expiresUnix),
+		 VALUES ($1, $2, $3, NOW())`,
+		strings.TrimSpace(tokenHashHex), em, expiresUnix,
 	)
 	return err
 }
@@ -64,8 +63,8 @@ func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, 
 
 	var email string
 	err = tx.QueryRowContext(ctx,
-		`SELECT email FROM password_reset_tokens WHERE token_hash = ?
-		   AND CAST(expires_at AS INTEGER) > CAST(strftime('%s','now') AS INTEGER)`,
+		`SELECT email FROM password_reset_tokens WHERE token_hash = $1
+		   AND expires_at > EXTRACT(EPOCH FROM NOW())::BIGINT`,
 		tokenHashHex,
 	).Scan(&email)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -75,12 +74,12 @@ func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, 
 		return err
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE token_hash = ?`, tokenHashHex); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE token_hash = $1`, tokenHashHex); err != nil {
 		return err
 	}
 
 	res, err := tx.ExecContext(ctx,
-		`UPDATE leader_credentials SET password_hash = ? WHERE email = ? AND approved_at IS NOT NULL`,
+		`UPDATE leader_credentials SET password_hash = $1 WHERE email = $2 AND approved_at IS NOT NULL`,
 		newPasswordHash, email,
 	)
 	if err != nil {

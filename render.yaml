@@ -1,30 +1,34 @@
-# Render Blueprint — https://render.com/docs/infrastructure-as-code
+# Render Blueprint — free Web Service + free Postgres (SQLite replaced by PostgreSQL).
+# https://render.com/docs/infrastructure-as-code
 #
-# SQLite needs a persistent disk. Render only attaches disks to paid Web Services (not the free tier).
-# Default plan below is starter (paid). Adjust region/plan in the dashboard after connect if needed.
-#
-# Deploy: push repo to GitHub/GitLab → Render Dashboard → New → Blueprint → select repo.
+# Limitations: Free Postgres expires after 30 days unless upgraded (Render docs).
+# Free Web Services spin down after idle (~15 min). Outbound SMTP ports may be blocked on Free —
+# use MAIL_ENABLED only if mail works for your plan or switch to an HTTPS email API later.
+
+databases:
+  - name: wardmission-db
+    databaseName: wardmission
+    user: wardmission
+    region: oregon
+    plan: free
 
 services:
   - type: web
     name: albertsonwardplan
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /
-    disk:
-      name: wardmission-sqlite
-      mountPath: /data
-      sizeGB: 1
     envVars:
-      - key: DATABASE_PATH
-        value: /data/wardmission.db
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wardmission-db
+          property: connectionString
       - key: COOKIE_SECURE
         value: true
       - key: SESSION_SECRET
         generateValue: true
-      # Set after first deploy to your *.onrender.com URL, then switch to https://albertsonwardplan.com
       - key: PUBLIC_BASE_URL
         sync: false

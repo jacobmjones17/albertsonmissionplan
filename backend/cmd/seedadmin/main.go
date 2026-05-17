@@ -1,18 +1,17 @@
-// seedadmin is a tiny CLI that creates (or resets) an approved leader account
-// directly in the SQLite database, without going through the registration UI.
-// Useful for bootstrapping the first admin or recovering access after a wipe.
+// seedadmin creates (or resets) an approved leader account directly in PostgreSQL,
+// without going through the registration UI. Useful for bootstrapping or recovering access.
 //
 // Example:
 //
-//	go run ./cmd/seedadmin -email you@example.org -password 'changeme'
+//	DATABASE_URL=postgres://... go run ./cmd/seedadmin -email you@example.org -password 'changeme'
 //
 // If the email already has a row, its password hash is replaced and the row is
-// re-marked as approved. The account is immediately usable for sign-in — there
-// is no separate email allowlist to maintain.
+// re-marked as approved. There is no separate email allowlist to maintain.
 package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -54,17 +53,17 @@ func main() {
 		os.Exit(2)
 	}
 
-	dbPath := strings.TrimSpace(os.Getenv("DATABASE_PATH"))
-	if dbPath == "" {
-		dbPath = "wardmission.db"
+	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL must be set (PostgreSQL connection string)")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	db, err := store.Open(ctx, dbPath)
+	db, err := store.Open(ctx, dbURL)
 	if err != nil {
-		log.Fatalf("open db %s: %v", dbPath, err)
+		log.Fatalf("open db: %v", err)
 	}
 	defer db.Close()
 
@@ -80,19 +79,15 @@ func main() {
 	switch {
 	case err == nil:
 		fmt.Printf("seeded new approved leader account: %s\n", em)
-	case err.Error() == store.ErrLeaderAlreadyRegistered.Error():
-		// Row exists. Reset password + force-approve via direct SQL since the store API
-		// does not expose an "upsert" path (intentionally — UI flow never resets passwords).
-		// When -first/-last are provided they replace whatever is on file; empty flags keep
-		// the existing name untouched (so re-running with just -password is non-destructive).
+	case errors.Is(err, store.ErrLeaderAlreadyRegistered):
 		if _, err := db.ExecContext(ctx,
 			`UPDATE leader_credentials
-			   SET password_hash = ?,
-			       first_name    = CASE WHEN ?='' THEN COALESCE(first_name, '') ELSE ? END,
-			       last_name     = CASE WHEN ?='' THEN COALESCE(last_name,  '') ELSE ? END,
-			       approved_at   = COALESCE(approved_at, datetime('now')),
-			       approved_by   = COALESCE(approved_by, ?)
-			 WHERE email = ?`,
+			   SET password_hash = $1,
+			       first_name    = CASE WHEN $2='' THEN COALESCE(first_name, '') ELSE $3 END,
+			       last_name     = CASE WHEN $4='' THEN COALESCE(last_name, '') ELSE $5 END,
+			       approved_at   = COALESCE(approved_at, NOW()),
+			       approved_by   = COALESCE(approved_by, $6)
+			 WHERE email = $7`,
 			hash, fn, fn, ln, ln, "cli-seed", em,
 		); err != nil {
 			log.Fatalf("reset existing credential: %v", err)
