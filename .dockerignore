@@ -1,0 +1,9 @@
+.git
+.cursor
+**/node_modules
+frontend/dist
+backend/web/dist
+*.db
+.env
+.env.*
+!.env.example

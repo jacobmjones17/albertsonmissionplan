@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useBootstrap } from './BootstrapContext'
 import { apiJson } from './api'
+import { useBootstrap } from './BootstrapContext'
+import { STATIC_SITE_PHOTOS } from './staticSitePhotos'
 
 const nav = [
   { to: '/', label: 'Home', end: true },
@@ -30,9 +31,49 @@ function BrandMark() {
   )
 }
 
+/** Public navbar overlays the merged hero backdrop while scrolled near top (`site-header--overlap-home`). */
+function SiteHeaderShell({
+  mergeHeroBackdrop = false,
+  children,
+}: {
+  mergeHeroBackdrop?: boolean
+  children: ReactNode
+}) {
+  return (
+    <header className={`site-header${mergeHeroBackdrop ? ' site-header--overlap-home' : ''}`}>
+      {children}
+    </header>
+  )
+}
+
 export function Layout() {
+  const { user } = useBootstrap()
   const [open, setOpen] = useState(false)
   const loc = useLocation()
+  const headerBackdrop = String(STATIC_SITE_PHOTOS.header).trim()
+
+  const [pastHeroBackdrop, setPastHeroBackdrop] = useState(false)
+  const mergeHeroBackdrop = Boolean(headerBackdrop) && !pastHeroBackdrop
+
+  useEffect(() => {
+    setPastHeroBackdrop(false)
+  }, [loc.pathname])
+
+  useEffect(() => {
+    if (!headerBackdrop) {
+      return
+    }
+    function thresholdY() {
+      const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+      return Math.min(vh * 0.42, 380)
+    }
+    function onScroll() {
+      setPastHeroBackdrop(window.scrollY > thresholdY())
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [loc.pathname, headerBackdrop])
 
   useEffect(() => {
     setOpen(false)
@@ -43,7 +84,7 @@ export function Layout() {
       <a className="skip" href="#main">
         Skip to main content
       </a>
-      <header className="site-header">
+      <SiteHeaderShell mergeHeroBackdrop={mergeHeroBackdrop}>
         <div className="header-inner">
           <NavLink className="brand" to="/" end>
             <BrandMark />
@@ -74,13 +115,15 @@ export function Layout() {
             </ul>
           </nav>
         </div>
-      </header>
+      </SiteHeaderShell>
       <Outlet />
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">
             Albertson Ward &middot; Ward Mission &middot;{' '}
-            <Link to="/admin">Leader sign-in</Link>
+            <Link to="/admin" title={user?.isLeader ? 'Open leader dashboard' : undefined}>
+              {user?.isLeader ? 'Leader tools' : 'Leader sign-in'}
+            </Link>
           </p>
           <div className="site-footer__contact">
             <p className="site-footer__contact-label">Contact</p>
@@ -102,11 +145,23 @@ export function AdminLayout() {
   const { refresh, user } = useBootstrap()
 
   async function signOut() {
-    await apiJson<{ ok: boolean }>('/auth/logout', {
-      method: 'POST',
-      headers: { Accept: 'application/json' },
-    })
-    await refresh()
+    try {
+      await apiJson<{ ok: boolean }>('/auth/logout', {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      })
+    } catch {
+      try {
+        await fetch('/auth/logout', { method: 'GET', credentials: 'include' })
+      } catch {
+        // ignore — we still navigate away below so the user is always signed out client-side.
+      }
+    }
+    try {
+      await refresh()
+    } catch {
+      // ignore — bootstrap may briefly fail mid-logout; the redirect below resets state.
+    }
     window.location.href = '/'
   }
 
@@ -115,7 +170,7 @@ export function AdminLayout() {
       <a className="skip" href="#main">
         Skip to main content
       </a>
-      <header className="site-header">
+      <SiteHeaderShell>
         <div className="header-inner">
           <NavLink className="brand" to="/admin">
             <BrandMark />
@@ -130,7 +185,7 @@ export function AdminLayout() {
             </button>
           ) : null}
         </div>
-      </header>
+      </SiteHeaderShell>
       <Outlet />
       <footer className="site-footer">
         <p>

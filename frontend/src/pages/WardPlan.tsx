@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { apiJson } from '../api'
+import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
 import { WardGoalLine } from '../components/richtext/WardGoalLine'
+import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type Org = { slug: string; title: string; bullets: string[] }
 
@@ -86,6 +88,11 @@ export function WardPlan() {
             Matthew 28:19 — &ldquo;Go ye therefore, and teach all nations, baptizing them in the name of
             the Father, and of the Son, and of the Holy Ghost.&rdquo;
           </h2>
+
+          <FeaturePhoto
+            src={STATIC_SITE_PHOTOS.wardPlanFeature}
+            caption="“For God so loved the world…” — John 3:16"
+          />
         </div>
       </main>
     </>

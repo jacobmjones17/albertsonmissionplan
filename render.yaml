@@ -1,0 +1,30 @@
+# Render Blueprint — https://render.com/docs/infrastructure-as-code
+#
+# SQLite needs a persistent disk. Render only attaches disks to paid Web Services (not the free tier).
+# Default plan below is starter (paid). Adjust region/plan in the dashboard after connect if needed.
+#
+# Deploy: push repo to GitHub/GitLab → Render Dashboard → New → Blueprint → select repo.
+
+services:
+  - type: web
+    name: albertsonwardplan
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    disk:
+      name: wardmission-sqlite
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/wardmission.db
+      - key: COOKIE_SECURE
+        value: true
+      - key: SESSION_SECRET
+        generateValue: true
+      # Set after first deploy to your *.onrender.com URL, then switch to https://albertsonwardplan.com
+      - key: PUBLIC_BASE_URL
+        sync: false

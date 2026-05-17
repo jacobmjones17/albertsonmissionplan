@@ -3,14 +3,9 @@
 - **Dev:** from repo root, start the Go API on `:8080` (`go run ./backend/cmd` or `cd backend && go run ./cmd`), then `npm run dev` here. Vite proxies `/api` and `/auth` to the backend.
 - **Production build:** `npm run build` writes static files to `../backend/web/dist` (embedded by the Go binary when you `go build` the server).
 
-## Optional home photos
+## Site photos
 
-Place images in `public/` (Vite serves them at the site root):
-
-- `ward-hero.jpg` — wide banner for the home hero (e.g. Christ portrait). If the file is missing, a neutral gradient is used.
-- `ward-missionaries.jpg` — photo for the dark split section (e.g. missionaries in the field). If missing, a gradient panel is used.
-
-Use images you have rights to publish (ward photography, Church media per guidelines, or licensed stock).
+Photos are **static files**: add images under `frontend/public/site/` and set root-relative paths in `src/staticSitePhotos.ts` (`header`, home hero, each page banner, about). Leave a path empty (or omit the file) to use the default gradient layout for that spot.
 
 ## If `npm install` fails with `ENOTEMPTY` / rename errors
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,10 +18,10 @@ import (
 
 	"github.com/albertson/albertsonmissionplan/internal/auth"
 	"github.com/albertson/albertsonmissionplan/internal/handlers"
+	"github.com/albertson/albertsonmissionplan/internal/mail"
 	"github.com/albertson/albertsonmissionplan/internal/spa"
 	"github.com/albertson/albertsonmissionplan/internal/store"
 	"github.com/albertson/albertsonmissionplan/web"
-	"golang.org/x/oauth2"
 )
 
 // loadDotenv applies .env files from the current working directory up toward the filesystem root.
@@ -47,13 +48,12 @@ func loadDotenv() {
 
 func main() {
 	loadDotenv()
-	ctx := context.Background()
 
 	dbPath := strings.TrimSpace(os.Getenv("DATABASE_PATH"))
 	if dbPath == "" {
 		dbPath = "wardmission.db"
 	}
-	db, err := store.Open(ctx, dbPath)
+	db, err := store.Open(context.Background(), dbPath)
 	if err != nil {
 		log.Fatalf("database %s: %v", dbPath, err)
 	}
@@ -65,38 +65,23 @@ func main() {
 	}
 	csrfKey := sha256.Sum256([]byte(sessionSecret))
 
-	skipOAuth := strings.EqualFold(strings.TrimSpace(os.Getenv("DEV_SKIP_OAUTH")), "true")
-	var oauthCfg *oauth2.Config
-	if skipOAuth {
-		log.Println("warning: DEV_SKIP_OAUTH=true — Google sign-in is disabled (public site and APIs work; leader routes will not authenticate)")
-	} else {
-		googleID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
-		googleSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
-		redirect := strings.TrimSpace(os.Getenv("OAUTH_REDIRECT_URL"))
-		if googleID == "" || googleSecret == "" || redirect == "" {
-			log.Fatal(`Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and OAUTH_REDIRECT_URL, or use DEV_SKIP_OAUTH=true for local dev without leader sign-in. See Google Cloud Console → APIs & Services → Credentials (OAuth 2.0 Web client).`)
-		}
-		oauthCfg = auth.NewGoogleOAuth(googleID, googleSecret, redirect)
-		log.Println("Google OAuth enabled for leader sign-in")
-	}
-
 	cookieStore := auth.CookieStoreFromSecret(sessionSecret)
 	cookieSecure := strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true") ||
 		strings.HasPrefix(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "https://")
 	auth.SetCookieSecure(cookieStore, cookieSecure)
 
-	allow := auth.ParseAllowlist(os.Getenv("ALLOWED_LEADER_EMAILS"))
-	if len(allow) == 0 {
-		log.Println("warning: ALLOWED_LEADER_EMAILS is empty — no one can use leader tools until you add comma-separated Google emails")
-	}
+	ac := &auth.Config{Store: cookieStore}
 
-	ac := &auth.Config{
-		OAuth:   oauthCfg,
-		Store:   cookieStore,
-		Allowed: allow,
+	mc, err := mail.FromEnv()
+	if err != nil {
+		log.Fatalf("mail: %v", err)
 	}
+	if mc != nil && strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")) == "" {
+		log.Printf("warning: MAIL_ENABLED=true but PUBLIC_BASE_URL is empty — outbound emails will omit usable links")
+	}
+	pubURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
 
-	srv := &handlers.Server{DB: db, Auth: ac}
+	srv := &handlers.Server{DB: db, Auth: ac, Mail: mc, PublicBaseURL: pubURL}
 
 	mux := http.NewServeMux()
 
@@ -108,12 +93,22 @@ func main() {
 
 	mux.HandleFunc("GET /api/admin/pending", srv.APIAdminPending)
 	mux.HandleFunc("POST /api/admin/moderate", srv.APIAdminModerate)
+	mux.HandleFunc("GET /api/admin/published", srv.APIAdminListPublished)
+	mux.HandleFunc("POST /api/admin/published/edit", srv.APIAdminEditPublished)
+	mux.HandleFunc("POST /api/admin/published/delete", srv.APIAdminDeletePublished)
+	mux.HandleFunc("GET /api/admin/pending-accounts", srv.APIAdminPendingAccounts)
+	mux.HandleFunc("POST /api/admin/decide-account", srv.APIAdminDecidePendingAccount)
+	mux.HandleFunc("GET /api/admin/approved-leaders", srv.APIAdminApprovedLeaders)
+	mux.HandleFunc("POST /api/admin/remove-approved-leader", srv.APIAdminRemoveApprovedLeader)
 	mux.HandleFunc("GET /api/admin/ward-plan", srv.APIAdminWardPlan)
 	mux.HandleFunc("POST /api/admin/ward-plan", srv.APIAdminWardPlanSave)
 
-	mux.HandleFunc("GET /auth/google", srv.GoogleStart)
-	mux.HandleFunc("GET /auth/callback", srv.GoogleCallback)
+	mux.HandleFunc("POST /auth/register", srv.APIAuthRegister)
+	mux.HandleFunc("POST /auth/login", srv.APIAuthLogin)
+	mux.HandleFunc("POST /auth/forgot-password", srv.APIAuthForgotPassword)
+	mux.HandleFunc("POST /auth/reset-password", srv.APIAuthResetPassword)
 	mux.HandleFunc("POST /auth/logout", srv.Logout)
+	mux.HandleFunc("GET /auth/logout", srv.Logout)
 
 	indexHTML, err := fs.ReadFile(web.Dist, "dist/index.html")
 	if err != nil {
@@ -125,7 +120,55 @@ func main() {
 	}
 	mux.Handle("/", spa.FileServer(distFS, indexHTML))
 
-	handler := csrf.Protect(csrfKey[:], csrf.Secure(cookieSecure))(mux)
+	csrfFailLogger := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reason := csrf.FailureReason(r)
+		log.Printf("csrf reject %s %s: %v (origin=%q referer=%q cookie_present=%v token_header=%q)",
+			r.Method, r.URL.Path, reason,
+			r.Header.Get("Origin"), r.Header.Get("Referer"),
+			func() bool { _, err := r.Cookie("_gorilla_csrf"); return err == nil }(),
+			r.Header.Get("X-CSRF-Token"),
+		)
+		http.Error(w, fmt.Sprintf("Forbidden — %v", reason), http.StatusForbidden)
+	})
+
+	csrfOpts := []csrf.Option{csrf.Secure(cookieSecure), csrf.ErrorHandler(csrfFailLogger)}
+	// Vite dev server runs on a different origin than the API, so by default gorilla/csrf
+	// rejects its POSTs as cross-origin (returning 403 before the handler runs). Trust the
+	// dev origin only when explicitly enabled with DEV_TRUST_VITE=true. Vite normally uses
+	// 5173 but falls back to the next free port (5174, 5175, …) if strictPort is off, so we
+	// trust a small range. When running `npm run dev:host`, the phone hits Vite at the
+	// LAN IP, so we also enumerate every local IPv4 interface and trust those on the same
+	// port range. For Windows-host LAN IPs that WSL2 can't enumerate, the user can list them
+	// via DEV_EXTRA_TRUSTED_ORIGINS=192.168.1.100:5173,192.168.1.100:5174 etc.
+	// Production builds serve the SPA from this Go server (same-origin) and need none of this.
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("DEV_TRUST_VITE")), "true") {
+		origins := buildDevTrustedOrigins(os.Getenv("DEV_EXTRA_TRUSTED_ORIGINS"))
+		csrfOpts = append(csrfOpts, csrf.TrustedOrigins(origins))
+		log.Printf("DEV_TRUST_VITE=true — trusting %d Vite dev origins for CSRF (dev only)", len(origins))
+		log.Printf("  trusted origins: %v", origins)
+	}
+	csrfProtected := csrf.Protect(csrfKey[:], csrfOpts...)(mux)
+
+	// Endpoints that authenticate the user (login/register/logout) are intentionally exempt
+	// from CSRF: they verify credentials directly, which is the CSRF-equivalent check, and
+	// requiring a CSRF token here just creates brittle dev-time chicken-and-egg failures
+	// (e.g. stale _gorilla_csrf cookies from prior dev sessions). Every other state-changing
+	// endpoint (admin/moderate, ward plan save, post experience, decide account, etc.) still
+	// requires a valid CSRF token because they act on the established session.
+	csrfExempt := map[string]bool{
+		"/auth/login":           true,
+		"/auth/register":        true,
+		"/auth/forgot-password": true,
+		"/auth/reset-password":  true,
+		"/auth/logout":          true,
+	}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if csrfExempt[r.URL.Path] {
+			mux.ServeHTTP(w, r)
+			return
+		}
+		csrfProtected.ServeHTTP(w, r)
+	})
 
 	addr := ":8080"
 	if p := os.Getenv("PORT"); p != "" {
@@ -151,4 +194,60 @@ func logRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start).Round(time.Millisecond))
 	})
+}
+
+// buildDevTrustedOrigins returns the host:port strings gorilla/csrf should accept on POST.
+// Includes: localhost / 127.0.0.1 on Vite's common port range, every IPv4 of every local
+// non-loopback interface on the same range, plus anything the operator passed in
+// DEV_EXTRA_TRUSTED_ORIGINS (comma-separated). WSL2 cannot see Windows-host LAN IPs from
+// inside the VM, so the env var is the escape hatch for `npm run dev:host` setups where
+// the phone reaches Vite via the Windows host's LAN IP.
+func buildDevTrustedOrigins(extra string) []string {
+	seen := make(map[string]struct{})
+	add := func(host string) {
+		host = strings.TrimSpace(host)
+		if host == "" {
+			return
+		}
+		for port := 5173; port <= 5180; port++ {
+			origin := fmt.Sprintf("%s:%d", host, port)
+			if _, ok := seen[origin]; !ok {
+				seen[origin] = struct{}{}
+			}
+		}
+	}
+
+	add("localhost")
+	add("127.0.0.1")
+
+	if ifs, err := net.InterfaceAddrs(); err == nil {
+		for _, a := range ifs {
+			ipnet, ok := a.(*net.IPNet)
+			if !ok || ipnet.IP.IsLoopback() {
+				continue
+			}
+			if ip4 := ipnet.IP.To4(); ip4 != nil {
+				add(ip4.String())
+			}
+		}
+	}
+
+	for _, raw := range strings.Split(extra, ",") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		// Accept either bare host (we tack on the port range) or host:port (literal).
+		if _, _, err := net.SplitHostPort(raw); err == nil {
+			seen[raw] = struct{}{}
+		} else {
+			add(raw)
+		}
+	}
+
+	out := make([]string, 0, len(seen))
+	for o := range seen {
+		out = append(out, o)
+	}
+	return out
 }

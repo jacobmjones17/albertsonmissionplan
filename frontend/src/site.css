@@ -149,6 +149,106 @@ img {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, var(--shadow-xs);
 }
 
+.site-header.site-header--has-photo {
+  position: relative;
+  isolation: isolate;
+  background: rgba(253, 250, 243, 0.28);
+  backdrop-filter: none;
+  overflow: clip;
+}
+
+.site-header.site-header--has-photo .site-header__photo-wrap {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.site-header.site-header--has-photo .site-header__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 42%;
+  opacity: 0.72;
+  display: block;
+}
+
+.site-header.site-header--has-photo .site-header__photo-scrim {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(253, 250, 243, 0.55) 0%,
+    rgba(253, 250, 243, 0.22) 42%,
+    rgba(253, 250, 243, 0.62) 100%
+  );
+}
+
+.site-header.site-header--has-photo .header-inner {
+  position: relative;
+  z-index: 2;
+}
+
+/* Home only: navbar reads as one strip with hero — translucent over shared photo */
+.site-header.site-header--overlap-home {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  isolation: isolate;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.1) inset,
+    0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+.site-header.site-header--overlap-home .brand,
+.site-header.site-header--overlap-home .brand:hover {
+  color: #fffefb;
+}
+
+.site-header.site-header--overlap-home .brand-eyebrow {
+  color: rgba(255, 226, 190, 0.96);
+}
+
+.site-header.site-header--overlap-home .site-nav a {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.site-header.site-header--overlap-home .site-nav a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.site-header.site-header--overlap-home .site-nav a[aria-current="page"] {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.site-header.site-header--overlap-home .site-nav a[aria-current="page"]::after {
+  background: rgba(255, 220, 180, 0.95);
+}
+
+.site-header.site-header--overlap-home .nav-toggle {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.site-header.site-header--overlap-home .nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+.site-header.site-header--overlap-home .nav-toggle span,
+.site-header.site-header--overlap-home .nav-toggle span::before,
+.site-header.site-header--overlap-home .nav-toggle span::after {
+  background: #fffef8;
+}
+
 .header-inner {
   max-width: var(--max-wide);
   margin: 0 auto;
@@ -389,16 +489,22 @@ main {
 
 /* ---------- Home (Google Sites–style layout): photo hero, strip, CTA, dark split ---------- */
 .hero-page.hero-page--home {
-  min-height: min(48vh, 420px);
+  min-height: min(54vh, 480px);
   padding: clamp(3rem, 8vh, 4.5rem) 1.35rem clamp(2.5rem, 6vh, 3.5rem);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   color: #fff;
-  /* Fallback when /ward-hero.jpg is missing */
+  /* Fallback gradient when no static `/site/` home hero image path is configured */
   background: linear-gradient(160deg, #3a4552 0%, #252b34 45%, #181c22 100%);
   overflow: hidden;
+}
+
+/* Navbar + hero share one background image — hero extends under sticky header */
+.hero-page.hero-page--home.hero-page--underlap-header {
+  margin-top: calc(-1 * var(--header-h));
+  padding-top: calc(var(--header-h) + clamp(3rem, 8vh, 4.5rem));
 }
 .hero-page.hero-page--home::after {
   display: none;
@@ -412,7 +518,8 @@ main {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 22%;
+  /* Portrait: lower % = more forehead / above eyes; higher % = more smile */
+  object-position: center 42%;
   display: block;
 }
 .hero-page__dim {
@@ -422,9 +529,9 @@ main {
   pointer-events: none;
   background: linear-gradient(
     180deg,
-    rgba(35, 40, 48, 0.35) 0%,
-    rgba(18, 20, 24, 0.5) 50%,
-    rgba(12, 14, 18, 0.72) 100%
+    rgba(35, 40, 48, 0.32) 0%,
+    rgba(18, 20, 24, 0.38) 45%,
+    rgba(12, 14, 18, 0.58) 100%
   );
 }
 .hero-page__inner {
@@ -720,6 +827,16 @@ main {
   max-width: 40rem;
 }
 
+/* Mission Experiences — published list first; share form below */
+.experiences-published-first__intro {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.experiences-share-after {
+  margin-top: 2.5rem;
+}
+
 .testimonial-card.testimonial-card--sites {
   background: #fafafa;
   border: 1px solid #ddd;
@@ -742,6 +859,40 @@ main {
   background: #e6e6e6;
   color: #111;
   border-color: #333;
+}
+
+/* Count badge sits at the end of the flex row (reliable on mobile; avoids clipping when
+   position:absolute interacted with notch / overflow). */
+.admin-links__text {
+  flex: 1;
+  min-width: 0;
+}
+.admin-link-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.85rem;
+  min-height: 1.85rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+}
+
+/* Two-up form rows (e.g. First name / Last name). Stacks on narrow screens. */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.form-row--two-up > label {
+  flex: 1 1 calc(50% - 0.35rem);
+  min-width: 10rem;
 }
 
 /* Home — single readable column (replaces CTA band + dark split) */
@@ -826,6 +977,60 @@ main {
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+/* Decorative in-page photos (<FeaturePhoto />). Sized to fit the parent .wrap container. */
+.page-feature-photo {
+  margin: 2.5rem auto;
+  padding: 0;
+  text-align: center;
+}
+.page-feature-photo--wide {
+  max-width: min(100%, 720px);
+}
+.page-feature-photo--narrow {
+  max-width: min(100%, 480px);
+}
+.page-feature-photo--painting {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.page-feature-photo--flat {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.page-feature-photo__img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.page-feature-photo--painting .page-feature-photo__img {
+  max-height: 520px;
+  object-fit: cover;
+  object-position: center top;
+}
+.page-feature-photo__caption {
+  margin: 0.65rem 0.25rem 0.85rem;
+  padding: 0 0.25rem 0.85rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+  font-style: italic;
+}
+.page-feature-photo--flat .page-feature-photo__caption {
+  padding-bottom: 0;
+}
+
+@media (max-width: 520px) {
+  .page-feature-photo {
+    margin: 1.75rem auto;
+  }
+  .page-feature-photo--painting .page-feature-photo__img {
+    max-height: 360px;
+  }
 }
 
 .wrap--home {
@@ -1214,8 +1419,12 @@ button.btn-danger:active {
   bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  width: min(100vw - 2rem, 26rem);
+  width: min(
+    26rem,
+    calc(100vw - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   pointer-events: none;
+  box-sizing: border-box;
 }
 .toast {
   pointer-events: auto;
@@ -1685,252 +1894,383 @@ details.org .org-body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Monthly challenges: year grid + mini calendar + detail ---------- */
+/* ---------- Monthly challenges (picker + featured card) ---------- */
 .challenges-main {
   padding: 0 0 2.5rem;
+}
+.challenges-main--cards {
+  background: #fff;
 }
 .challenges-wrap {
   padding-left: 1.35rem;
   padding-right: 1.35rem;
 }
-.challenges-toolbar {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin: 1.75rem 0 1rem;
-  border-bottom: 1px solid #d8d8d8;
-  padding-bottom: 0.85rem;
-}
-.challenges-toolbar-label {
-  margin: 0 !important;
-}
-.challenges-year {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: clamp(1.75rem, 3vw, 2.35rem);
-  font-weight: 600;
-  color: #2a2a2a;
-  letter-spacing: 0.02em;
+.challenges-intro {
+  margin: 0 0 1.35rem;
+  max-width: 40rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
 }
 
-.challenges-split {
+.challenges-split--explorer {
   display: grid;
-  gap: 1.75rem 2.25rem;
-  align-items: start;
+  gap: 1.5rem 2rem;
+  align-items: stretch;
 }
 @media (min-width: 900px) {
-  .challenges-split {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  .challenges-split--explorer {
+    grid-template-columns: minmax(22rem, 32rem) minmax(16.5rem, 22rem);
   }
 }
 
-.challenges-cal-column {
+.challenges-explorer-nav {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.65rem;
+  min-height: 100%;
+}
+.challenges-explorer-grow {
+  display: none;
+}
+@media (min-width: 900px) {
+  .challenges-explorer-grow {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 1.25rem;
+  }
 }
 
-.year-month-grid {
+.challenges-explorer-eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.challenges-explorer-selection {
+  flex-shrink: 0;
+  margin: 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-soft);
+  font-family: var(--font-serif);
+  font-size: clamp(1.22rem, 2.6vw, 1.52rem);
+  font-weight: 600;
+  line-height: 1.28;
+  color: var(--ink-strong);
+}
+.challenges-explorer-selection__year {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.5em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+  margin-left: 0.35rem;
+  opacity: 0.95;
+  vertical-align: middle;
+}
+
+.challenge-month-rail {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-  border: 1px solid #c8c8c8;
-  border-radius: 2px;
-  overflow: hidden;
-  background: #c8c8c8;
+  gap: 0.45rem;
 }
 @media (min-width: 520px) and (max-width: 899px) {
-  .year-month-grid {
+  .challenge-month-rail {
     grid-template-columns: repeat(4, 1fr);
   }
 }
-.year-month-cell {
+@media (min-width: 900px) {
+  .challenge-month-rail {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.challenge-month-tile {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.25rem;
   text-align: left;
-  padding: 0.65rem 0.7rem 0.75rem;
+  padding: 0.5rem 0.52rem 0.55rem;
   margin: 0;
-  border: 0;
-  border-right: 1px solid #c8c8c8;
-  border-bottom: 1px solid #c8c8c8;
-  background: #f7f7f7;
-  color: #222;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.94);
+  color: var(--ink-strong);
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-  min-height: 4.1rem;
+  min-height: 3.95rem;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+  box-shadow: 0 1px 2px rgba(27, 24, 18, 0.04);
 }
-.year-month-cell:nth-child(3n) {
-  border-right: 0;
+.challenge-month-tile:hover {
+  border-color: var(--border-strong);
+  background: #fffefb;
+  box-shadow: 0 3px 10px rgba(27, 24, 18, 0.07);
+  transform: translateY(-1px);
 }
-@media (min-width: 520px) and (max-width: 899px) {
-  .year-month-cell:nth-child(3n) {
-    border-right: 1px solid #c8c8c8;
-  }
-  .year-month-cell:nth-child(4n) {
-    border-right: 0;
-  }
+.challenge-month-tile:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
 }
-.year-month-cell:hover {
-  background: #efefef;
+.challenge-month-tile.is-selected {
+  border-color: rgba(54, 64, 78, 0.45);
+  background: linear-gradient(158deg, #3d4a58 0%, #2f3844 52%, #2a3240 100%);
+  color: #fffef9;
+  box-shadow:
+    0 6px 16px rgba(42, 48, 58, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  transform: none;
 }
-.year-month-cell.is-selected {
-  background: linear-gradient(160deg, #3a4552 0%, #2a3038 100%);
-  color: #fff;
+.challenge-month-tile.is-selected .challenge-month-tile__abbr {
+  color: rgba(255, 235, 200, 0.95);
 }
-.year-month-cell.is-selected .year-month-cell__abbr {
-  color: rgba(255, 255, 255, 0.85);
+.challenge-month-tile.is-selected .challenge-month-tile__theme {
+  color: rgba(255, 255, 255, 0.92);
 }
-.year-month-cell.is-selected .year-month-cell__theme {
-  color: rgba(255, 255, 255, 0.95);
+.challenge-month-tile.is-current:not(.is-selected) {
+  box-shadow:
+    0 0 0 2px var(--gold-deep),
+    0 2px 8px rgba(176, 135, 69, 0.1);
+  border-color: rgba(176, 135, 69, 0.4);
 }
-.year-month-cell.is-current:not(.is-selected) {
-  box-shadow: inset 0 0 0 2px var(--gold);
-}
-.year-month-cell__abbr {
+.challenge-month-tile__abbr {
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--accent);
 }
-.year-month-cell__theme {
-  font-size: 0.78rem;
+.challenge-month-tile__theme {
+  font-size: 0.68rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.34;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .challenge-month-tile__abbr {
+    font-size: 0.74rem;
+  }
+  .challenge-month-tile__theme {
+    font-size: 0.8rem;
+    line-height: 1.38;
+    -webkit-line-clamp: 3;
+  }
+  .challenge-month-tile {
+    gap: 0.32rem;
+    padding: 0.62rem 0.62rem 0.68rem;
+    min-height: 4.4rem;
+  }
 }
 
-.mini-month-cal {
-  background: #fafafa;
-  border: 1px solid #d0d0d0;
-  border-top: 4px solid #2b2b2b;
-  border-radius: 2px;
-  padding: 1rem 1rem 1.15rem;
+.challenge-card--current-accent {
+  box-shadow:
+    0 0 0 2px rgba(176, 135, 69, 0.55),
+    0 8px 26px rgba(28, 26, 22, 0.08);
+  border-color: rgba(176, 135, 69, 0.32);
 }
-.mini-month-cal__header {
+
+.challenge-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-.mini-month-cal__title {
+  flex-direction: column;
   margin: 0;
-  flex: 1;
-  text-align: center;
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  line-height: 1.2;
-}
-.mini-month-cal__nav {
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 1px solid #bbb;
-  border-radius: 2px;
   background: #fff;
-  color: #333;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(28, 26, 22, 0.04);
+  transition:
+    box-shadow var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
 }
-.mini-month-cal__nav:hover {
-  background: #f0f0f0;
-  border-color: #999;
+.challenge-card:hover {
+  border-color: var(--border);
+  box-shadow: 0 8px 28px rgba(28, 26, 22, 0.08);
 }
-.mini-month-cal__weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0;
-  margin-bottom: 0.35rem;
+@media (min-width: 900px) {
+  .challenges-split--explorer .challenge-card--featured {
+    max-width: 100%;
+    width: 100%;
+    justify-self: start;
+    align-self: start;
+    height: auto;
+  }
+  .challenge-card--featured .challenge-card__art {
+    aspect-ratio: 4 / 3;
+    padding: 0;
+  }
+  .challenge-card--featured .challenge-card__art-front {
+    padding: 0.55rem 0.65rem 0.62rem;
+  }
+  .challenge-card--featured .challenge-card__body {
+    padding: 0.8rem 0.92rem 0.98rem;
+  }
+  .challenge-card--featured .challenge-card__goal {
+    margin: 0 0 0.58rem;
+    font-size: 0.89rem;
+    line-height: 1.42;
+  }
+  .challenge-card--featured .challenge-card__list li {
+    padding: 0.5rem 0 0.5rem 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.43;
+    border-bottom-color: rgba(239, 237, 232, 0.95);
+  }
+  .challenge-card--featured .challenge-card__list li::before {
+    top: 0.92rem;
+  }
 }
-.mini-month-cal__wd {
+
+.challenge-card__art {
+  position: relative;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(165deg, #f8f3ea 0%, #efe7d8 52%, #f4efe5 100%);
   text-align: center;
+}
+.challenge-card__icon {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(1.03) saturate(0.97);
+}
+.challenge-card__art-front {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.62rem 0.72rem 0.72rem;
+  pointer-events: none;
+  background: linear-gradient(
+    185deg,
+    rgba(247, 242, 233, 0.88) 0%,
+    rgba(247, 242, 233, 0.32) 18%,
+    rgba(246, 240, 230, 0) 52%
+  );
+}
+.challenge-card__art-corner {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 2;
+}
+.challenge-card__art-corner--tl {
+  top: 0.65rem;
+  left: 0.65rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-left: 1px solid rgba(72, 65, 55, 0.45);
+  border-top: 1px solid rgba(72, 65, 55, 0.45);
+  border-radius: 2px 0 0 0;
+}
+.challenge-card__art-corner--br {
+  bottom: 0.65rem;
+  right: 0.65rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-right: 1px solid rgba(72, 65, 55, 0.45);
+  border-bottom: 1px solid rgba(72, 65, 55, 0.45);
+  border-radius: 0 0 2px 0;
+}
+
+.challenge-card__month {
+  margin: 0;
+  padding: 0 0.35rem;
+  font-family: var(--font-sans);
   font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #888;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-}
-.mini-month-cal__days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-.mini-month-cal__day {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #333;
-  background: #fff;
-  border-radius: 2px;
-}
-.mini-month-cal__day--pad {
-  visibility: hidden;
-  background: transparent;
-}
-.mini-month-cal__day.is-today {
-  background: #2a3038;
-  color: #fff;
-  box-shadow: 0 0 0 2px var(--gold);
+  color: rgba(66, 60, 50, 0.82);
+  text-shadow:
+    0 0 12px rgba(252, 248, 240, 0.92),
+    0 1px 1px rgba(255, 255, 255, 0.75);
 }
 
-.challenge-detail {
-  margin: 0;
-  padding: 0;
+.challenge-card__body {
+  padding: 1.15rem 1.15rem 1.35rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-.challenge-detail__heading {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-serif);
-  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
-  font-weight: 600;
-  color: #141414;
-  line-height: 1.25;
+.challenge-card__goal {
+  margin: 0 0 0.95rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.52;
+  color: var(--ink);
 }
-.challenge-detail__lede {
-  margin: 0 0 1.1rem;
-  font-size: 1rem;
-  line-height: 1.55;
-  color: #3d3d3d;
+.challenge-card__goal strong {
+  font-weight: 700;
+  color: var(--ink-strong);
 }
-.challenge-detail__roles {
+
+.challenge-card__list {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #e8e4dc;
 }
-.challenge-detail__roles li {
+.challenge-card__list li {
+  position: relative;
   margin: 0;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid #e8e8e8;
-  font-size: 0.98rem;
-  line-height: 1.55;
+  padding: 0.75rem 0 0.75rem 0.95rem;
+  border-bottom: 1px solid #efede8;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #444;
 }
-.challenge-detail__roles li:last-child {
+.challenge-card__list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.08rem;
+  width: 6px;
+  height: 6px;
+  background: #1a1a1a;
+  border-radius: 1px;
+}
+.challenge-card__list li:last-child {
   border-bottom: 0;
+  padding-bottom: 0;
 }
-.challenge-detail__roles strong {
-  display: inline;
-  color: #1f3c63;
+.challenge-card__list strong {
+  color: var(--accent);
   font-weight: 700;
+}
+.challenge-card__list a {
+  color: var(--accent-link, var(--accent));
+  text-underline-offset: 0.14em;
 }
 
 .challenges-quote {
-  margin-top: 2.25rem;
+  margin-top: 2.5rem;
 }
 
 /* legacy goals grid (no longer used on Monthly Challenges; kept for reuse) */
@@ -2084,6 +2424,96 @@ details.org .org-body {
   border: 0;
 }
 
+/* Love Share Invite — one hero embed + two-up row so viewers see all three without long scrolling */
+/* Uses .wrap-wide (72rem) instead of narrow .wrap so embeds fill the layout like the mockup. */
+.love-share-video-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Default .video-wrap caps at 48rem — disable inside this stack so hero + split row fill the column */
+.love-share-video-stack .video-wrap {
+  max-width: none;
+  width: 100%;
+}
+
+.video-wrap--love-share-hero {
+  margin-top: 0;
+}
+
+.love-share-intro-strip {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Side-by-side on desktop; stacked on narrow screens with video → bullets kept together per column. */
+.love-share-columns {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.35rem;
+}
+
+.love-share-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.love-share-audience-label {
+  margin: 0 0 0.45rem;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(0.78rem, 1.8vw, 0.88rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+}
+
+.love-share-column .video-wrap--love-share-split {
+  margin-top: 0;
+}
+
+.love-share-panel__title {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+  font-family: var(--font-serif);
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .love-share-columns {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .love-share-column {
+    gap: 1.15rem;
+  }
+}
+
+/* Bottom graphic + Church note share one centered column (matches narrow FeaturePhoto width). */
+.love-share-outro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.love-share-outro .page-feature-photo {
+  margin-bottom: 0;
+}
+
+.love-share-outro__footnote.page-footnote {
+  margin: 1.35rem auto 0;
+  max-width: min(100%, 480px);
+  text-align: center;
+}
+
 /* ---------- Forms ---------- */
 .hp-field {
   position: absolute;
@@ -2179,6 +2609,16 @@ details.org .org-body {
   outline-offset: 3px;
 }
 
+.ward-plan-tabs__tab.is-read-only-tab:not(.is-active) {
+  opacity: 0.82;
+}
+
+.ward-plan-tabs__tab-note {
+  font-weight: 500;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
 .ward-plan-form-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2230,6 +2670,7 @@ details.org .org-body {
 
 .form-stack input[type="text"],
 .form-stack input[type="email"],
+.form-stack input[type="password"],
 .form-stack textarea {
   font: inherit;
   padding: 0.7rem 0.85rem;
@@ -2243,11 +2684,13 @@ details.org .org-body {
 }
 .form-stack input[type="text"]:hover,
 .form-stack input[type="email"]:hover,
+.form-stack input[type="password"]:hover,
 .form-stack textarea:hover {
   border-color: var(--accent-ring);
 }
 .form-stack input[type="text"]:focus,
 .form-stack input[type="email"]:focus,
+.form-stack input[type="password"]:focus,
 .form-stack textarea:not(.privacy-highlight-input):focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -2263,6 +2706,121 @@ details.org .org-body {
 .form-stack textarea::placeholder {
   color: var(--ink-faint);
   font-style: italic;
+}
+
+/* ---------- Toast / inline banner (info / success) ---------- */
+.toast-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid transparent;
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-xs);
+  animation: toast-banner-in 220ms var(--ease, ease-out) both;
+}
+.toast-banner__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.toast-banner__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.toast-banner__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.toast-banner__text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.toast-banner--info {
+  background: #f0f6ff;
+  border-color: #c8defb;
+  border-left-color: #2563eb;
+  color: #1e3a8a;
+}
+.toast-banner--info .toast-banner__icon {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.toast-banner--success {
+  background: #effaf2;
+  border-color: #c6ebd2;
+  border-left-color: #16a34a;
+  color: #14532d;
+}
+.toast-banner--success .toast-banner__icon {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+
+@keyframes toast-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Password input with show/hide toggle ---------- */
+.password-field {
+  position: relative;
+  display: block;
+}
+.password-field input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.password-field__toggle:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+.password-field__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--ink);
+}
+.password-field__toggle[aria-pressed="true"] {
+  color: var(--accent);
 }
 
 /* ---------- Footer ---------- */
@@ -2414,6 +2972,9 @@ details.org .org-body {
   margin: 1.5rem 0;
   display: grid;
   grid-template-columns: 1fr;
+  /* All cards adopt the height of the tallest one (handles e.g. a wrapped 2-line label
+     in row 1 alongside a 1-line label in row 2 — every card stays the same size). */
+  grid-auto-rows: 1fr;
   gap: 0.6rem;
 }
 @media (min-width: 640px) {
@@ -2421,17 +2982,24 @@ details.org .org-body {
 }
 .admin-links li {
   margin: 0;
+  display: flex;
 }
 .admin-links a {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 1rem 1.2rem;
+  padding: 1rem 1.15rem 1rem 1.2rem;
+  width: 100%;
+  /* Fixed min-height so every card is the same size whether its label wraps to two lines
+     (e.g. "Review pending leader accounts") or sits on one line ("Edit ward plan goals"). */
+  min-height: 5.25rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--ink-strong);
   font-weight: 600;
+  line-height: 1.3;
   text-decoration: none;
   box-shadow: var(--shadow-xs);
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
@@ -2480,6 +3048,8 @@ details.org .org-body {
   background: var(--bg-elevated);
   box-shadow: var(--shadow-xs);
   min-height: 10.5rem;
+  /* Allow shrinking inside CSS grid so long unbroken strings don’t spill past the card. */
+  min-width: 0;
 }
 .moderate-queue-main {
   flex: 1 1 auto;
@@ -2487,6 +3057,7 @@ details.org .org-body {
   flex-direction: column;
   gap: 0.45rem;
   min-height: 0;
+  min-width: 0;
 }
 .moderate-queue-meta {
   font-size: 0.72rem;
@@ -2495,22 +3066,49 @@ details.org .org-body {
   text-transform: uppercase;
   color: var(--ink-faint);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .moderate-queue-preview {
   font-size: 0.93rem;
   line-height: 1.45;
   color: var(--ink-muted);
   margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .moderate-queue-byline {
   font-size: 0.85rem;
   color: var(--ink-faint);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .moderate-queue-review {
   margin-top: auto;
   flex-shrink: 0;
   width: 100%;
+}
+
+/* Stacked Edit + Delete buttons on a published-experience card (admin moderation page). */
+.moderate-queue-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.moderate-queue-actions > .btn-secondary,
+.moderate-queue-actions > .btn-danger {
+  width: 100%;
+}
+
+/* Section headers between the pending queue and the published list. */
+.moderate-section-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+}
+.moderate-section-title--spaced {
+  margin-top: 2.5rem;
 }
 
 .moderate-review-dialog {
@@ -2584,6 +3182,62 @@ details.org .org-body {
   line-height: 1.45;
   color: var(--ink-faint);
   clear: both;
+}
+.moderate-review-actions-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.moderate-review-actions-row__publish {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+}
+.moderate-review-actions-row__reject {
+  flex: 0 0 auto;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Two-column "label : value" used in the leader-approval review dialog. */
+.approval-detail-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card, #fff);
+}
+.approval-detail-grid dt {
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  align-self: center;
+}
+.approval-detail-grid dd {
+  margin: 0;
+  word-break: break-word;
+  align-self: center;
+}
+@media (max-width: 520px) {
+  .approval-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 0.15rem 0;
+  }
+  .approval-detail-grid dt {
+    margin-top: 0.5rem;
+  }
+  .approval-detail-grid dt:first-of-type {
+    margin-top: 0;
+  }
 }
 
 .moderate-meta {
@@ -2906,6 +3560,10 @@ textarea.privacy-highlight-input::-moz-selection {
   box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
+.rich-goals-block--readonly .rich-goals-surface .ProseMirror {
+  cursor: default;
+}
+
 .rich-goals-block__title {
   font-family: var(--font-serif);
   font-weight: 600;
@@ -3131,10 +3789,51 @@ textarea.privacy-highlight-input::-moz-selection {
   border-left: 3px solid var(--border-strong);
 }
 
-/* ---------- Mobile ---------- */
+/* ---------- Mobile polish ----------
+   The site already has scattered breakpoints; this block consolidates the universal mobile
+   improvements (iOS input zoom, comfortable tap targets, tighter wrappers, stacked CTAs,
+   admin header behavior). Page-specific tweaks stay in their own blocks above. */
+
+/* iOS Safari auto-zooms the viewport when focusing inputs with computed font-size < 16px.
+   Bump every text-input to 16px on touch widths so we never get that jarring zoom-in. */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-toggle {
     display: flex;
+  }
+
+  .site-header.site-header--overlap-home .site-nav {
+    background: rgba(22, 26, 32, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+  .site-header.site-header--overlap-home .site-nav.is-open {
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .site-header.site-header--overlap-home .site-nav a {
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .site-header.site-header--overlap-home .site-nav a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  .site-header.site-header--overlap-home .site-nav a[aria-current='page'] {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
   }
 
   .site-nav {
@@ -3181,6 +3880,11 @@ textarea.privacy-highlight-input::-moz-selection {
   .hero-page {
     padding: 3.5rem 1.25rem 3.75rem;
   }
+  .hero-page.hero-page--home.hero-page--underlap-header {
+    padding-top: calc(var(--header-h) + 3.25rem);
+    padding-inline: 1.25rem;
+    padding-bottom: 3.5rem;
+  }
 
   .feature-band-inner {
     padding: 1.5rem 1.4rem 1.7rem;
@@ -3202,6 +3906,140 @@ textarea.privacy-highlight-input::-moz-selection {
   .moderate-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /* WCAG 2.5.5 — every primary tap target is at least 44px tall. */
+  .btn,
+  button.btn-primary,
+  button.btn-secondary,
+  button.btn-danger {
+    min-height: 44px;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+
+  /* Hero CTA pair stacks vertically and fills its container so they're easy to thumb. */
+  .home-hero__ctas {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: min(100%, 22rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .home-hero__ctas .btn {
+    width: 100%;
+  }
+
+  /* AdminLayout: the Sign-out button drops onto its own row instead of crowding the brand. */
+  .header-inner > .btn-secondary {
+    width: auto;
+    margin-left: auto;
+  }
+
+  /* Pending account requests (admin home): Approve/Deny buttons share the row evenly when
+     the layout wraps under the email instead of clinging to one side. */
+  .admin-links li > .btn,
+  .admin-links li > button.btn-primary,
+  .admin-links li > button.btn-secondary {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  /* Toast: respect notch horizontal insets on phones in landscape. */
+  .toast-anchored {
+    width: min(
+      26rem,
+      calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+    );
+  }
+
+  /* Compact page hero (admin pages) takes a little less vertical space on mobile. */
+  .page-hero.page-hero--compact {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  /* The "wrap" containers can shed some horizontal padding on tablet-and-down. */
+  .wrap,
+  .wrap-wide {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+
+  /* Footer text gets a little extra breathing room. */
+  .site-footer {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+}
+
+/* Phone — single-column most things, tighter horizontal padding. */
+@media (max-width: 520px) {
+  .wrap,
+  .wrap-wide {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    padding-top: 1.75rem;
+    padding-bottom: 1.75rem;
+  }
+
+  /* Hero photo doesn't dominate; just enough to feel like a banner. */
+  .hero-page.hero-page--home {
+    min-height: 46vh;
+  }
+  .hero-page.hero-page--home.hero-page--underlap-header {
+    padding-top: calc(var(--header-h) + 2.25rem);
+    padding-bottom: 2.5rem;
+  }
+
+  /* Headline scale-down so long titles don't break awkwardly on narrow phones. */
+  .hero-page h1,
+  .hero-page.hero-page--home h1,
+  .page-hero h1 {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  /* Eye/show-password toggle stays comfortably tappable. */
+  .password-field__toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .password-field input {
+    padding-right: 3rem;
+  }
+}
+
+/* Very small phones (iPhone SE 1st gen, narrow Android). */
+@media (max-width: 380px) {
+  :root {
+    --header-h: 4rem;
+  }
+  body {
+    font-size: 1rem;
+  }
+  .brand-name {
+    font-size: 0.92rem;
+  }
+  .brand-eyebrow {
+    font-size: 0.62rem;
+  }
+  .btn,
+  button.btn-primary,
+  button.btn-secondary,
+  button.btn-danger {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.92rem;
+  }
+}
+
+/* Honor iPhone notch / home-indicator with safe-area padding. */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .site-footer {
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  }
+  .site-nav.is-open {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

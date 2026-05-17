@@ -1,8 +1,11 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useBootstrap } from './BootstrapContext'
 import { AdminLayout, Layout } from './Layout'
+import { AdminApprovals } from './pages/AdminApprovals'
+import { AdminForgotPassword } from './pages/AdminForgotPassword'
 import { AdminHome } from './pages/AdminHome'
 import { AdminModerate } from './pages/AdminModerate'
+import { AdminResetPassword } from './pages/AdminResetPassword'
 import { AdminWardPlan } from './pages/AdminWardPlan'
 import { Experiences } from './pages/Experiences'
 import { Home } from './pages/Home'
@@ -37,8 +40,11 @@ export function App() {
       </Route>
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminHome />} />
+        <Route path="forgot-password" element={<AdminForgotPassword />} />
+        <Route path="reset-password" element={<AdminResetPassword />} />
         <Route element={<RequireLeader />}>
           <Route path="moderate" element={<AdminModerate />} />
+          <Route path="approvals" element={<AdminApprovals />} />
           <Route path="ward-plan" element={<AdminWardPlan />} />
         </Route>
       </Route>

@@ -36,8 +36,6 @@ export const MONTHS_LONG = [
   'December',
 ] as const
 
-export const WEEKDAYS_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
-
 export const MONTHLY_GOALS: Goal[] = [
   {
     id: 'g1',

@@ -14,6 +14,7 @@ type WardPlanTab = 'ward-wide' | string
 
 export function AdminWardPlan() {
   const { refresh } = useBootstrap()
+
   const [wardGoals, setWardGoals] = useState('')
   const [orgs, setOrgs] = useState<Org[]>([])
   const [orgText, setOrgText] = useState<Record<string, string>>({})
@@ -46,7 +47,7 @@ export function AdminWardPlan() {
   }, [load, refresh])
 
   useEffect(() => {
-    if (activeTab !== 'ward-wide' && !orgs.some((o) => o.slug === activeTab)) {
+    if (!orgs.some((o) => o.slug === activeTab) && activeTab !== 'ward-wide') {
       setActiveTab('ward-wide')
     }
   }, [orgs, activeTab])
@@ -69,7 +70,8 @@ export function AdminWardPlan() {
   }
 
   const activeOrg = orgs.find((o) => o.slug === activeTab)
-  const editorLabel = activeTab === 'ward-wide' ? 'Ward-wide goals' : (activeOrg?.title ?? activeTab)
+  const editorLabel =
+    activeTab === 'ward-wide' ? 'Ward-wide goals' : (activeOrg?.title ?? activeTab)
   const editorValue = activeTab === 'ward-wide' ? wardGoals : (orgText[activeTab] ?? '')
   const onEditorChange =
     activeTab === 'ward-wide'
@@ -85,7 +87,7 @@ export function AdminWardPlan() {
         titleId="ward-edit-title"
         eyebrow="Editing"
         title="Edit ward plan"
-        lede="Format goals like a document: bold, lists, colors, links. Each top-level bullet is one line on the public page. Starter text is only a suggestion—rewrite any line or the whole list to match your ward. Choose a tab below—save publishes every organization at once."
+        lede="Format goals like a document: bold, lists, colors, links. Choose a tab — save publishes every organization at once."
         compact
       />
       <main id="main" className="wrap-wide ward-plan-page">
@@ -153,9 +155,9 @@ export function AdminWardPlan() {
           </div>
 
           <div className="ward-plan-form-actions">
-            <p className="ward-plan-form-actions__hint">One save updates every tab.</p>
+            <p className="ward-plan-form-actions__hint">One save publishes every tab.</p>
             <button type="submit" className="btn-primary ward-plan-form-actions__submit">
-              Save all changes
+              Save changes
             </button>
           </div>
         </form>

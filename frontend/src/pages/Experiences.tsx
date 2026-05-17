@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
+import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
+import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type Experience = { body: string; author: string; when?: string }
 
@@ -10,7 +12,8 @@ export function Experiences() {
   const { refresh } = useBootstrap()
   const [list, setList] = useState<Experience[]>([])
   const [flash, setFlash] = useState<string | null>(null)
-  const [err, setErr] = useState<string | null>(null)
+  const [listErr, setListErr] = useState<string | null>(null)
+  const [formErr, setFormErr] = useState<string | null>(null)
   const [author, setAuthor] = useState('')
   const [body, setBody] = useState('')
   const [hp, setHp] = useState('')
@@ -19,8 +22,9 @@ export function Experiences() {
     try {
       const d = await apiJson<{ experiences: Experience[] }>('/api/experiences')
       setList(d.experiences)
+      setListErr(null)
     } catch {
-      setErr('Could not load experiences.')
+      setListErr('Could not load experiences.')
     }
   }
 
@@ -32,7 +36,7 @@ export function Experiences() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setFlash(null)
-    setErr(null)
+    setFormErr(null)
     try {
       const res = await apiJson<{ ok: boolean; message?: string }>('/api/experiences', {
         method: 'POST',
@@ -43,7 +47,7 @@ export function Experiences() {
       setAuthor('')
       await load()
     } catch (ex) {
-      setErr(ex instanceof Error ? ex.message : 'Could not submit.')
+      setFormErr(ex instanceof Error ? ex.message : 'Could not submit.')
     }
   }
 
@@ -53,28 +57,55 @@ export function Experiences() {
         titleId="page-title"
         eyebrow="Stories of faith"
         title="Mission Experiences"
-        lede="Share how the Lord has blessed you as you live the ward mission plan"
+        lede="Read how the Lord has blessed ward members — then share your own story"
       />
       <div className="home-mission-strip home-mission-strip--tight">
         <p>
-          Submissions are reviewed before they appear publicly. Please avoid full names of friends,
-          investigators, or ward members—use initials or general descriptions instead.
+          Scroll down to read what others have shared. When you&apos;re ready, use the form below to send
+          your experience — submissions are reviewed before they appear publicly. Please avoid full names of
+          friends, investigators, or ward members—use initials or general descriptions instead.
         </p>
       </div>
       <main id="main">
         <div className="wrap">
-          {flash ? <p className="flash">{flash}</p> : null}
-          {err ? <p className="panel-sites panel-sites--warn">{err}</p> : null}
-          <section className="panel-sites" aria-labelledby="share-h">
-            <p className="page-inline-eyebrow">Submit</p>
+          <section className="page-content-section experiences-published-first" aria-labelledby="published-h">
+            <p className="page-inline-eyebrow">From the ward</p>
+            <h2 id="published-h">Published experiences</h2>
+            <p className="experiences-published-first__intro panel-sites__note">
+              Stories appear here after ward leaders review them.
+            </p>
+            {listErr ? <p className="panel-sites panel-sites--warn">{listErr}</p> : null}
+            {list.length > 0 ? (
+              <div className="testimonial-stack">
+                {list.map((ex, i) => (
+                  <article className="testimonial-card testimonial-card--sites" key={i}>
+                    <p className="testimonial-body">{ex.body}</p>
+                    <p className="testimonial-meta">
+                      {ex.author}
+                      {ex.when ? ` · ${ex.when}` : ''}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              !listErr && (
+                <p className="lead">Nothing published yet—be the first after leader review.</p>
+              )
+            )}
+          </section>
+
+          <section className="panel-sites experiences-share-after" aria-labelledby="share-h">
+            <p className="page-inline-eyebrow">Share yours</p>
             <h2 id="share-h" className="panel-sites__title">
-              Share an experience
+              Tell us your experience
             </h2>
             <p className="panel-sites__p">
-              No account is needed. Leaders review each submission before it appears. To protect
+              No account is needed. Leaders review each submission before it appears above. To protect
               privacy, please <strong>do not include full names</strong> of friends, investigators, or ward
               members. Use initials or roles instead.
             </p>
+            {flash ? <p className="flash">{flash}</p> : null}
+            {formErr ? <p className="panel-sites panel-sites--warn">{formErr}</p> : null}
             <form className="form-stack" onSubmit={(e) => void onSubmit(e)}>
               <label className="hp-field" aria-hidden="true">
                 Leave blank
@@ -108,25 +139,11 @@ export function Experiences() {
               </button>
             </form>
           </section>
-          <section className="page-content-section">
-            <p className="page-inline-eyebrow">From the ward</p>
-            <h2>Published experiences</h2>
-            {list.length > 0 ? (
-              <div className="testimonial-stack">
-                {list.map((ex, i) => (
-                  <article className="testimonial-card testimonial-card--sites" key={i}>
-                    <p className="testimonial-body">{ex.body}</p>
-                    <p className="testimonial-meta">
-                      {ex.author}
-                      {ex.when ? ` · ${ex.when}` : ''}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="lead">Nothing published yet—be the first after leader review.</p>
-            )}
-          </section>
+
+          <FeaturePhoto
+            src={STATIC_SITE_PHOTOS.experiencesFeature}
+            caption="“The greatest service we can provide is to help others come unto Christ.” — Elder Dieter F. Uchtdorf"
+          />
         </div>
       </main>
     </>

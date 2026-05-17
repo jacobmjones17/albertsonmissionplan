@@ -13,8 +13,6 @@ type Ctx = {
   ready: boolean
   user: BootstrapUser | null
   csrfToken: string
-  /** False when server runs with DEV_SKIP_OAUTH (Google sign-in disabled). */
-  googleSignInOk: boolean
   refresh: () => Promise<void>
 }
 
@@ -25,14 +23,11 @@ export function BootstrapProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<BootstrapUser | null>(null)
   const [csrfToken, setTok] = useState('')
 
-  const [googleSignInOk, setGoogleSignInOk] = useState(true)
-
   const refresh = useCallback(async () => {
     const d = await fetchBootstrap()
     setTok(d.csrfToken)
     setCsrfToken(d.csrfToken)
     setUser(d.user)
-    setGoogleSignInOk(d.googleSignInOk)
     setReady(true)
   }, [])
 
@@ -41,8 +36,13 @@ export function BootstrapProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   const value = useMemo(
-    () => ({ ready, user, csrfToken, googleSignInOk, refresh }),
-    [ready, user, csrfToken, googleSignInOk, refresh],
+    () => ({
+      ready,
+      user,
+      csrfToken,
+      refresh,
+    }),
+    [ready, user, csrfToken, refresh],
   )
 
   return <BootstrapContext.Provider value={value}>{children}</BootstrapContext.Provider>

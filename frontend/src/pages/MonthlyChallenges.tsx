@@ -1,19 +1,22 @@
 import { useCallback, useMemo, useState } from 'react'
-import {
-  MONTHLY_GOALS,
-  MONTHS_LONG,
-  MONTHS_SHORT,
-  type Goal,
-  WEEKDAYS_SHORT,
-} from '../monthlyData'
+import { MONTHLY_GOALS, MONTHS_LONG, MONTHS_SHORT, type Goal } from '../monthlyData'
 import { PageHero } from '../components/PageHero'
+import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate()
-}
-
-function firstWeekday(year: number, month: number) {
-  return new Date(year, month, 1).getDay()
+/** Display titles aligned with the printed challenge cards. */
+const CHALLENGE_CARD_HEADING: Record<Goal['id'], string> = {
+  g1: 'Scripture Study Challenge',
+  g2: 'Act of Kindness Challenge',
+  g3: 'Temple & Family History Challenge',
+  g4: 'Missionary Work Challenge',
+  g5: 'Health & Wellness Challenge',
+  g6: 'Faith & Testimony Challenge',
+  g7: 'Gratitude Challenge',
+  g8: 'Prayer Challenge',
+  g9: 'Sabbath Day Challenge',
+  g10: 'General Conference Challenge',
+  g11: 'Service Challenge',
+  g12: 'Christmas Challenge',
 }
 
 function renderBullet(goal: Goal, who: string, text: string, key: number) {
@@ -41,131 +44,83 @@ export function MonthlyChallenges() {
   const currentMonth = today.getMonth()
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
-
   const goal = MONTHLY_GOALS[selectedMonth]!
-  const dim = daysInMonth(year, selectedMonth)
-  const startPad = firstWeekday(year, selectedMonth)
-  const totalCells = Math.ceil((startPad + dim) / 7) * 7
 
-  const pickMonth = useCallback((m: number) => {
-    setSelectedMonth(m)
-  }, [])
-
-  const goPrevMonth = useCallback(() => {
-    setSelectedMonth((m) => (m <= 0 ? 11 : m - 1))
-  }, [])
-
-  const goNextMonth = useCallback(() => {
-    setSelectedMonth((m) => (m >= 11 ? 0 : m + 1))
+  const pickMonth = useCallback((index: number) => {
+    setSelectedMonth(index)
   }, [])
 
   return (
     <>
       <PageHero
         titleId="page-title"
-        eyebrow="Twelve goals"
+        eyebrow="Year-round focus"
         title="Monthly Challenges"
-        lede="Ideas for individuals, families, and the ward—one focus each month of the year"
+        lede="One themed challenge each month for individuals, couples, and families"
       />
-      <div className="home-mission-strip home-mission-strip--tight">
-        <p>
-          Monthly challenges are activities individuals and families may take to improve gospel living.
-          Choose a month below to see this year’s calendar and the goal for that month.
-        </p>
-      </div>
-      <main id="main" className="challenges-main">
+      <main id="main" className="challenges-main challenges-main--cards">
         <div className="wrap-wide challenges-wrap">
-          <div className="challenges-toolbar">
-            <p className="page-inline-eyebrow challenges-toolbar-label">Year at a glance</p>
-            <p className="challenges-year" aria-hidden="true">
-              {year}
-            </p>
-          </div>
+          <p className="challenges-intro">
+            Choose a month below—the challenge card updates, and stays beside the picker on wider
+            screens so you rarely need to scroll.
+          </p>
 
-          <div className="challenges-split">
-            <div className="challenges-cal-column">
-              <div className="year-month-grid" role="group" aria-label="Select month">
+          <div className="challenges-split challenges-split--explorer">
+            <div className="challenges-explorer-nav">
+              <p className="challenges-explorer-eyebrow">Pick a month</p>
+              <div className="challenge-month-rail" role="group" aria-label={`Choose month for ${year}`}>
                 {MONTHLY_GOALS.map((g, i) => (
                   <button
                     key={g.id}
                     type="button"
-                    className={`year-month-cell${selectedMonth === i ? ' is-selected' : ''}${currentMonth === i ? ' is-current' : ''}`}
+                    className={`challenge-month-tile${selectedMonth === i ? ' is-selected' : ''}${currentMonth === i ? ' is-current' : ''}`}
                     aria-pressed={selectedMonth === i}
-                    aria-label={`${MONTHS_LONG[i]}, ${g.title}`}
+                    aria-label={`${MONTHS_LONG[i]}, ${CHALLENGE_CARD_HEADING[g.id]}`}
                     onClick={() => pickMonth(i)}
                   >
-                    <span className="year-month-cell__abbr">{MONTHS_SHORT[i]}</span>
-                    <span className="year-month-cell__theme">{g.title}</span>
+                    <span className="challenge-month-tile__abbr">{MONTHS_SHORT[i]}</span>
+                    <span className="challenge-month-tile__theme">{g.title}</span>
                   </button>
                 ))}
               </div>
-
-              <div className="mini-month-cal" aria-label={`${MONTHS_LONG[selectedMonth]} ${year}`}>
-                <div className="mini-month-cal__header">
-                  <button
-                    type="button"
-                    className="mini-month-cal__nav"
-                    aria-label="Previous month"
-                    onClick={goPrevMonth}
-                  >
-                    ‹
-                  </button>
-                  <h2 className="mini-month-cal__title" id="challenge-month-heading">
-                    {MONTHS_LONG[selectedMonth]} {year}
-                  </h2>
-                  <button
-                    type="button"
-                    className="mini-month-cal__nav"
-                    aria-label="Next month"
-                    onClick={goNextMonth}
-                  >
-                    ›
-                  </button>
-                </div>
-                <div className="mini-month-cal__weekdays">
-                  {WEEKDAYS_SHORT.map((d) => (
-                    <span key={d} className="mini-month-cal__wd">
-                      {d}
-                    </span>
-                  ))}
-                </div>
-                <div className="mini-month-cal__days">
-                  {Array.from({ length: totalCells }, (_, idx) => {
-                    const dayNum = idx - startPad + 1
-                    if (dayNum < 1 || dayNum > dim) {
-                      return <span key={idx} className="mini-month-cal__day mini-month-cal__day--pad" />
-                    }
-                    const isToday =
-                      year === today.getFullYear() &&
-                      selectedMonth === today.getMonth() &&
-                      dayNum === today.getDate()
-                    return (
-                      <span
-                        key={idx}
-                        className={`mini-month-cal__day${isToday ? ' is-today' : ''}`}
-                      >
-                        {dayNum}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
+              <div className="challenges-explorer-grow" aria-hidden="true" />
+              <h2 id="challenge-month-heading" className="challenges-explorer-selection">
+                {MONTHS_LONG[selectedMonth]}{' '}
+                <span className="challenges-explorer-selection__year">{year}</span>
+              </h2>
             </div>
 
             <article
-              className="challenge-detail"
-              aria-labelledby="challenge-month-heading challenge-goal-title"
+              className={`challenge-card challenge-card--featured${selectedMonth === currentMonth ? ' challenge-card--current-accent' : ''}`}
+              aria-labelledby="challenge-card-featured-title challenge-month-heading"
             >
-              <h3 id="challenge-goal-title" className="challenge-detail__heading">
-                {goal.title}
+              <div className="challenge-card__art">
+                <img
+                  src={monthlyChallengeImageSrc(goal.id)}
+                  alt=""
+                  className="challenge-card__icon"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="challenge-card__art-front">
+                  <p className="challenge-card__month">{MONTHS_LONG[selectedMonth]}</p>
+                </div>
+                <span className="challenge-card__art-corner challenge-card__art-corner--tl" aria-hidden="true" />
+                <span className="challenge-card__art-corner challenge-card__art-corner--br" aria-hidden="true" />
+              </div>
+
+              <h3 id="challenge-card-featured-title" className="sr-only">
+                {CHALLENGE_CARD_HEADING[goal.id]}
               </h3>
-              <p className="challenge-detail__lede">
-                For <strong>{MONTHS_LONG[selectedMonth]}</strong>—pick one or two actions that fit your
-                circumstances.
-              </p>
-              <ul className="challenge-detail__roles clean">
-                {goal.bullets.map((b, i) => renderBullet(goal, b.who, b.text, i))}
-              </ul>
+
+              <div className="challenge-card__body">
+                <p className="challenge-card__goal">
+                  <strong>Goal:</strong> {goal.title}
+                </p>
+                <ul className="challenge-card__list clean">
+                  {goal.bullets.map((b, i) => renderBullet(goal, b.who, b.text, i))}
+                </ul>
+              </div>
             </article>
           </div>
 

@@ -1,6 +1,5 @@
-import { useState } from 'react'
-
-const HERO_IMG = '/ward-hero.jpg'
+import { useEffect, useState } from 'react'
+import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type PageHeroProps = {
   titleId: string
@@ -13,6 +12,11 @@ type PageHeroProps = {
   compact?: boolean
   /** Full-width banner photo like the home page (default true when not compact). */
   photo?: boolean
+  /**
+   * Optional override (`/site/...`). Empty uses `STATIC_SITE_PHOTOS.header` so Ward Plan /
+   * Monthly Challenges / etc. match the navbar hero treatment site-wide.
+   */
+  photoSrc?: string
 }
 
 /**
@@ -26,21 +30,33 @@ export function PageHero({
   banner,
   compact = false,
   photo = true,
+  photoSrc = '',
 }: PageHeroProps) {
-  const [imgFailed, setImgFailed] = useState(false)
-  const usePhoto = photo && !compact
+  const fallbackHeader = String(STATIC_SITE_PHOTOS.header).trim()
+  const trimmed = String(photoSrc).trim() || fallbackHeader
 
-  if (usePhoto) {
+  /** Same global merge as Layout + Home whenever the site header image is configured */
+  const mergeUnderNavbar = Boolean(fallbackHeader) && photo && !compact
+
+  const [imgFailed, setImgFailed] = useState(false)
+
+  useEffect(() => {
+    setImgFailed(false)
+  }, [trimmed])
+
+  const usePhoto = photo && !compact && Boolean(trimmed) && !imgFailed
+
+  if (photo && !compact) {
     return (
       <>
         <section
-          className="hero-page hero-page--home"
+          className={`hero-page hero-page--home${mergeUnderNavbar ? ' hero-page--underlap-header' : ''}`}
           aria-labelledby={titleId}
         >
-          {!imgFailed ? (
+          {usePhoto ? (
             <div className="hero-page__bg" aria-hidden="true">
               <img
-                src={HERO_IMG}
+                src={trimmed}
                 alt=""
                 className="hero-page__bg-img"
                 decoding="async"
@@ -66,10 +82,7 @@ export function PageHero({
 
   return (
     <>
-      <section
-        className={`page-hero${compact ? ' page-hero--compact' : ''}`}
-        aria-labelledby={titleId}
-      >
+      <section className={`page-hero${compact ? ' page-hero--compact' : ''}`} aria-labelledby={titleId}>
         <div className="page-hero__inner">
           {eyebrow ? <p className="page-hero__eyebrow">{eyebrow}</p> : null}
           <h1 id={titleId}>{title}</h1>

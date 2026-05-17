@@ -79,8 +79,55 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			moderator_note TEXT
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_testimonials_status ON testimonials(status);`,
+		`CREATE TABLE IF NOT EXISTS leader_roles (
+			email TEXT PRIMARY KEY NOT NULL,
+			is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)),
+			created_at TEXT NOT NULL DEFAULT '',
+			updated_at TEXT NOT NULL DEFAULT ''
+		);`,
+		`CREATE TABLE IF NOT EXISTS leader_org_scopes (
+			email TEXT NOT NULL REFERENCES leader_roles(email) ON DELETE CASCADE,
+			slug TEXT NOT NULL REFERENCES org_sections(slug) ON DELETE CASCADE,
+			PRIMARY KEY (email, slug)
+		);`,
+		`CREATE TABLE IF NOT EXISTS leader_credentials (
+			email TEXT PRIMARY KEY NOT NULL,
+			password_hash TEXT NOT NULL,
+			first_name TEXT NOT NULL DEFAULT '',
+			last_name TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			approved_at TEXT,
+			approved_by TEXT
+		);`,
 	}
 	for _, s := range stmts {
+		if _, err := db.ExecContext(ctx, s); err != nil {
+			return err
+		}
+	}
+	// Additive migrations for older databases. We run these unconditionally and ignore
+	// "duplicate column" errors so a fresh CREATE TABLE above stays valid too.
+	additive := []string{
+		`ALTER TABLE leader_credentials ADD COLUMN approved_at TEXT;`,
+		`ALTER TABLE leader_credentials ADD COLUMN approved_by TEXT;`,
+		`ALTER TABLE leader_credentials ADD COLUMN first_name TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE leader_credentials ADD COLUMN last_name TEXT NOT NULL DEFAULT '';`,
+	}
+	for _, s := range additive {
+		if _, err := db.ExecContext(ctx, s); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column name") {
+			return err
+		}
+	}
+	tableCreates := []string{
+		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+			token_hash TEXT PRIMARY KEY NOT NULL,
+			email TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
+	}
+	for _, s := range tableCreates {
 		if _, err := db.ExecContext(ctx, s); err != nil {
 			return err
 		}
@@ -98,9 +145,9 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 	}
 
 	type seed struct {
-		slug   string
-		title  string
-		sort   int
+		slug    string
+		title   string
+		sort    int
 		bullets string
 	}
 	seeds := []seed{
@@ -389,6 +436,55 @@ func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorL
 	}
 	if n == 0 {
 		return errors.New("submission not found or already moderated")
+	}
+	return nil
+}
+
+// UpdateApprovedTestimonial edits an already-published experience. Used by admins to fix typos,
+// redact identifying details that slipped through review, or update the author label. Re-stamps
+// reviewed_at/reviewed_by so the audit trail records who last touched the live row. Refuses to
+// operate on pending/rejected rows (those go through ApproveTestimonial / SetTestimonialStatus).
+func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorLabel, editor string) error {
+	body = strings.TrimSpace(body)
+	if len(body) < 10 {
+		return ErrApproveBodyTooShort
+	}
+	if len(body) > 8000 {
+		return ErrApproveBodyTooLong
+	}
+	res, err := db.ExecContext(ctx,
+		`UPDATE testimonials SET body = ?, author_label = ?,
+			reviewed_at = datetime('now'), reviewed_by = ?
+		 WHERE id = ? AND status = 'approved'`,
+		body, strings.TrimSpace(authorLabel), editor, id,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return errors.New("published experience not found")
+	}
+	return nil
+}
+
+// DeleteTestimonial permanently removes a row regardless of status. Used by admins to take a
+// published experience down. No soft-delete: once removed it cannot be restored, which is what
+// you want when the goal is "get this off the public site immediately."
+func DeleteTestimonial(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := db.ExecContext(ctx, `DELETE FROM testimonials WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return errors.New("experience not found")
 	}
 	return nil
 }

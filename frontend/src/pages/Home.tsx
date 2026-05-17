@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
+import { FeaturePhoto } from '../components/FeaturePhoto'
+import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type Experience = { body: string; author: string; when?: string }
 
 export function Home() {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [err, setErr] = useState<string | null>(null)
-  const [heroPhoto, setHeroPhoto] = useState(true)
-  const [missionaryPhoto, setMissionaryPhoto] = useState(true)
+  const [heroBroken, setHeroBroken] = useState(false)
+
+  const headerBackdrop = String(STATIC_SITE_PHOTOS.header).trim()
+  const homeHeroUrl = STATIC_SITE_PHOTOS.pageHome.trim() || headerBackdrop
+  const unifiedHomeBackdrop = Boolean(headerBackdrop)
 
   useEffect(() => {
     apiJson<{ experiences: Experience[] }>('/api/home/experiences')
@@ -16,17 +21,26 @@ export function Home() {
       .catch(() => setErr('Could not load experiences.'))
   }, [])
 
+  useEffect(() => {
+    setHeroBroken(false)
+  }, [homeHeroUrl])
+
+  const showHeroImage = Boolean(homeHeroUrl && !heroBroken)
+
   return (
     <main id="main" className="home-page">
-      <section className="hero-page hero-page--home" aria-labelledby="hero-title">
-        {heroPhoto ? (
+      <section
+        className={`hero-page hero-page--home${unifiedHomeBackdrop ? ' hero-page--underlap-header' : ''}`}
+        aria-labelledby="hero-title"
+      >
+        {showHeroImage ? (
           <div className="hero-page__bg" aria-hidden="true">
             <img
-              src="/ward-hero.jpg"
+              src={homeHeroUrl}
               alt=""
               className="hero-page__bg-img"
               decoding="async"
-              onError={() => setHeroPhoto(false)}
+              onError={() => setHeroBroken(true)}
             />
           </div>
         ) : null}
@@ -50,9 +64,7 @@ export function Home() {
       <section className="home-about" aria-labelledby="home-about-title">
         <div className="home-about__inner">
           <h2 id="home-about-title">We are all missionaries</h2>
-          <p>
-            This site exists to encourage you and your family in the Lord&apos;s work.
-          </p>
+          <p>This site exists to encourage you and your family in the Lord&apos;s work.</p>
 
           <blockquote className="home-about__quote">
             <p>
@@ -63,21 +75,9 @@ export function Home() {
           </blockquote>
 
           <p>
-            Ministering is Christlike caring for others — motivated by our desire to love our neighbor and
-            serve both spiritual and temporal needs.
+            Ministering is Christlike caring for others — motivated by our desire to love our neighbor and serve
+            both spiritual and temporal needs.
           </p>
-
-          {missionaryPhoto ? (
-            <figure className="home-about__figure">
-              <img
-                src="/ward-missionaries.jpg"
-                alt=""
-                className="home-about__figure-img"
-                decoding="async"
-                onError={() => setMissionaryPhoto(false)}
-              />
-            </figure>
-          ) : null}
         </div>
       </section>
 
@@ -107,6 +107,7 @@ export function Home() {
             </Link>
           </p>
         </section>
+        <FeaturePhoto src={STATIC_SITE_PHOTOS.about} />
       </div>
     </main>
   )

@@ -43,6 +43,8 @@ type Props = {
   /** Bump after loading from API so the editor picks up server content. */
   resetKey: number
   placeholder?: string
+  /** View-only rich text (no toolbar, not editable). */
+  readOnly?: boolean
 }
 
 type Opt = { label: string; value: string }
@@ -384,11 +386,19 @@ function Toolbar({ editor }: { editor: Editor | null }) {
   )
 }
 
-export function RichGoalsEditor({ label, value, onChange, resetKey, placeholder }: Props) {
+export function RichGoalsEditor({
+  label,
+  value,
+  onChange,
+  resetKey,
+  placeholder,
+  readOnly = false,
+}: Props) {
   const titleId = useId()
 
   const editor = useEditor(
     {
+      editable: !readOnly,
       extensions: [
         StarterKit.configure({
           heading: { levels: [2, 3, 4] },
@@ -420,18 +430,22 @@ export function RichGoalsEditor({ label, value, onChange, resetKey, placeholder 
         },
       },
       onUpdate: ({ editor: ed }) => {
+        if (readOnly) return
         onChange(htmlToStorage(ed.getHTML()))
       },
     },
-    [resetKey],
+    [resetKey, readOnly],
   )
 
   return (
-    <section className="rich-goals-block" aria-labelledby={titleId}>
+    <section
+      className={`rich-goals-block${readOnly ? ' rich-goals-block--readonly' : ''}`}
+      aria-labelledby={titleId}
+    >
       <h3 id={titleId} className="rich-goals-block__title">
         {label}
       </h3>
-      <Toolbar editor={editor} />
+      {readOnly ? null : <Toolbar editor={editor} />}
       <div className="rich-goals-surface">
         <EditorContent editor={editor} />
       </div>
