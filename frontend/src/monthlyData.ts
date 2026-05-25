@@ -5,6 +5,22 @@ export type Goal = {
   bullets: { who: string; text: string }[]
 }
 
+/** Display titles aligned with the printed challenge cards. */
+export const CHALLENGE_CARD_HEADING: Record<Goal['id'], string> = {
+  g1: 'Scripture Study Challenge',
+  g2: 'Act of Kindness Challenge',
+  g3: 'Temple & Family History Challenge',
+  g4: 'Missionary Work Challenge',
+  g5: 'Health & Wellness Challenge',
+  g6: 'Faith & Testimony Challenge',
+  g7: 'Gratitude Challenge',
+  g8: 'Prayer Challenge',
+  g9: 'Sabbath Day Challenge',
+  g10: 'General Conference Challenge',
+  g11: 'Service Challenge',
+  g12: 'Christmas Challenge',
+}
+
 /** Month index 0–11 matches each goal (January → December). */
 export const MONTHS_SHORT = [
   'Jan',

@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { useBootstrap } from './BootstrapContext'
 import { AdminLayout, Layout } from './Layout'
 import { AdminApprovals } from './pages/AdminApprovals'
@@ -11,7 +12,18 @@ import { Experiences } from './pages/Experiences'
 import { Home } from './pages/Home'
 import { LoveShareInvite } from './pages/LoveShareInvite'
 import { MonthlyChallenges } from './pages/MonthlyChallenges'
+import { PrintMonthlyChallenges } from './pages/PrintMonthlyChallenges'
 import { WardPlan } from './pages/WardPlan'
+
+const SITE_TITLE = 'Albertson Ward Plan'
+
+function SiteTitle() {
+  const loc = useLocation()
+  useEffect(() => {
+    document.title = SITE_TITLE
+  }, [loc.pathname])
+  return null
+}
 
 function RequireLeader() {
   const { ready, user } = useBootstrap()
@@ -30,7 +42,10 @@ function RequireLeader() {
 
 export function App() {
   return (
-    <Routes>
+    <>
+      <SiteTitle />
+      <Routes>
+      <Route path="/monthly-challenges/print" element={<PrintMonthlyChallenges />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/ward-plan" element={<WardPlan />} />
@@ -49,5 +64,6 @@ export function App() {
         </Route>
       </Route>
     </Routes>
+    </>
   )
 }

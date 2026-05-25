@@ -31,7 +31,17 @@ function BrandMark() {
   )
 }
 
-/** Public navbar overlays the merged hero backdrop while scrolled near top (`site-header--overlap-home`). */
+/** Plain footer notice — not an official Church site (no boxed panel; contact keeps that treatment). */
+function SiteDisclaimer() {
+  return (
+    <p className="site-footer__disclaimer" role="note">
+      This website is not an official website of The Church of Jesus Christ of Latter-day Saints.
+      It is maintained by Albertson Ward members for local ward mission planning and does not
+      represent official Church doctrine, policy, or communication.
+    </p>
+  )
+}
+
 function SiteHeaderShell({
   mergeHeroBackdrop = false,
   children,
@@ -135,6 +145,7 @@ export function Layout() {
           <p className="attribution">
             Built for ward members. Update content as goals change each year.
           </p>
+          <SiteDisclaimer />
         </div>
       </footer>
     </>
@@ -188,9 +199,12 @@ export function AdminLayout() {
       </SiteHeaderShell>
       <Outlet />
       <footer className="site-footer">
-        <p>
-          Albertson Ward &middot; Ward Mission &middot; <a href="/">Public site</a>
-        </p>
+        <div className="site-footer__inner">
+          <p className="site-footer__meta">
+            Albertson Ward &middot; Ward Mission &middot; <a href="/">Public site</a>
+          </p>
+          <SiteDisclaimer />
+        </div>
       </footer>
     </>
   )

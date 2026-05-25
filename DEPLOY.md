@@ -1,6 +1,6 @@
 # Deploying Albertson Ward Mission Plan
 
-The production artifact is a single Go binary that serves the React SPA and JSON API from one process. Data lives in **PostgreSQL** (`DATABASE_URL`).
+The production artifact is a single Go binary that serves the React SPA and JSON API from one process. On Render, data lives in **PostgreSQL** via **`DATABASE_URL`**. Locally, you can omit **`DATABASE_URL`** and use embedded **SQLite** instead (see below).
 
 **Production domain:** `albertsonwardplan.com`  
 **Hosting target:** [Render](https://render.com/) — **free Web Service** + **free Postgres** via **`render.yaml`**.
@@ -27,19 +27,13 @@ The production artifact is a single Go binary that serves the React SPA and JSON
 
 ---
 
-## Local development with Postgres
+## Local development (SQLite, no Postgres required)
 
-Run PostgreSQL locally (Docker example):
+Leave **`DATABASE_URL` unset**. The backend uses **SQLite**: by default **`wardmission.db`** in the current working directory when you run the server. Override with **`DATABASE_PATH`** if you want a different file path.
 
-```bash
-docker run --name wardmission-pg -e POSTGRES_USER=wardmission -e POSTGRES_PASSWORD=wardmission \
-  -e POSTGRES_DB=wardmission -p 5432:5432 -d postgres:16-alpine
-```
-
-In `.env` at repo root:
+Minimal `.env` at repo root:
 
 ```bash
-DATABASE_URL=postgres://wardmission:wardmission@localhost:5432/wardmission?sslmode=disable
 SESSION_SECRET=change-me-to-a-long-random-string-at-least-16-chars
 COOKIE_SECURE=false
 PUBLIC_BASE_URL=http://localhost:8080
@@ -53,12 +47,30 @@ cd backend && go run ./cmd/main.go
 
 Frontend against this backend (optional): `cd frontend && npm run dev` with `DEV_TRUST_VITE=true` if needed.
 
-Bootstrap an admin without the UI:
+Bootstrap an admin without the UI (same SQLite or Postgres as `store.Open`):
 
 ```bash
-cd backend && DATABASE_URL='postgres://wardmission:wardmission@127.0.0.1:5432/wardmission?sslmode=disable' \
-  go run ./cmd/seedadmin -email you@example.org -password 'your-password'
+cd backend && go run ./cmd/seedadmin -email you@example.org -password 'your-password'
 ```
+
+---
+
+## Local development with Postgres (optional)
+
+Run PostgreSQL locally (Docker example):
+
+```bash
+docker run --name wardmission-pg -e POSTGRES_USER=wardmission -e POSTGRES_PASSWORD=wardmission \
+  -e POSTGRES_DB=wardmission -p 5432:5432 -d postgres:16-alpine
+```
+
+Add to `.env`:
+
+```bash
+DATABASE_URL=postgres://wardmission:wardmission@localhost:5432/wardmission?sslmode=disable
+```
+
+Then run the server or `seedadmin` as above; both use Postgres when **`DATABASE_URL`** is set.
 
 ---
 
@@ -69,7 +81,7 @@ cd frontend && npm ci && npm run build
 cd ../backend && go build -o wardmission ./cmd/main.go
 ```
 
-Run with **`DATABASE_URL`** set.
+Run with **`DATABASE_URL`** set (production). For a quick local smoke test without Postgres, omit **`DATABASE_URL`** and the binary uses SQLite (**`wardmission.db`** by default).
 
 ## Docker (single container)
 
@@ -91,7 +103,8 @@ docker run --rm -p 8080:8080 \
 
 | Variable | Notes |
 |----------|--------|
-| `DATABASE_URL` | **Required.** PostgreSQL URL (Render sets this from Postgres) |
+| `DATABASE_URL` | **PostgreSQL.** Required on Render/production. When unset, the backend uses SQLite. |
+| `DATABASE_PATH` | SQLite file path when **`DATABASE_URL` is empty** (default `wardmission.db` in the working directory). |
 | `SESSION_SECRET` | Required random string ≥16 chars |
 | `PUBLIC_BASE_URL` | Canonical HTTPS URL **without** trailing slash |
 | `COOKIE_SECURE` | `true` behind HTTPS |

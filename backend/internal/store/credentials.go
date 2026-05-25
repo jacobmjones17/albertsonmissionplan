@@ -8,13 +8,8 @@ import (
 	"time"
 )
 
-// ErrLeaderAlreadyRegistered indicates there is already a password for this leader email.
 var ErrLeaderAlreadyRegistered = errors.New("leader email already registered")
-
-// ErrLeaderAccountPending indicates the account exists but has not been approved yet.
 var ErrLeaderAccountPending = errors.New("leader account awaiting admin approval")
-
-// ErrCannotRemoveLastLeader is returned when deleting would leave zero approved leaders.
 var ErrCannotRemoveLastLeader = errors.New("cannot remove the last approved leader account")
 
 func normLeaderEmail(email string) string {
@@ -26,26 +21,26 @@ func isUniqueViolation(err error) bool {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint")
+	return strings.Contains(msg, "duplicate key") ||
+		strings.Contains(msg, "unique constraint failed") ||
+		strings.Contains(msg, "unique constraint")
 }
 
-// HasApprovedLeaderAccount reports whether any leader_credentials row has been approved.
 func HasApprovedLeaderAccount(ctx context.Context, db *sql.DB) (bool, error) {
 	var n int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM leader_credentials WHERE approved_at IS NOT NULL`).Scan(&n); err != nil {
+	if err := sxQueryRow(db, ctx, `SELECT COUNT(*) FROM leader_credentials WHERE approved_at IS NOT NULL`).Scan(&n); err != nil {
 		return false, err
 	}
 	return n > 0, nil
 }
 
-// IsApprovedLeaderAccount reports whether this specific email has an approved row.
 func IsApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) (bool, error) {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return false, nil
 	}
 	var n int
-	if err := db.QueryRowContext(ctx,
+	if err := sxQueryRow(db, ctx,
 		`SELECT COUNT(*) FROM leader_credentials WHERE email = $1 AND approved_at IS NOT NULL`, em,
 	).Scan(&n); err != nil {
 		return false, err
@@ -53,7 +48,6 @@ func IsApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) (boo
 	return n > 0, nil
 }
 
-// InsertLeaderCredential stores a bcrypt hash for password sign-in.
 func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, lastName, passwordHash, autoApprovedBy string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -63,15 +57,15 @@ func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, l
 	ln := strings.TrimSpace(lastName)
 	var err error
 	if strings.TrimSpace(autoApprovedBy) != "" {
-		_, err = db.ExecContext(ctx,
+		_, err = sxExec(db, ctx,
 			`INSERT INTO leader_credentials (email, password_hash, first_name, last_name, created_at, approved_at, approved_by)
-			 VALUES ($1, $2, $3, $4, NOW(), NOW(), $5)`,
+			 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $5)`,
 			em, passwordHash, fn, ln, strings.TrimSpace(autoApprovedBy),
 		)
 	} else {
-		_, err = db.ExecContext(ctx,
+		_, err = sxExec(db, ctx,
 			`INSERT INTO leader_credentials (email, password_hash, first_name, last_name, created_at)
-			 VALUES ($1, $2, $3, $4, NOW())`,
+			 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
 			em, passwordHash, fn, ln,
 		)
 	}
@@ -84,14 +78,13 @@ func InsertLeaderCredential(ctx context.Context, db *sql.DB, email, firstName, l
 	return nil
 }
 
-// LeaderName returns the stored first + last name for an account (either pending or approved).
 func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastName string, err error) {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return "", "", sql.ErrNoRows
 	}
 	var fn, ln sql.NullString
-	err = db.QueryRowContext(ctx,
+	err = sxQueryRow(db, ctx,
 		`SELECT first_name, last_name FROM leader_credentials WHERE email = $1`, em,
 	).Scan(&fn, &ln)
 	if err != nil {
@@ -100,12 +93,11 @@ func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastN
 	return strings.TrimSpace(fn.String), strings.TrimSpace(ln.String), nil
 }
 
-// LeaderCredentialHash returns the stored bcrypt hash if the account exists AND is approved.
 func LeaderCredentialHash(ctx context.Context, db *sql.DB, email string) (string, error) {
 	em := normLeaderEmail(email)
 	var h string
 	var approvedAt sql.NullTime
-	err := db.QueryRowContext(ctx,
+	err := sxQueryRow(db, ctx,
 		`SELECT password_hash, approved_at FROM leader_credentials WHERE email = $1`, em,
 	).Scan(&h, &approvedAt)
 	if err != nil {
@@ -117,7 +109,6 @@ func LeaderCredentialHash(ctx context.Context, db *sql.DB, email string) (string
 	return h, nil
 }
 
-// PendingLeaderAccount is one row awaiting admin approval.
 type PendingLeaderAccount struct {
 	Email     string
 	FirstName string
@@ -125,9 +116,8 @@ type PendingLeaderAccount struct {
 	CreatedAt time.Time
 }
 
-// ListPendingLeaderAccounts returns accounts created via /auth/register that are still pending.
 func ListPendingLeaderAccounts(ctx context.Context, db *sql.DB) ([]PendingLeaderAccount, error) {
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT email, COALESCE(first_name, ''), COALESCE(last_name, ''), created_at
 		   FROM leader_credentials WHERE approved_at IS NULL ORDER BY created_at ASC`,
 	)
@@ -148,9 +138,8 @@ func ListPendingLeaderAccounts(ctx context.Context, db *sql.DB) ([]PendingLeader
 	return out, rows.Err()
 }
 
-// ListApprovedLeaderEmails returns emails for approved leaders (notify targets for pending signup alerts).
 func ListApprovedLeaderEmails(ctx context.Context, db *sql.DB) ([]string, error) {
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT email FROM leader_credentials WHERE approved_at IS NOT NULL ORDER BY email ASC`,
 	)
 	if err != nil {
@@ -171,14 +160,13 @@ func ListApprovedLeaderEmails(ctx context.Context, db *sql.DB) ([]string, error)
 	return out, rows.Err()
 }
 
-// ApproveLeaderAccount sets approved_at + approved_by for a pending account.
 func ApproveLeaderAccount(ctx context.Context, db *sql.DB, email, approvedBy string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return errors.New("empty email")
 	}
-	res, err := db.ExecContext(ctx,
-		`UPDATE leader_credentials SET approved_at = NOW(), approved_by = $1 WHERE email = $2 AND approved_at IS NULL`,
+	res, err := sxExec(db, ctx,
+		`UPDATE leader_credentials SET approved_at = CURRENT_TIMESTAMP, approved_by = $1 WHERE email = $2 AND approved_at IS NULL`,
 		strings.TrimSpace(approvedBy), em,
 	)
 	if err != nil {
@@ -194,13 +182,12 @@ func ApproveLeaderAccount(ctx context.Context, db *sql.DB, email, approvedBy str
 	return nil
 }
 
-// DeletePendingLeaderAccount removes a pending account (deny request).
 func DeletePendingLeaderAccount(ctx context.Context, db *sql.DB, email string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return errors.New("empty email")
 	}
-	res, err := db.ExecContext(ctx,
+	res, err := sxExec(db, ctx,
 		`DELETE FROM leader_credentials WHERE email = $1 AND approved_at IS NULL`,
 		em,
 	)
@@ -217,7 +204,6 @@ func DeletePendingLeaderAccount(ctx context.Context, db *sql.DB, email string) e
 	return nil
 }
 
-// ApprovedLeaderAccount is one approved leader row (for admin listing).
 type ApprovedLeaderAccount struct {
 	Email      string
 	FirstName  string
@@ -225,9 +211,8 @@ type ApprovedLeaderAccount struct {
 	ApprovedAt time.Time
 }
 
-// ListApprovedLeaderAccounts returns approved accounts ordered by approval time (oldest first).
 func ListApprovedLeaderAccounts(ctx context.Context, db *sql.DB) ([]ApprovedLeaderAccount, error) {
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT email, COALESCE(first_name, ''), COALESCE(last_name, ''), approved_at
 		   FROM leader_credentials WHERE approved_at IS NOT NULL ORDER BY approved_at ASC`,
 	)
@@ -248,7 +233,6 @@ func ListApprovedLeaderAccounts(ctx context.Context, db *sql.DB) ([]ApprovedLead
 	return out, rows.Err()
 }
 
-// DeleteApprovedLeaderAccount removes an approved leader credential row.
 func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
@@ -261,7 +245,7 @@ func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) 
 	defer func() { _ = tx.Rollback() }()
 
 	var total int
-	if err := tx.QueryRowContext(ctx,
+	if err := sxTxQueryRow(tx, ctx,
 		`SELECT COUNT(*) FROM leader_credentials WHERE approved_at IS NOT NULL`,
 	).Scan(&total); err != nil {
 		return err
@@ -270,7 +254,7 @@ func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) 
 		return ErrCannotRemoveLastLeader
 	}
 
-	res, err := tx.ExecContext(ctx,
+	res, err := sxTxExec(tx, ctx,
 		`DELETE FROM leader_credentials WHERE email = $1 AND approved_at IS NOT NULL`,
 		em,
 	)
@@ -285,7 +269,7 @@ func DeleteApprovedLeaderAccount(ctx context.Context, db *sql.DB, email string) 
 		return errors.New("no approved leader account for that email")
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em); err != nil {
+	if _, err := sxTxExec(tx, ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em); err != nil {
 		return err
 	}
 

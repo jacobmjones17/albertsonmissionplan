@@ -1,7 +1,12 @@
-// seedadmin creates (or resets) an approved leader account directly in PostgreSQL,
-// without going through the registration UI. Useful for bootstrapping or recovering access.
+// seedadmin creates (or resets) an approved leader account directly in the database,
+// without going through the registration UI. Uses PostgreSQL when DATABASE_URL is set;
+// otherwise SQLite (same defaults as the main server).
 //
 // Example:
+//
+//	go run ./cmd/seedadmin -email you@example.org -password 'changeme'
+//
+// Or with Postgres:
 //
 //	DATABASE_URL=postgres://... go run ./cmd/seedadmin -email you@example.org -password 'changeme'
 //
@@ -53,15 +58,10 @@ func main() {
 		os.Exit(2)
 	}
 
-	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL must be set (PostgreSQL connection string)")
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	db, err := store.Open(ctx, dbURL)
+	db, err := store.Open(ctx)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
@@ -80,16 +80,7 @@ func main() {
 	case err == nil:
 		fmt.Printf("seeded new approved leader account: %s\n", em)
 	case errors.Is(err, store.ErrLeaderAlreadyRegistered):
-		if _, err := db.ExecContext(ctx,
-			`UPDATE leader_credentials
-			   SET password_hash = $1,
-			       first_name    = CASE WHEN $2='' THEN COALESCE(first_name, '') ELSE $3 END,
-			       last_name     = CASE WHEN $4='' THEN COALESCE(last_name, '') ELSE $5 END,
-			       approved_at   = COALESCE(approved_at, NOW()),
-			       approved_by   = COALESCE(approved_by, $6)
-			 WHERE email = $7`,
-			hash, fn, fn, ln, ln, "cli-seed", em,
-		); err != nil {
+		if err := store.UpsertLeaderCredentialCLI(ctx, db, hash, fn, ln, "cli-seed", em); err != nil {
 			log.Fatalf("reset existing credential: %v", err)
 		}
 		fmt.Printf("reset password for existing leader account: %s (already approved or now approved)\n", em)

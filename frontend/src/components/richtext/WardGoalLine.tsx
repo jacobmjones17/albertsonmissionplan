@@ -43,8 +43,9 @@ export function WardGoalLine({ content }: { content: string }) {
 
   if (html) {
     return (
-      <span
+      <div
         className="ward-rich-line"
+        // Block wrapper: editor output may include <p>, lists, etc. — invalid inside <span>.
         dangerouslySetInnerHTML={{ __html: html }}
       />
     )

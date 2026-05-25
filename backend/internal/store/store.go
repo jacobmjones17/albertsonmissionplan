@@ -6,25 +6,19 @@ import (
 	"errors"
 	"strings"
 	"time"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
-	// ErrApproveBodyTooShort is returned when the leader's edited text is too short to publish.
 	ErrApproveBodyTooShort = errors.New("edited experience is too short to publish")
-	// ErrApproveBodyTooLong is returned when the leader's edited text exceeds the limit.
-	ErrApproveBodyTooLong = errors.New("edited experience is too long")
+	ErrApproveBodyTooLong  = errors.New("edited experience is too long")
 )
 
-// OrgSection is one auxiliary / quorum block on the ward plan.
 type OrgSection struct {
 	Slug    string
 	Title   string
 	Bullets []string
 }
 
-// Testimonial is a member-submitted experience (may be pending).
 type Testimonial struct {
 	ID            int64
 	Body          string
@@ -36,93 +30,9 @@ type Testimonial struct {
 	ModeratorNote sql.NullString
 }
 
-// Open opens a PostgreSQL database and runs migrations (DATABASE_URL).
-func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {
-	databaseURL = strings.TrimSpace(databaseURL)
-	if databaseURL == "" {
-		return nil, errors.New("DATABASE_URL is empty")
-	}
-	db, err := sql.Open("pgx", databaseURL)
-	if err != nil {
-		return nil, err
-	}
-	db.SetMaxOpenConns(25)
-	db.SetConnMaxLifetime(time.Hour)
-	if err := db.PingContext(ctx); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if err := migrate(ctx, db); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	return db, nil
-}
-
-func migrate(ctx context.Context, db *sql.DB) error {
-	stmts := []string{
-		`CREATE TABLE IF NOT EXISTS org_sections (
-			slug TEXT PRIMARY KEY,
-			title TEXT NOT NULL,
-			bullets TEXT NOT NULL,
-			sort_order INTEGER NOT NULL
-		);`,
-		`CREATE TABLE IF NOT EXISTS ward_goals (
-			id SMALLINT PRIMARY KEY CHECK (id = 1),
-			bullets TEXT NOT NULL,
-			updated_at TIMESTAMPTZ,
-			updated_by TEXT
-		);`,
-		`CREATE TABLE IF NOT EXISTS testimonials (
-			id BIGSERIAL PRIMARY KEY,
-			body TEXT NOT NULL,
-			author_label TEXT NOT NULL DEFAULT '',
-			status TEXT NOT NULL DEFAULT 'pending',
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			reviewed_at TIMESTAMPTZ,
-			reviewed_by TEXT,
-			moderator_note TEXT
-		);`,
-		`CREATE INDEX IF NOT EXISTS idx_testimonials_status ON testimonials(status);`,
-		`CREATE TABLE IF NOT EXISTS leader_roles (
-			email TEXT PRIMARY KEY NOT NULL,
-			is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		);`,
-		`CREATE TABLE IF NOT EXISTS leader_org_scopes (
-			email TEXT NOT NULL REFERENCES leader_roles(email) ON DELETE CASCADE,
-			slug TEXT NOT NULL REFERENCES org_sections(slug) ON DELETE CASCADE,
-			PRIMARY KEY (email, slug)
-		);`,
-		`CREATE TABLE IF NOT EXISTS leader_credentials (
-			email TEXT PRIMARY KEY NOT NULL,
-			password_hash TEXT NOT NULL,
-			first_name TEXT NOT NULL DEFAULT '',
-			last_name TEXT NOT NULL DEFAULT '',
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			approved_at TIMESTAMPTZ,
-			approved_by TEXT
-		);`,
-		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
-			token_hash TEXT PRIMARY KEY NOT NULL,
-			email TEXT NOT NULL,
-			expires_at BIGINT NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		);`,
-		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
-	}
-	for _, s := range stmts {
-		if _, err := db.ExecContext(ctx, s); err != nil {
-			return err
-		}
-	}
-	return seedIfEmpty(ctx, db)
-}
-
 func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 	var n int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM org_sections`).Scan(&n); err != nil {
+	if err := sxQueryRow(db, ctx, `SELECT COUNT(*) FROM org_sections`).Scan(&n); err != nil {
 		return err
 	}
 	if n > 0 {
@@ -182,7 +92,7 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 			"Encourage all families to join the Love, Share, and Invite mission focus.",
 			"Encourage all families to participate in the ward’s monthly challenge.",
 		}, "\n")},
-		{"missionary-coordination", "Missionary coordination", 80, strings.Join([]string{
+		{"missionary-coordination", "Missionary Coordination", 80, strings.Join([]string{
 			"Conduct consistent weekly coordination meetings.",
 			"Conduct consistent ward council meetings to discuss progress and the covenant path of recent converts.",
 			"Work on the prospective elders list, as assigned by the bishop.",
@@ -190,7 +100,7 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 			"Help members learn and execute Love, Share, and Invite.",
 			"Invite all to take monthly challenges.",
 		}, "\n")},
-		{"ward-council", "Ward council", 90, strings.Join([]string{
+		{"ward-council", "Young Single Adults", 90, strings.Join([]string{
 			"Lead by example—take on and complete the monthly challenge as a ward council.",
 			"Invite and encourage members of your quorums and organizations to participate in the ward monthly challenge.",
 			"Ensure ward activities focus on inviting non-member and less-active friends.",
@@ -202,7 +112,7 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	for _, r := range seeds {
-		if _, err := tx.ExecContext(ctx,
+		if _, err := sxTxExec(tx, ctx,
 			`INSERT INTO org_sections (slug, title, bullets, sort_order) VALUES ($1, $2, $3, $4)`,
 			r.slug, r.title, r.bullets, r.sort,
 		); err != nil {
@@ -216,9 +126,30 @@ func seedIfEmpty(ctx context.Context, db *sql.DB) error {
 	return seedWardGoalsIfEmpty(ctx, db)
 }
 
+// migrateOrgSectionTitles renames seeded org display titles on existing databases.
+func migrateOrgSectionTitles(ctx context.Context, db *sql.DB) error {
+	renames := []struct {
+		slug string
+		from string
+		to   string
+	}{
+		{"missionary-coordination", "Missionary coordination", "Missionary Coordination"},
+		{"ward-council", "Ward council", "Young Single Adults"},
+	}
+	for _, r := range renames {
+		if _, err := sxExec(db, ctx,
+			`UPDATE org_sections SET title = $1 WHERE slug = $2 AND title = $3`,
+			r.to, r.slug, r.from,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func seedWardGoalsIfEmpty(ctx context.Context, db *sql.DB) error {
 	var n int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM ward_goals`).Scan(&n); err != nil {
+	if err := sxQueryRow(db, ctx, `SELECT COUNT(*) FROM ward_goals`).Scan(&n); err != nil {
 		return err
 	}
 	if n > 0 {
@@ -234,16 +165,15 @@ func seedWardGoalsIfEmpty(ctx context.Context, db *sql.DB) error {
 		"Encouraging the entire ward family to **participate** in [monthly challenges](/monthly-challenges).",
 		"Encouraging each active household to create their own **family mission plan**.",
 	}, "\n")
-	_, err := db.ExecContext(ctx,
-		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, NOW(), '')`,
+	_, err := sxExec(db, ctx,
+		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, CURRENT_TIMESTAMP, '')`,
 		bullets,
 	)
 	return err
 }
 
-// ListOrgSections returns organizations in display order.
 func ListOrgSections(ctx context.Context, db *sql.DB) ([]OrgSection, error) {
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT slug, title, bullets FROM org_sections ORDER BY sort_order ASC, slug ASC`,
 	)
 	if err != nil {
@@ -265,9 +195,8 @@ func ListOrgSections(ctx context.Context, db *sql.DB) ([]OrgSection, error) {
 	return out, rows.Err()
 }
 
-// UpdateOrgBullets updates bullet list for one org (leaders).
 func UpdateOrgBullets(ctx context.Context, db *sql.DB, slug, bullets string) error {
-	res, err := db.ExecContext(ctx,
+	res, err := sxExec(db, ctx,
 		`UPDATE org_sections SET bullets = $1 WHERE slug = $2`,
 		strings.TrimSpace(bullets), slug,
 	)
@@ -296,10 +225,9 @@ func splitBullets(s string) []string {
 	return out
 }
 
-// GetWardGoals returns ward-wide goal lines.
 func GetWardGoals(ctx context.Context, db *sql.DB) ([]string, error) {
 	var raw string
-	err := db.QueryRowContext(ctx, `SELECT bullets FROM ward_goals WHERE id = 1`).Scan(&raw)
+	err := sxQueryRow(db, ctx, `SELECT bullets FROM ward_goals WHERE id = 1`).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -309,10 +237,9 @@ func GetWardGoals(ctx context.Context, db *sql.DB) ([]string, error) {
 	return splitBullets(raw), nil
 }
 
-// SetWardGoals replaces ward-wide bullets (one per line in storage).
 func SetWardGoals(ctx context.Context, db *sql.DB, bullets string, editor string) error {
-	res, err := db.ExecContext(ctx,
-		`UPDATE ward_goals SET bullets = $1, updated_at = NOW(), updated_by = $2 WHERE id = 1`,
+	res, err := sxExec(db, ctx,
+		`UPDATE ward_goals SET bullets = $1, updated_at = CURRENT_TIMESTAMP, updated_by = $2 WHERE id = 1`,
 		strings.TrimSpace(bullets), editor,
 	)
 	if err != nil {
@@ -325,32 +252,38 @@ func SetWardGoals(ctx context.Context, db *sql.DB, bullets string, editor string
 	if n > 0 {
 		return nil
 	}
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, NOW(), $2)`,
+	_, err = sxExec(db, ctx,
+		`INSERT INTO ward_goals (id, bullets, updated_at, updated_by) VALUES (1, $1, CURRENT_TIMESTAMP, $2)`,
 		strings.TrimSpace(bullets), editor,
 	)
 	return err
 }
 
-// InsertTestimonial creates a pending testimonial.
 func InsertTestimonial(ctx context.Context, db *sql.DB, body, authorLabel string) (int64, error) {
-	var id int64
-	err := db.QueryRowContext(ctx,
-		`INSERT INTO testimonials (body, author_label, status, created_at) VALUES ($1, $2, 'pending', NOW()) RETURNING id`,
-		body, strings.TrimSpace(authorLabel),
-	).Scan(&id)
-	if err != nil {
-		return 0, err
+	al := strings.TrimSpace(authorLabel)
+	if activeDriver == driverSQLite {
+		res, err := sxExec(db, ctx,
+			`INSERT INTO testimonials (body, author_label, status, created_at) VALUES ($1, $2, 'pending', CURRENT_TIMESTAMP)`,
+			body, al,
+		)
+		if err != nil {
+			return 0, err
+		}
+		return res.LastInsertId()
 	}
-	return id, nil
+	var id int64
+	err := sxQueryRow(db, ctx,
+		`INSERT INTO testimonials (body, author_label, status, created_at) VALUES ($1, $2, 'pending', CURRENT_TIMESTAMP) RETURNING id`,
+		body, al,
+	).Scan(&id)
+	return id, err
 }
 
-// ListApprovedTestimonials returns recent approved posts for public display.
 func ListApprovedTestimonials(ctx context.Context, db *sql.DB, limit int) ([]Testimonial, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT id, body, author_label, status, created_at, reviewed_at, reviewed_by, moderator_note
 		 FROM testimonials WHERE status = 'approved' ORDER BY created_at DESC LIMIT $1`,
 		limit,
@@ -362,9 +295,8 @@ func ListApprovedTestimonials(ctx context.Context, db *sql.DB, limit int) ([]Tes
 	return scanTestimonials(rows)
 }
 
-// ListPendingTestimonials returns testimonials awaiting moderation.
 func ListPendingTestimonials(ctx context.Context, db *sql.DB) ([]Testimonial, error) {
-	rows, err := db.QueryContext(ctx,
+	rows, err := sxQuery(db, ctx,
 		`SELECT id, body, author_label, status, created_at, reviewed_at, reviewed_by, moderator_note
 		 FROM testimonials WHERE status = 'pending' ORDER BY created_at ASC`,
 	)
@@ -375,13 +307,12 @@ func ListPendingTestimonials(ctx context.Context, db *sql.DB) ([]Testimonial, er
 	return scanTestimonials(rows)
 }
 
-// SetTestimonialStatus sets rejected (no body change) for pending rows.
 func SetTestimonialStatus(ctx context.Context, db *sql.DB, id int64, status string, reviewer string, note string) error {
 	if status != "rejected" {
 		return errors.New("invalid status for SetTestimonialStatus")
 	}
-	res, err := db.ExecContext(ctx,
-		`UPDATE testimonials SET status = $1, reviewed_at = NOW(), reviewed_by = $2, moderator_note = $3
+	res, err := sxExec(db, ctx,
+		`UPDATE testimonials SET status = $1, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $2, moderator_note = $3
 		 WHERE id = $4 AND status = 'pending'`,
 		status, reviewer, strings.TrimSpace(note), id,
 	)
@@ -398,7 +329,6 @@ func SetTestimonialStatus(ctx context.Context, db *sql.DB, id int64, status stri
 	return nil
 }
 
-// ApproveTestimonial publishes a pending submission, optionally replacing body and display name (e.g. after redacting names).
 func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorLabel, reviewer string) error {
 	body = strings.TrimSpace(body)
 	if len(body) < 10 {
@@ -407,9 +337,9 @@ func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorL
 	if len(body) > 8000 {
 		return ErrApproveBodyTooLong
 	}
-	res, err := db.ExecContext(ctx,
+	res, err := sxExec(db, ctx,
 		`UPDATE testimonials SET body = $1, author_label = $2, status = 'approved',
-			reviewed_at = NOW(), reviewed_by = $3, moderator_note = ''
+			reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $3, moderator_note = ''
 		 WHERE id = $4 AND status = 'pending'`,
 		body, strings.TrimSpace(authorLabel), reviewer, id,
 	)
@@ -426,7 +356,6 @@ func ApproveTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorL
 	return nil
 }
 
-// UpdateApprovedTestimonial edits an already-published experience.
 func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, authorLabel, editor string) error {
 	body = strings.TrimSpace(body)
 	if len(body) < 10 {
@@ -435,9 +364,9 @@ func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, 
 	if len(body) > 8000 {
 		return ErrApproveBodyTooLong
 	}
-	res, err := db.ExecContext(ctx,
+	res, err := sxExec(db, ctx,
 		`UPDATE testimonials SET body = $1, author_label = $2,
-			reviewed_at = NOW(), reviewed_by = $3
+			reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $3
 		 WHERE id = $4 AND status = 'approved'`,
 		body, strings.TrimSpace(authorLabel), editor, id,
 	)
@@ -454,9 +383,8 @@ func UpdateApprovedTestimonial(ctx context.Context, db *sql.DB, id int64, body, 
 	return nil
 }
 
-// DeleteTestimonial permanently removes a row regardless of status.
 func DeleteTestimonial(ctx context.Context, db *sql.DB, id int64) error {
-	res, err := db.ExecContext(ctx, `DELETE FROM testimonials WHERE id = $1`, id)
+	res, err := sxExec(db, ctx, `DELETE FROM testimonials WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}

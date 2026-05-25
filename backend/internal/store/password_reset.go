@@ -7,42 +7,38 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 )
 
-// ErrPasswordResetInvalidToken means the token is unknown or expired.
 var ErrPasswordResetInvalidToken = errors.New("invalid or expired reset token")
 
-// PasswordResetTokenHashHex is the hex-encoded SHA-256 of the raw secret bytes emailed to the user.
 func PasswordResetTokenHashHex(rawSecret []byte) string {
 	sum := sha256.Sum256(rawSecret)
 	return hex.EncodeToString(sum[:])
 }
 
-// DeletePasswordResetTokensForEmail removes outstanding reset links for one account.
 func DeletePasswordResetTokensForEmail(ctx context.Context, db *sql.DB, email string) error {
 	em := normLeaderEmail(email)
 	if em == "" {
 		return errors.New("empty email")
 	}
-	_, err := db.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em)
+	_, err := sxExec(db, ctx, `DELETE FROM password_reset_tokens WHERE email = $1`, em)
 	return err
 }
 
-// InsertPasswordResetToken stores token_hash (SHA-256 hex of secret). expiresUnix is Unix seconds.
 func InsertPasswordResetToken(ctx context.Context, db *sql.DB, email, tokenHashHex string, expiresUnix int64) error {
 	em := normLeaderEmail(email)
 	if em == "" || strings.TrimSpace(tokenHashHex) == "" || expiresUnix <= 0 {
 		return errors.New("invalid password reset token insert")
 	}
-	_, err := db.ExecContext(ctx,
+	_, err := sxExec(db, ctx,
 		`INSERT INTO password_reset_tokens (token_hash, email, expires_at, created_at)
-		 VALUES ($1, $2, $3, NOW())`,
+		 VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
 		strings.TrimSpace(tokenHashHex), em, expiresUnix,
 	)
 	return err
 }
 
-// ResetLeaderPasswordWithToken validates token, deletes the row, and updates password_hash for an approved leader.
 func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, newPasswordHash string) error {
 	rawTokenHex = strings.TrimSpace(strings.ToLower(rawTokenHex))
 	if len(rawTokenHex) != 64 {
@@ -54,6 +50,7 @@ func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, 
 	}
 
 	tokenHashHex := PasswordResetTokenHashHex(rawBytes)
+	now := time.Now().Unix()
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -61,12 +58,11 @@ func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, 
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var email string
-	err = tx.QueryRowContext(ctx,
-		`SELECT email FROM password_reset_tokens WHERE token_hash = $1
-		   AND expires_at > EXTRACT(EPOCH FROM NOW())::BIGINT`,
-		tokenHashHex,
-	).Scan(&email)
+	var mail string
+	err = sxTxQueryRow(tx, ctx,
+		`SELECT email FROM password_reset_tokens WHERE token_hash = $1 AND expires_at > $2`,
+		tokenHashHex, now,
+	).Scan(&mail)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrPasswordResetInvalidToken
 	}
@@ -74,13 +70,13 @@ func ResetLeaderPasswordWithToken(ctx context.Context, db *sql.DB, rawTokenHex, 
 		return err
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE token_hash = $1`, tokenHashHex); err != nil {
+	if _, err := sxTxExec(tx, ctx, `DELETE FROM password_reset_tokens WHERE token_hash = $1`, tokenHashHex); err != nil {
 		return err
 	}
 
-	res, err := tx.ExecContext(ctx,
+	res, err := sxTxExec(tx, ctx,
 		`UPDATE leader_credentials SET password_hash = $1 WHERE email = $2 AND approved_at IS NOT NULL`,
-		newPasswordHash, email,
+		newPasswordHash, mail,
 	)
 	if err != nil {
 		return err

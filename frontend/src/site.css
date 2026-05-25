@@ -1711,14 +1711,10 @@ ul.clean li::marker {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 0.85rem 2.5rem;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 800px) {
-  .ward-goals-spotlight__list {
-    grid-template-columns: 1fr 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 44rem;
 }
 .ward-goals-spotlight__list li {
   display: flex;
@@ -1731,6 +1727,7 @@ ul.clean li::marker {
   font-weight: 400;
   color: var(--ink);
   letter-spacing: 0.01em;
+  min-width: 0;
 }
 .ward-goals-spotlight__list li strong {
   font-weight: 700;
@@ -1777,6 +1774,25 @@ ul.clean li::marker {
   color: var(--ink-muted);
 }
 
+.ward-plan-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.75rem 0 0.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-soft);
+}
+.ward-plan-actions__label {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+.ward-plan-actions .document-download {
+  margin: 0;
+}
+
 .org-goals-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1814,6 +1830,7 @@ details.org.org-card .org-body ul {
 }
 details.org.org-card .org-body ul li {
   line-height: 1.55;
+  min-width: 0;
 }
 
 .scripture-pull--ward {
@@ -1922,6 +1939,27 @@ details.org .org-body {
 @media (min-width: 900px) {
   .challenges-split--explorer {
     grid-template-columns: minmax(22rem, 32rem) minmax(16.5rem, 22rem);
+  }
+}
+
+.challenges-featured-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.challenges-featured-stack .document-download {
+  margin: 0;
+  width: 100%;
+}
+@media (min-width: 900px) {
+  .challenges-featured-stack {
+    align-items: stretch;
+    justify-self: start;
+  }
+  .challenges-featured-stack .document-download {
+    justify-content: center;
   }
 }
 
@@ -2839,6 +2877,16 @@ details.org .org-body {
 .site-footer__inner {
   max-width: 40rem;
   margin: 0 auto;
+}
+.site-footer__disclaimer {
+  margin: 1.15rem auto 0 !important;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-width: 36rem;
+  opacity: 0.78;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #a8adb8;
 }
 .site-footer__meta {
   margin: 0 0 1.25rem !important;
@@ -3760,31 +3808,46 @@ textarea.privacy-highlight-input::-moz-selection {
   opacity: 0.65;
   pointer-events: none;
 }
+/* Rich HTML from TipTap: must be block-level inside flex <li>, with wrapping for long URLs. */
 .ward-goals-spotlight__list .ward-rich-line,
 .org-body .ward-rich-line {
-  display: inline;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
+
 .ward-rich-line :is(h2, h3, h4) {
-  display: inline;
-  font-size: inherit;
+  display: block;
+  font-size: 1.08em;
   font-weight: 700;
-  margin: 0;
-  padding: 0;
-  line-height: inherit;
+  margin: 0.4rem 0 0.2rem;
+  line-height: 1.35;
 }
+.ward-rich-line :is(h2, h3, h4):first-child {
+  margin-top: 0;
+}
+
 .ward-rich-line :is(ul, ol) {
-  margin: 0.35rem 0 0.35rem 1.25rem;
+  margin: 0.4rem 0 0.4rem 1.15rem;
   padding: 0;
+  display: block;
 }
+
+.ward-rich-line li {
+  margin: 0.2rem 0;
+}
+
 .ward-rich-line p {
-  display: inline;
-  margin: 0;
+  display: block;
+  margin: 0 0 0.5rem;
 }
-.ward-rich-line p + p::before {
-  content: ' ';
+.ward-rich-line p:last-child {
+  margin-bottom: 0;
 }
+
 .ward-rich-line blockquote {
-  margin: 0.35rem 0;
+  margin: 0.4rem 0;
   padding-left: 0.75rem;
   border-left: 3px solid var(--border-strong);
 }

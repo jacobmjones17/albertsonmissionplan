@@ -1,41 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
-import { MONTHLY_GOALS, MONTHS_LONG, MONTHS_SHORT, type Goal } from '../monthlyData'
+import {
+  CHALLENGE_CARD_HEADING,
+  MONTHLY_GOALS,
+  MONTHS_LONG,
+  MONTHS_SHORT,
+  type Goal,
+} from '../monthlyData'
 import { PageHero } from '../components/PageHero'
+import { DocumentDownloadIcon } from '../components/DocumentDownloadIcon'
+import { buildOfflineMonthlyChallengesHtml } from '../lib/downloadMonthlyChallenges'
+import { renderChallengeBullet } from '../lib/challengeBullets'
 import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
 
-/** Display titles aligned with the printed challenge cards. */
-const CHALLENGE_CARD_HEADING: Record<Goal['id'], string> = {
-  g1: 'Scripture Study Challenge',
-  g2: 'Act of Kindness Challenge',
-  g3: 'Temple & Family History Challenge',
-  g4: 'Missionary Work Challenge',
-  g5: 'Health & Wellness Challenge',
-  g6: 'Faith & Testimony Challenge',
-  g7: 'Gratitude Challenge',
-  g8: 'Prayer Challenge',
-  g9: 'Sabbath Day Challenge',
-  g10: 'General Conference Challenge',
-  g11: 'Service Challenge',
-  g12: 'Christmas Challenge',
-}
-
 function renderBullet(goal: Goal, who: string, text: string, key: number) {
-  if (goal.id === 'g3' && who === 'Individuals') {
-    return (
-      <li key={key}>
-        <strong>Individuals:</strong> Spend time each week on{' '}
-        <a href="https://www.familysearch.org/en/" rel="noopener noreferrer">
-          FamilySearch.org
-        </a>
-        .
-      </li>
-    )
-  }
-  return (
-    <li key={key}>
-      <strong>{who}:</strong> {text}
-    </li>
-  )
+  return renderChallengeBullet(goal, who, text, key)
 }
 
 export function MonthlyChallenges() {
@@ -90,38 +68,46 @@ export function MonthlyChallenges() {
               </h2>
             </div>
 
-            <article
-              className={`challenge-card challenge-card--featured${selectedMonth === currentMonth ? ' challenge-card--current-accent' : ''}`}
-              aria-labelledby="challenge-card-featured-title challenge-month-heading"
-            >
-              <div className="challenge-card__art">
-                <img
-                  src={monthlyChallengeImageSrc(goal.id)}
-                  alt=""
-                  className="challenge-card__icon"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="challenge-card__art-front">
-                  <p className="challenge-card__month">{MONTHS_LONG[selectedMonth]}</p>
+            <div className="challenges-featured-stack">
+              <article
+                className={`challenge-card challenge-card--featured${selectedMonth === currentMonth ? ' challenge-card--current-accent' : ''}`}
+                aria-labelledby="challenge-card-featured-title challenge-month-heading"
+              >
+                <div className="challenge-card__art">
+                  <img
+                    src={monthlyChallengeImageSrc(goal.id)}
+                    alt=""
+                    className="challenge-card__icon"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="challenge-card__art-front">
+                    <p className="challenge-card__month">{MONTHS_LONG[selectedMonth]}</p>
+                  </div>
+                  <span className="challenge-card__art-corner challenge-card__art-corner--tl" aria-hidden="true" />
+                  <span className="challenge-card__art-corner challenge-card__art-corner--br" aria-hidden="true" />
                 </div>
-                <span className="challenge-card__art-corner challenge-card__art-corner--tl" aria-hidden="true" />
-                <span className="challenge-card__art-corner challenge-card__art-corner--br" aria-hidden="true" />
-              </div>
 
-              <h3 id="challenge-card-featured-title" className="sr-only">
-                {CHALLENGE_CARD_HEADING[goal.id]}
-              </h3>
+                <h3 id="challenge-card-featured-title" className="sr-only">
+                  {CHALLENGE_CARD_HEADING[goal.id]}
+                </h3>
 
-              <div className="challenge-card__body">
-                <p className="challenge-card__goal">
-                  <strong>Goal:</strong> {goal.title}
-                </p>
-                <ul className="challenge-card__list clean">
-                  {goal.bullets.map((b, i) => renderBullet(goal, b.who, b.text, i))}
-                </ul>
-              </div>
-            </article>
+                <div className="challenge-card__body">
+                  <p className="challenge-card__goal">
+                    <strong>Goal:</strong> {goal.title}
+                  </p>
+                  <ul className="challenge-card__list clean">
+                    {goal.bullets.map((b, i) => renderBullet(goal, b.who, b.text, i))}
+                  </ul>
+                </div>
+              </article>
+
+              <DocumentDownloadIcon
+                label={`Download ${year} monthly challenges`}
+                filename={`Albertson-Ward-Monthly-Challenges-${year}.html`}
+                buildDocument={() => buildOfflineMonthlyChallengesHtml(year)}
+              />
+            </div>
           </div>
 
           <blockquote className="quote quote--sites challenges-quote">

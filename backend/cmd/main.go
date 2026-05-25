@@ -49,11 +49,8 @@ func loadDotenv() {
 func main() {
 	loadDotenv()
 
-	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL must be set (PostgreSQL connection string, e.g. from Render Postgres)")
-	}
-	db, err := store.Open(context.Background(), dbURL)
+	// With DATABASE_URL unset, the store uses SQLite (default file wardmission.db or DATABASE_PATH).
+	db, err := store.Open(context.Background())
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
@@ -181,7 +178,11 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	fmt.Fprintf(os.Stderr, "ward mission SPA + API on http://localhost%s (PostgreSQL)\n", addr)
+	dbKind := "SQLite"
+	if strings.TrimSpace(os.Getenv("DATABASE_URL")) != "" {
+		dbKind = "PostgreSQL"
+	}
+	fmt.Fprintf(os.Stderr, "ward mission SPA + API on http://localhost%s (%s)\n", addr, dbKind)
 	fmt.Fprintf(os.Stderr, "dev: copy .env.example to .env at repo root; run frontend with \"cd frontend && npm run dev\"\n")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)

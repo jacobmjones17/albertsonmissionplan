@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { apiJson } from '../api'
 import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
+import { DocumentDownloadIcon } from '../components/DocumentDownloadIcon'
+import { buildWardPlanHtml } from '../lib/printDocuments'
 import { WardGoalLine } from '../components/richtext/WardGoalLine'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
@@ -56,6 +58,16 @@ export function WardPlan() {
               ))}
             </ul>
           </section>
+
+          <div className="ward-plan-actions">
+            <p className="ward-plan-actions__label">Download ward goals</p>
+            <DocumentDownloadIcon
+              label="Download ward goals"
+              filename="Albertson-Ward-Goals.html"
+              disabled={wardGoals.length === 0}
+              buildDocument={async () => buildWardPlanHtml(wardGoals)}
+            />
+          </div>
 
           <section className="ward-plan-org-section" aria-labelledby="org-goals">
             <header className="ward-plan-org-section__header">

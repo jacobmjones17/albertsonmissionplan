@@ -5,6 +5,7 @@ import { BootstrapProvider } from './BootstrapContext'
 import { App } from './App'
 import './index.css'
 import './site.css'
+import './print.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
