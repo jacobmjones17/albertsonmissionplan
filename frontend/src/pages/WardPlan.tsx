@@ -103,7 +103,9 @@ export function WardPlan() {
 
           <FeaturePhoto
             src={STATIC_SITE_PHOTOS.wardPlanFeature}
-            caption="“For God so loved the world…” — John 3:16"
+            caption={
+              '“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” — John 3:16'
+            }
           />
         </div>
       </main>

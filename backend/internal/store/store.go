@@ -402,12 +402,16 @@ func scanTestimonials(rows *sql.Rows) ([]Testimonial, error) {
 	var out []Testimonial
 	for rows.Next() {
 		var t Testimonial
+		var created wallTime
+		var reviewed nullTime
 		if err := rows.Scan(
 			&t.ID, &t.Body, &t.AuthorLabel, &t.Status,
-			&t.CreatedAt, &t.ReviewedAt, &t.ReviewedBy, &t.ModeratorNote,
+			&created, &reviewed, &t.ReviewedBy, &t.ModeratorNote,
 		); err != nil {
 			return nil, err
 		}
+		t.CreatedAt = created.Time
+		t.ReviewedAt = reviewed.NullTime
 		out = append(out, t)
 	}
 	return out, rows.Err()

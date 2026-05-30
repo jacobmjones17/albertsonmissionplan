@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link, NavLink, Outlet, useLocation, type Location } from 'react-router-dom'
 import { apiJson } from './api'
 import { useBootstrap } from './BootstrapContext'
 import { STATIC_SITE_PHOTOS } from './staticSitePhotos'
@@ -59,6 +59,8 @@ function SiteHeaderShell({
 export function Layout() {
   const { user } = useBootstrap()
   const [open, setOpen] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const navToggleRef = useRef<HTMLButtonElement>(null)
   const loc = useLocation()
   const headerBackdrop = String(STATIC_SITE_PHOTOS.header).trim()
 
@@ -89,6 +91,53 @@ export function Layout() {
     setOpen(false)
   }, [loc.pathname])
 
+  useEffect(() => {
+    if (!open) return
+
+    function closeIfOutside(event: PointerEvent) {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (navRef.current?.contains(target) || navToggleRef.current?.contains(target)) return
+      setOpen(false)
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeIfOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeIfOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  /* Mobile: scrolling the page closes the open menu so content is not locked behind it. */
+  useEffect(() => {
+    if (!open) return
+    const mobileNav = window.matchMedia('(max-width: 768px)')
+    if (!mobileNav.matches) return
+
+    function closeOnPageScroll() {
+      setOpen(false)
+    }
+
+    function closeOnPageTouchScroll(event: TouchEvent) {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (navRef.current?.contains(target) || navToggleRef.current?.contains(target)) return
+      setOpen(false)
+    }
+
+    window.addEventListener('scroll', closeOnPageScroll, { passive: true, capture: true })
+    document.addEventListener('touchmove', closeOnPageTouchScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', closeOnPageScroll, { capture: true })
+      document.removeEventListener('touchmove', closeOnPageTouchScroll)
+    }
+  }, [open])
+
   return (
     <>
       <a className="skip" href="#main">
@@ -104,6 +153,7 @@ export function Layout() {
             </span>
           </NavLink>
           <button
+            ref={navToggleRef}
             type="button"
             className="nav-toggle"
             aria-expanded={open}
@@ -113,7 +163,12 @@ export function Layout() {
           >
             <span aria-hidden="true" />
           </button>
-          <nav id="site-nav" className={`site-nav${open ? ' is-open' : ''}`} aria-label="Primary">
+          <nav
+            ref={navRef}
+            id="site-nav"
+            className={`site-nav${open ? ' is-open' : ''}`}
+            aria-label="Primary"
+          >
             <ul>
               {nav.map((item) => (
                 <li key={item.to}>
@@ -152,8 +207,32 @@ export function Layout() {
   )
 }
 
+function AdminBackArrowIcon() {
+  return (
+    <svg
+      className="admin-back-link__icon"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+    </svg>
+  )
+}
+
+function adminShowsBackToTools({ pathname }: Location): boolean {
+  return (
+    pathname === '/admin/moderate' ||
+    pathname === '/admin/approvals' ||
+    pathname === '/admin/ward-plan'
+  )
+}
+
 export function AdminLayout() {
   const { refresh, user } = useBootstrap()
+  const loc = useLocation()
+  const showBackToTools = adminShowsBackToTools(loc)
 
   async function signOut() {
     try {
@@ -190,18 +269,37 @@ export function AdminLayout() {
               Albertson Ward
             </span>
           </NavLink>
-          {user?.isLeader ? (
-            <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
-              Sign out
-            </button>
-          ) : null}
+          <div className="admin-header-actions">
+            <Link to="/" className="btn btn-secondary">
+              Public site
+            </Link>
+            {user?.isLeader ? (
+              <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
+                Sign out
+              </button>
+            ) : null}
+          </div>
         </div>
       </SiteHeaderShell>
-      <Outlet />
+      <div className="admin-shell admin-body">
+        {showBackToTools ? (
+          <div className="wrap admin-crumb-wrap">
+            <p className="admin-crumb">
+              <Link to="/admin" className="admin-back-link">
+                <span className="admin-back-link__arrow">
+                  <AdminBackArrowIcon />
+                </span>
+                Leader tools
+              </Link>
+            </p>
+          </div>
+        ) : null}
+        <Outlet />
+      </div>
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">
-            Albertson Ward &middot; Ward Mission &middot; <a href="/">Public site</a>
+            Albertson Ward &middot; Ward Mission &middot; <Link to="/">Public site</Link>
           </p>
           <SiteDisclaimer />
         </div>

@@ -1,7 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
 import { PageHero } from '../components/PageHero'
@@ -164,9 +163,6 @@ export function AdminModerate() {
         compact
       />
       <main id="main" className="wrap">
-        <p className="admin-crumb">
-          <Link to="/admin">&larr; Back to leader tools</Link>
-        </p>
         <p className="privacy-hint-note">
           In <strong>Review</strong>, name-like phrases are listed first when found, with the same text
           highlighted in yellow in the editor. Use <strong>Ignore</strong> for harmless matches or edit

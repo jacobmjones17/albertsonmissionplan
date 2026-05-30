@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
+import { MISSIONARY_REFERRAL_URL } from '../churchLinks'
 import { useBootstrap } from '../BootstrapContext'
 import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
@@ -64,6 +66,14 @@ export function Experiences() {
           Scroll down to read what others have shared. When you&apos;re ready, use the form below to send
           your experience — submissions are reviewed before they appear publicly. Please avoid full names of
           friends, investigators, or ward members—use initials or general descriptions instead.
+        </p>
+        <p className="home-mission-strip__aside">
+          Know someone who wants to meet the missionaries?{' '}
+          <a href={MISSIONARY_REFERRAL_URL} target="_blank" rel="noopener noreferrer">
+            Submit a Church referral
+          </a>{' '}
+          (with their permission), or read more on{' '}
+          <Link to="/love-share-invite">Love, Share, and Invite</Link>.
         </p>
       </div>
       <main id="main">

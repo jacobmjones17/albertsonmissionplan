@@ -163,13 +163,13 @@ func (s *Server) APIPostExperience(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	id, err := store.InsertTestimonial(ctx, s.DB, body, author)
+	_, err := store.InsertTestimonial(ctx, s.DB, body, author)
 	if err != nil {
 		log.Printf("insert testimonial: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not save your experience."})
 		return
 	}
-	go s.notifyPendingExperienceSubmission(body, author, id)
+	go s.notifyPendingExperienceSubmission(body, author)
 	writeJSON(w, http.StatusOK, okMessage{
 		OK:      true,
 		Message: "Thank you! Leaders will review your experience before it appears here.",

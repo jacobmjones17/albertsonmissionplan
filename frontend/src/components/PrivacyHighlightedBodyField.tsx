@@ -1,40 +1,86 @@
-import type { JSX, TextareaHTMLAttributes } from 'react'
+import type { TextareaHTMLAttributes } from 'react'
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { computePrivacyFlags, flagDismissKey, privacyFlagHint, type PrivacyFlag } from '../privacyFlags'
 
-function highlightSegments(body: string, spans: PrivacyFlag[]): JSX.Element[] {
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function buildHighlightHtml(body: string, spans: PrivacyFlag[]): string {
+  if (!body) {
+    return ''
+  }
   if (!spans.length) {
-    return [<span key="full">{body}</span>]
+    return escapeHtml(body).replace(/\n/g, '<br>')
   }
 
   const ordered = [...spans].sort((a, b) => a.start - b.start || a.end - b.end)
-  const parts: JSX.Element[] = []
+  let html = ''
   let cursor = 0
 
-  ordered.forEach((f, ix) => {
+  for (const f of ordered) {
     if (f.start < cursor) {
+      continue
+    }
+    html += escapeHtml(body.slice(cursor, f.start))
+    html += `<mark class="privacy-flag-mark">${escapeHtml(body.slice(f.start, f.end))}</mark>`
+    cursor = f.end
+  }
+  html += escapeHtml(body.slice(cursor))
+  return html.replace(/\n/g, '<br>')
+}
+
+function readPlainText(root: HTMLElement): string {
+  return root.innerText.replace(/\r\n/g, '\n')
+}
+
+function getCaretOffset(root: HTMLElement): number | null {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) {
+    return null
+  }
+  const range = sel.getRangeAt(0)
+  if (!root.contains(range.startContainer)) {
+    return null
+  }
+  const pre = document.createRange()
+  pre.selectNodeContents(root)
+  pre.setEnd(range.startContainer, range.startOffset)
+  return pre.toString().length
+}
+
+function setCaretOffset(root: HTMLElement, offset: number) {
+  const sel = window.getSelection()
+  if (!sel) {
+    return
+  }
+  let remaining = Math.max(0, offset)
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = walker.nextNode()
+  while (node) {
+    const len = node.textContent?.length ?? 0
+    if (remaining <= len) {
+      const range = document.createRange()
+      range.setStart(node, remaining)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
       return
     }
-    if (cursor < f.start) {
-      parts.push(<span key={`gap-${cursor}-${ix}`}>{body.slice(cursor, f.start)}</span>)
-    }
-    parts.push(
-      <mark key={`hit-${ix}-${f.start}-${f.end}`} className="privacy-flag-mark">
-        {body.slice(f.start, f.end)}
-      </mark>,
-    )
-    cursor = f.end
-  })
-
-  if (cursor < body.length) {
-    parts.push(<span key={`trail-${cursor}`}>{body.slice(cursor)}</span>)
+    remaining -= len
+    node = walker.nextNode()
   }
-
-  return parts
+  const end = document.createRange()
+  end.selectNodeContents(root)
+  end.collapse(false)
+  sel.removeAllRanges()
+  sel.addRange(end)
 }
 
 type Props = {
-  /** Visible label; associated with the textarea for accessibility. */
   label: string
   value: string
   onChange: (next: string) => void
@@ -43,15 +89,13 @@ type Props = {
 }
 
 /**
- * Optional checks first when present, then label, then layered highlight field (yellow underlay +
- * transparent typing layer). Surfaces use opaque tokens only.
+ * Privacy checks + single contenteditable field so yellow marks and the caret share one layout
+ * (overlay textarea + HTML mirror misaligns cursor/selection when marks change wrapping).
  */
 export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength, textareaProps }: Props) {
   const fieldId = useId()
-  const taRef = useRef<HTMLTextAreaElement>(null)
-  const [scroll, setScroll] = useState({ x: 0, y: 0 })
-  /** Match textarea layout viewport so mirror wraps identically (scrollbar / gutter otherwise desync lines). */
-  const [taBox, setTaBox] = useState<{ h?: number; w?: number }>({})
+  const editRef = useRef<HTMLDivElement>(null)
+  const lastHtmlRef = useRef('')
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
   const computed = useMemo(() => computePrivacyFlags(value), [value])
@@ -63,35 +107,23 @@ export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength,
 
   const activeKeys = useMemo(() => new Set(active.map(flagDismissKey)), [active])
 
-  function syncTaBox(el: HTMLTextAreaElement | null) {
-    if (!el) {
-      return
-    }
-    const h = el.clientHeight
-    const w = el.clientWidth
-    setTaBox((prev) => (prev.h === h && prev.w === w ? prev : { h, w }))
-  }
-
-  /** Outer box: user resize, window. Inner width also changes when a vertical scrollbar appears — that often does not resize the border box, so we sync on value/focus too. */
-  useLayoutEffect(() => {
-    const el = taRef.current
-    if (!el || typeof ResizeObserver === 'undefined') {
-      syncTaBox(taRef.current)
-      return
-    }
-    const ro = new ResizeObserver(() => {
-      syncTaBox(el)
-    })
-    ro.observe(el)
-    syncTaBox(el)
-    return () => ro.disconnect()
-  }, [])
+  const highlightHtml = useMemo(() => buildHighlightHtml(value, active), [value, active])
 
   useLayoutEffect(() => {
-    syncTaBox(taRef.current)
-  }, [value])
+    const el = editRef.current
+    if (!el || highlightHtml === lastHtmlRef.current) {
+      return
+    }
+    const focused = document.activeElement === el
+    const caret = focused ? getCaretOffset(el) : null
 
-  const segments = useMemo(() => highlightSegments(value, active), [value, active])
+    lastHtmlRef.current = highlightHtml
+    el.innerHTML = highlightHtml || '<br>'
+
+    if (caret != null) {
+      setCaretOffset(el, Math.min(caret, value.length))
+    }
+  }, [highlightHtml, value.length])
 
   function dismiss(k: string) {
     setDismissed((prev) => {
@@ -100,6 +132,21 @@ export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength,
       return next
     })
   }
+
+  function emitFromEditor() {
+    const el = editRef.current
+    if (!el) {
+      return
+    }
+    let next = readPlainText(el)
+    if (maxLength != null && next.length > maxLength) {
+      next = next.slice(0, maxLength)
+      lastHtmlRef.current = ''
+    }
+    onChange(next)
+  }
+
+  const { name, required, rows } = textareaProps ?? {}
 
   return (
     <div className="privacy-check-stack">
@@ -140,41 +187,32 @@ export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength,
           {label}
         </label>
         <div className="privacy-highlight-shell">
+          {name ? (
+            <textarea
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              name={name}
+              value={value}
+              required={required}
+              readOnly
+            />
+          ) : null}
           <div
-            className="privacy-highlight-mask"
-            style={{
-              minHeight: '12rem',
-              ...(taBox.h != null ? { height: taBox.h } : {}),
-              ...(taBox.w != null ? { width: taBox.w } : {}),
-            }}
-            aria-hidden
-          >
-            <div
-              className="privacy-highlight-shift"
-              style={{ transform: `translate(${-scroll.x}px, ${-scroll.y}px)` }}
-            >
-              <div className="privacy-highlight-plain">{segments}</div>
-            </div>
-          </div>
-          <textarea
-            ref={taRef}
-            className="privacy-highlight-input moderate-approve-form__body"
-            {...textareaProps}
+            ref={editRef}
             id={fieldId}
-            maxLength={maxLength}
-            value={value}
-            onChange={(e) => {
-              textareaProps?.onChange?.(e)
-              onChange(e.currentTarget.value)
-            }}
-            onFocus={(e) => {
-              textareaProps?.onFocus?.(e)
-              syncTaBox(e.currentTarget)
-            }}
-            onScroll={(e) => {
-              textareaProps?.onScroll?.(e)
-              const t = e.currentTarget
-              setScroll({ x: t.scrollLeft, y: t.scrollTop })
+            role="textbox"
+            aria-multiline="true"
+            aria-required={required || undefined}
+            contentEditable
+            suppressContentEditableWarning
+            className="privacy-highlight-editable moderate-approve-form__body"
+            data-rows={rows ?? 10}
+            onInput={() => emitFromEditor()}
+            onPaste={(e) => {
+              e.preventDefault()
+              const text = e.clipboardData.getData('text/plain')
+              document.execCommand('insertText', false, text)
             }}
           />
         </div>

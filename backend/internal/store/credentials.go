@@ -96,7 +96,7 @@ func LeaderName(ctx context.Context, db *sql.DB, email string) (firstName, lastN
 func LeaderCredentialHash(ctx context.Context, db *sql.DB, email string) (string, error) {
 	em := normLeaderEmail(email)
 	var h string
-	var approvedAt sql.NullTime
+	var approvedAt nullTime
 	err := sxQueryRow(db, ctx,
 		`SELECT password_hash, approved_at FROM leader_credentials WHERE email = $1`, em,
 	).Scan(&h, &approvedAt)
@@ -128,11 +128,13 @@ func ListPendingLeaderAccounts(ctx context.Context, db *sql.DB) ([]PendingLeader
 	var out []PendingLeaderAccount
 	for rows.Next() {
 		var p PendingLeaderAccount
-		if err := rows.Scan(&p.Email, &p.FirstName, &p.LastName, &p.CreatedAt); err != nil {
+		var created wallTime
+		if err := rows.Scan(&p.Email, &p.FirstName, &p.LastName, &created); err != nil {
 			return nil, err
 		}
 		p.FirstName = strings.TrimSpace(p.FirstName)
 		p.LastName = strings.TrimSpace(p.LastName)
+		p.CreatedAt = created.Time
 		out = append(out, p)
 	}
 	return out, rows.Err()
@@ -223,11 +225,13 @@ func ListApprovedLeaderAccounts(ctx context.Context, db *sql.DB) ([]ApprovedLead
 	var out []ApprovedLeaderAccount
 	for rows.Next() {
 		var a ApprovedLeaderAccount
-		if err := rows.Scan(&a.Email, &a.FirstName, &a.LastName, &a.ApprovedAt); err != nil {
+		var approved wallTime
+		if err := rows.Scan(&a.Email, &a.FirstName, &a.LastName, &approved); err != nil {
 			return nil, err
 		}
 		a.FirstName = strings.TrimSpace(a.FirstName)
 		a.LastName = strings.TrimSpace(a.LastName)
+		a.ApprovedAt = approved.Time
 		out = append(out, a)
 	}
 	return out, rows.Err()

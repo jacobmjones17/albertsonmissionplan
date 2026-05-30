@@ -1,3 +1,4 @@
+import { MISSIONARY_REFERRAL_INFO_URL, MISSIONARY_REFERRAL_URL } from '../churchLinks'
 import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
@@ -15,6 +16,44 @@ export function LoveShareInvite() {
       <main id="main">
         <div className="wrap-wide">
           <div className="love-share-video-stack">
+            <div className="love-share-lead">
+              <section className="referral-callout" aria-labelledby="referral-callout-title">
+                <h2 id="referral-callout-title" className="referral-callout__title">
+                  Refer a friend to the missionaries
+                </h2>
+                <p className="referral-callout__lede">
+                  When someone you know is open to learning more, use the Church&apos;s official referral
+                  system. Ask for their permission first, then submit their information so missionaries can
+                  coordinate with you on next steps.
+                </p>
+                <p className="referral-callout__actions">
+                  <a
+                    className="btn btn-primary"
+                    href={MISSIONARY_REFERRAL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Submit a referral
+                  </a>
+                </p>
+                <p className="referral-callout__note">
+                  You can also refer through the Member Tools app.{' '}
+                  <a href={MISSIONARY_REFERRAL_INFO_URL} target="_blank" rel="noopener noreferrer">
+                    Learn how referrals work
+                  </a>
+                  .
+                </p>
+              </section>
+
+              <div className="home-mission-strip home-mission-strip--tight love-share-intro-strip">
+                <p>
+                  Love, Share, and Invite are principles that help us share the gospel in ways that are
+                  right for each of God&apos;s children. The videos below can help you think about how to
+                  love like the Savior and invite others to come unto Him.
+                </p>
+              </div>
+            </div>
+
             <div className="video-wrap video-wrap--sites video-wrap--love-share-hero">
               <iframe
                 src="https://www.youtube.com/embed/F_DDHtVZcco"
@@ -23,14 +62,6 @@ export function LoveShareInvite() {
                 allowFullScreen
                 loading="lazy"
               />
-            </div>
-
-            <div className="home-mission-strip home-mission-strip--tight love-share-intro-strip">
-              <p>
-                Love, Share, and Invite are principles that help us share the gospel in ways that are
-                right for each of God&apos;s children. As you think about these ideas, pray for guidance and
-                opportunities to love like the Savior.
-              </p>
             </div>
 
             {/* Two columns on desktop; stacked on mobile so each video keeps its bullets underneath. */}

@@ -298,7 +298,7 @@ export function AdminHome() {
         titleId="admin-title"
         eyebrow="Leader"
         title="Leader tools"
-        lede="Moderate mission experiences and update ward goals"
+        lede="Review experiences, approve accounts, and edit ward goals"
         compact
       />
       <main id="main" className="wrap">
@@ -309,18 +309,16 @@ export function AdminHome() {
         : null}
         {user?.isLeader ?
           <>
-            <p className="lead">
-              Signed in as <strong>{displayName || user.email}</strong>
-              {displayName ?
-                <span className="panel-sites__note" style={{ marginLeft: '0.5rem' }}>
-                  ({user.email})
-                </span>
-              : null}
+            <p className="lead admin-signed-in">
+              Signed in as: <strong>{displayName || user.email}</strong>
             </p>
-            <ul className="admin-links admin-links--sites" role="list">
+            <ul className="admin-links" role="list">
               <li>
                 <Link to="/admin/moderate">
-                  <span className="admin-links__text">Review mission experiences</span>
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Review mission experiences</span>
+                    <span className="admin-links__desc">Approve or edit member submissions</span>
+                  </span>
                   {pendingExperienceCount > 0 ?
                     <span
                       className="admin-link-badge"
@@ -333,7 +331,10 @@ export function AdminHome() {
               </li>
               <li>
                 <Link to="/admin/approvals">
-                  <span className="admin-links__text">Leader accounts</span>
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Leader accounts</span>
+                    <span className="admin-links__desc">Approve new leaders and manage access</span>
+                  </span>
                   {pendingAccountCount > 0 ?
                     <span className="admin-link-badge" aria-label={`${pendingAccountCount} pending`}>
                       {pendingAccountCount}
@@ -343,7 +344,10 @@ export function AdminHome() {
               </li>
               <li>
                 <Link to="/admin/ward-plan">
-                  <span className="admin-links__text">Edit ward plan goals</span>
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Edit ward plan goals</span>
+                    <span className="admin-links__desc">Ward-wide and organization goals</span>
+                  </span>
                 </Link>
               </li>
             </ul>

@@ -1,7 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
 import { PageHero } from '../components/PageHero'
@@ -157,9 +156,6 @@ export function AdminApprovals() {
         compact
       />
       <main id="main" className="wrap">
-        <p className="admin-crumb">
-          <Link to="/admin">&larr; Back to leader tools</Link>
-        </p>
         <p className="privacy-hint-note">
           Approving an account gives full leader tools (moderation + ward plan). You can remove an
           approved leader below, but one leader must always remain — add another leader before

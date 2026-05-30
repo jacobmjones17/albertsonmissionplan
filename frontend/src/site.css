@@ -96,6 +96,24 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* iOS Safari auto-zooms when a focused field is < 16px. Keep text entry at 16px everywhere. */
+input:not([type]),
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+input[type="datetime-local"],
+textarea,
+select,
+.ProseMirror,
+.rich-goals-prose {
+  font-size: 16px;
+}
+
 ::selection {
   background: var(--gold-soft);
   color: var(--ink-strong);
@@ -518,9 +536,34 @@ main {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Portrait: lower % = more forehead / above eyes; higher % = more smile */
+  /* Portrait art: lower % shows more of the top (Jesus + sheep) */
   object-position: center 42%;
   display: block;
+}
+
+/* Desktop: taller hero; focal point balances head, sheep, and shoulders */
+@media (min-width: 768px) {
+  .hero-page.hero-page--home {
+    min-height: min(74vh, 640px);
+    padding-top: calc(var(--header-h) + clamp(3.5rem, 9vh, 5rem));
+    padding-bottom: clamp(3rem, 7vh, 4rem);
+  }
+
+  .hero-page__bg-img,
+  .site-header.site-header--has-photo .site-header__photo-img {
+    object-position: center 32%;
+  }
+}
+
+@media (min-width: 1100px) {
+  .hero-page.hero-page--home {
+    min-height: min(80vh, 700px);
+  }
+
+  .hero-page__bg-img,
+  .site-header.site-header--has-photo .site-header__photo-img {
+    object-position: center 28%;
+  }
 }
 .hero-page__dim {
   position: absolute;
@@ -849,39 +892,45 @@ main {
   display: none;
 }
 
-.admin-links.admin-links--sites a {
-  border-radius: 2px;
-  border: 2px solid #454545;
-  background: #f0f0f0;
-  box-shadow: none;
-}
-.admin-links.admin-links--sites a:hover {
-  background: #e6e6e6;
-  color: #111;
-  border-color: #333;
-}
-
 /* Count badge sits at the end of the flex row (reliable on mobile; avoids clipping when
    position:absolute interacted with notch / overflow). */
 .admin-links__text {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.admin-links__label {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: inherit;
+}
+.admin-links__desc {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--ink-muted);
 }
 .admin-link-badge {
   flex-shrink: 0;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.85rem;
-  min-height: 1.85rem;
-  padding: 0 0.5rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 0.55rem;
   border-radius: 999px;
   background: #b91c1c;
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.35);
 }
 
 /* Two-up form rows (e.g. First name / Last name). Stacks on narrow screens. */
@@ -2480,9 +2529,75 @@ details.org .org-body {
   margin-top: 0;
 }
 
+.love-share-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .love-share-intro-strip {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+.referral-callout {
+  margin: 0;
+  padding: 1.35rem 1.5rem 1.45rem;
+  text-align: center;
+  background:
+    linear-gradient(90deg, var(--gold-soft) 0%, rgba(184, 149, 106, 0) 28%),
+    var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.referral-callout__title {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--accent);
+}
+
+.referral-callout__lede {
+  margin: 0 auto 1rem;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 40rem;
+}
+
+.referral-callout__actions {
+  margin: 0 0 0.75rem;
+  text-align: center;
+}
+
+.referral-callout__note {
+  margin: 0 auto;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  max-width: 40rem;
+}
+
+.referral-callout__note a {
+  font-weight: 600;
+}
+
+.home-mission-strip__aside {
+  margin: 0.85rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.home-mission-strip__aside a {
+  font-weight: 600;
 }
 
 /* Side-by-side on desktop; stacked on narrow screens with video → bullets kept together per column. */
@@ -2710,7 +2825,7 @@ details.org .org-body {
 .form-stack input[type="email"],
 .form-stack input[type="password"],
 .form-stack textarea {
-  font: inherit;
+  font-family: inherit;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -2729,7 +2844,7 @@ details.org .org-body {
 .form-stack input[type="text"]:focus,
 .form-stack input[type="email"]:focus,
 .form-stack input[type="password"]:focus,
-.form-stack textarea:not(.privacy-highlight-input):focus {
+.form-stack textarea:not(.privacy-highlight-editable):focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
   outline: none;
@@ -2989,28 +3104,77 @@ details.org .org-body {
 }
 
 /* ---------- Admin pages ---------- */
+.admin-shell {
+  min-height: 0;
+}
+
+.admin-signed-in strong {
+  white-space: nowrap;
+}
+
+.admin-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .admin-body {
   background-color: var(--bg);
   background-image:
     linear-gradient(180deg, var(--bg) 0%, #efe8d8 100%);
 }
 
-.admin-crumb {
-  margin: 0 0 0.85rem;
-  font-size: 0.92rem;
+.admin-crumb-wrap {
+  padding-top: 1.15rem;
+  padding-bottom: 0;
 }
-.admin-crumb a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
+
+.admin-crumb {
+  margin: 0 0 1rem;
+}
+
+.admin-back-link__arrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  transition: color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  flex-shrink: 0;
+  margin-right: 0.2rem;
 }
-.admin-crumb a:hover {
+
+.admin-back-link__icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  display: block;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(31, 60, 99, 0.35);
+  text-underline-offset: 0.2em;
+  transition:
+    color var(--t-fast) var(--ease),
+    text-decoration-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.admin-back-link:hover {
   color: var(--accent-hover);
+  text-decoration-color: var(--accent-hover);
   transform: translateX(-2px);
+}
+.admin-back-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .admin-links {
@@ -3018,15 +3182,10 @@ details.org .org-body {
   list-style: none;
   padding: 0;
   margin: 1.5rem 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  /* All cards adopt the height of the tallest one (handles e.g. a wrapped 2-line label
-     in row 1 alongside a 1-line label in row 2 — every card stays the same size). */
-  grid-auto-rows: 1fr;
-  gap: 0.6rem;
-}
-@media (min-width: 640px) {
-  .admin-links { grid-template-columns: 1fr 1fr; }
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 .admin-links li {
   margin: 0;
@@ -3036,39 +3195,34 @@ details.org .org-body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 1rem 1.15rem 1rem 1.2rem;
+  gap: 0.85rem;
+  padding: 1.1rem 1.2rem 1.1rem 1.15rem;
   width: 100%;
-  /* Fixed min-height so every card is the same size whether its label wraps to two lines
-     (e.g. "Review pending leader accounts") or sits on one line ("Edit ward plan goals"). */
-  min-height: 5.25rem;
+  min-height: 5.5rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
   border-radius: var(--radius);
   color: var(--ink-strong);
-  font-weight: 600;
   line-height: 1.3;
   text-decoration: none;
   box-shadow: var(--shadow-xs);
-  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
-}
-.admin-links a::before {
-  content: "›";
-  color: var(--gold);
-  font-size: 1.4rem;
-  font-weight: 600;
-  line-height: 1;
-  transition: transform var(--t-fast) var(--ease);
+  transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
 }
 .admin-links a:hover {
   border-color: var(--accent);
+  border-left-color: var(--accent);
   background: var(--bg-elevated);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
   color: var(--accent);
 }
-.admin-links a:hover::before {
-  transform: translateX(3px);
+.admin-links a:hover .admin-links__desc {
+  color: var(--ink-muted);
 }
 
 .moderate-card {
@@ -3330,7 +3484,7 @@ details.org .org-body {
   min-width: 14rem;
 }
 .reject-form input[type="text"] {
-  font: inherit;
+  font-family: inherit;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xs);
@@ -3344,10 +3498,10 @@ details.org .org-body {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.moderate-approve-form textarea:not(.privacy-highlight-input) {
+.moderate-approve-form textarea:not(.privacy-highlight-editable) {
   width: 100%;
   min-height: 12rem;
-  font: inherit;
+  font-family: inherit;
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -3357,7 +3511,7 @@ details.org .org-body {
   line-height: 1.55;
   box-shadow: var(--shadow-xs);
 }
-.moderate-approve-form textarea:not(.privacy-highlight-input):focus {
+.moderate-approve-form textarea:not(.privacy-highlight-editable):focus {
   border-color: var(--accent);
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -3388,82 +3542,57 @@ details.org .org-body {
   background: var(--bg-elevated);
   box-shadow: var(--shadow-xs);
 }
-.privacy-highlight-shell:has(.privacy-highlight-input:focus) {
+.privacy-highlight-shell:has(.privacy-highlight-editable:focus) {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
-}
-.privacy-highlight-mask {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: var(--radius-sm);
-  box-sizing: border-box;
-  background: var(--bg-elevated);
-}
-.privacy-highlight-shift {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  will-change: transform;
-}
-.privacy-highlight-plain {
-  padding: 0.75rem 0.85rem;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-  font: inherit;
-  font-weight: 400;
-  line-height: 1.55;
-  color: var(--ink);
-  background: var(--bg-elevated);
-  min-height: 100%;
-  box-sizing: border-box;
 }
 .privacy-flag-mark {
   background: rgba(255, 224, 130, 0.92);
   color: inherit;
   border-radius: 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  padding: 0;
+  margin: 0;
 }
-textarea.privacy-highlight-input.moderate-approve-form__body {
+.privacy-highlight-editable.moderate-approve-form__body {
   min-height: 12rem;
 }
-textarea.privacy-highlight-input {
-  position: relative;
-  z-index: 1;
+.privacy-highlight-editable {
   display: block;
   width: 100%;
   margin: 0;
   box-sizing: border-box;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  caret-color: var(--ink);
-  background: transparent;
+  color: var(--ink);
+  background: var(--bg-elevated);
   border: 0;
   box-shadow: none;
   resize: vertical;
+  overflow-y: auto;
   overflow-wrap: break-word;
   word-wrap: break-word;
   white-space: pre-wrap;
-  font: inherit;
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1.55;
   padding: 0.75rem 0.85rem;
   outline: none;
+  cursor: text;
 }
-textarea.privacy-highlight-input:focus {
-  background: transparent;
-  box-shadow: none;
+.privacy-highlight-editable:focus {
+  background: var(--bg-elevated);
 }
-textarea.privacy-highlight-input::selection {
+.privacy-highlight-editable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ink-faint);
+  font-style: italic;
+  pointer-events: none;
+}
+.privacy-highlight-editable::selection,
+.privacy-highlight-editable *::selection {
   background: rgba(59, 130, 246, 0.38);
 }
-textarea.privacy-highlight-input::-moz-selection {
+.privacy-highlight-editable::-moz-selection,
+.privacy-highlight-editable *::-moz-selection {
   background: rgba(59, 130, 246, 0.38);
 }
 .privacy-flag-panel {
@@ -3557,7 +3686,7 @@ textarea.privacy-highlight-input::-moz-selection {
   color: var(--ink-faint);
 }
 .moderate-approve-form input[type="text"] {
-  font: inherit;
+  font-family: inherit;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -3573,7 +3702,7 @@ textarea.privacy-highlight-input::-moz-selection {
 
 .ward-plan-editor textarea {
   width: 100%;
-  font: inherit;
+  font-family: inherit;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -3793,7 +3922,7 @@ textarea.privacy-highlight-input::-moz-selection {
   padding: 0.75rem 0.9rem;
   min-height: 11rem;
   outline: none;
-  font: inherit;
+  font-family: inherit;
   line-height: 1.55;
   color: var(--text);
 }
@@ -3853,50 +3982,25 @@ textarea.privacy-highlight-input::-moz-selection {
 }
 
 /* ---------- Mobile polish ----------
-   The site already has scattered breakpoints; this block consolidates the universal mobile
-   improvements (iOS input zoom, comfortable tap targets, tighter wrappers, stacked CTAs,
-   admin header behavior). Page-specific tweaks stay in their own blocks above. */
-
-/* iOS Safari auto-zooms the viewport when focusing inputs with computed font-size < 16px.
-   Bump every text-input to 16px on touch widths so we never get that jarring zoom-in. */
-@media (max-width: 768px) {
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="number"],
-  input[type="search"],
-  input[type="tel"],
-  input[type="url"],
-  textarea,
-  select {
-    font-size: 16px;
-  }
-}
+   Text fields use 16px globally (see body block) so iOS Safari does not auto-zoom on focus.
+   This block covers comfortable tap targets, tighter wrappers, stacked CTAs, admin header. */
 
 @media (max-width: 768px) {
   .nav-toggle {
     display: flex;
   }
 
-  .site-header.site-header--overlap-home .site-nav {
-    background: rgba(22, 26, 32, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+  /* Mobile dropdown always uses the light panel (readable on any scroll position). */
+  .site-header.site-header--overlap-home .site-nav.is-open a {
+    color: var(--ink-muted);
   }
-  .site-header.site-header--overlap-home .site-nav.is-open {
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  .site-header.site-header--overlap-home .site-nav.is-open a:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
   }
-  .site-header.site-header--overlap-home .site-nav a {
-    color: rgba(255, 255, 255, 0.92);
-  }
-  .site-header.site-header--overlap-home .site-nav a:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-  }
-  .site-header.site-header--overlap-home .site-nav a[aria-current='page'] {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+  .site-header.site-header--overlap-home .site-nav.is-open a[aria-current='page'] {
+    color: var(--accent);
+    background: var(--accent-soft);
   }
 
   .site-nav {
@@ -3914,7 +4018,11 @@ textarea.privacy-highlight-input::-moz-selection {
     box-shadow: var(--shadow-md);
   }
   .site-nav.is-open {
-    max-height: 520px;
+    max-height: min(520px, calc(100dvh - var(--header-h, 4rem)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
   .site-nav ul {
     flex-direction: column;
@@ -3994,10 +4102,17 @@ textarea.privacy-highlight-input::-moz-selection {
     width: 100%;
   }
 
-  /* AdminLayout: the Sign-out button drops onto its own row instead of crowding the brand. */
-  .header-inner > .btn-secondary {
-    width: auto;
-    margin-left: auto;
+  /* AdminLayout: action buttons share a full-width row under the brand on narrow screens. */
+  .header-inner:has(.admin-header-actions) {
+    row-gap: 0.65rem;
+  }
+  .admin-header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .admin-header-actions .btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
   }
 
   /* Pending account requests (admin home): Approve/Deny buttons share the row evenly when
