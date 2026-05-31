@@ -35,6 +35,17 @@ export function BootstrapProvider({ children }: { children: ReactNode }) {
     refresh().catch(() => setReady(true))
   }, [refresh])
 
+  // Re-check session when returning to the tab (idle timeout may have cleared the cookie).
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === 'visible') {
+        refresh().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [refresh])
+
   const value = useMemo(
     () => ({
       ready,

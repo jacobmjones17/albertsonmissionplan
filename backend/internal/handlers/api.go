@@ -49,14 +49,15 @@ type userDTO struct {
 // approved accounts are immutable, but future-proofed), the user is treated as signed-out.
 func (s *Server) APIBootstrap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	email := strings.ToLower(strings.TrimSpace(s.Auth.SessionEmail(r)))
+	email, display := s.Auth.SessionIdentity(w, r)
+	email = strings.ToLower(strings.TrimSpace(email))
+	display = strings.TrimSpace(display)
 	var u *userDTO
 	if email != "" {
 		priv, err := s.loadLeaderPriv(ctx, email)
 		if err != nil {
 			log.Printf("api bootstrap roles: %v", err)
 		} else if priv.IsAdmin {
-			display := strings.TrimSpace(s.Auth.SessionDisplayName(r))
 			if display == "" {
 				if first, last, lerr := store.LeaderName(ctx, s.DB, email); lerr == nil {
 					display = displayName(first, last, email)
@@ -208,7 +209,7 @@ func (s *Server) APIWardPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) (email string, ok bool) {
-	email = strings.ToLower(strings.TrimSpace(s.Auth.SessionEmail(r)))
+	email = strings.ToLower(strings.TrimSpace(s.Auth.SessionEmail(w, r)))
 	if email == "" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "Forbidden."})
 		return "", false
@@ -227,7 +228,7 @@ func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) (email str
 }
 
 func (s *Server) requireWardPlanEditor(w http.ResponseWriter, r *http.Request) (email string, priv leaderPriv, ok bool) {
-	email = strings.ToLower(strings.TrimSpace(s.Auth.SessionEmail(r)))
+	email = strings.ToLower(strings.TrimSpace(s.Auth.SessionEmail(w, r)))
 	if email == "" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "Forbidden."})
 		return "", leaderPriv{}, false

@@ -67,7 +67,7 @@ func main() {
 		strings.HasPrefix(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "https://")
 	auth.SetCookieSecure(cookieStore, cookieSecure)
 
-	ac := &auth.Config{Store: cookieStore}
+	ac := &auth.Config{Store: cookieStore, Policy: auth.SessionPolicyFromEnv()}
 
 	mc, err := mail.FromEnv()
 	if err != nil {
