@@ -3006,6 +3006,61 @@ details.org .org-body {
 .site-footer__meta {
   margin: 0 0 1.25rem !important;
 }
+.site-footer__social {
+  margin: 0 0 1.25rem;
+}
+.site-footer__social-label {
+  margin: 0 0 0.65rem !important;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c8b487;
+}
+.site-footer__social-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.site-footer__social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e3cfa0;
+  text-decoration: none;
+  transition:
+    transform var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+.site-footer__social-btn:hover {
+  transform: translateY(-1px);
+  border-bottom-color: transparent;
+}
+.site-footer__social-btn--facebook:hover {
+  background: rgba(24, 119, 242, 0.2);
+  border-color: rgba(24, 119, 242, 0.55);
+  color: #8cb8ff;
+}
+.site-footer__social-btn--instagram:hover {
+  background: rgba(225, 48, 108, 0.18);
+  border-color: rgba(225, 48, 108, 0.5);
+  color: #f2a0c8;
+}
+.site-footer__social-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
 .site-footer__contact {
   text-align: left;
   background: rgba(255, 255, 255, 0.04);

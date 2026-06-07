@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation, type Location } from 'react-router-dom'
 import { apiJson } from './api'
 import { useBootstrap } from './BootstrapContext'
+import { WARD_FACEBOOK_URL, WARD_INSTAGRAM_URL } from './churchLinks'
 import { STATIC_SITE_PHOTOS } from './staticSitePhotos'
 
 const nav = [
@@ -28,6 +29,56 @@ function BrandMark() {
         />
       </svg>
     </span>
+  )
+}
+
+function FooterFacebookIcon() {
+  return (
+    <svg className="site-footer__social-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.027 4.388 11.023 10.125 11.926v-8.43H7.078v-3.496h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.234 2.686.234v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.496h-2.796v8.43C19.612 23.096 24 18.1 24 12.073z"
+      />
+    </svg>
+  )
+}
+
+function FooterInstagramIcon() {
+  return (
+    <svg className="site-footer__social-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2.163c3.204 0 3.584.012 4.85.07 1.17.054 1.97.24 2.427.403a4.92 4.92 0 0 1 1.77 1.153 4.92 4.92 0 0 1 1.153 1.77c.163.457.349 1.257.403 2.427.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.054 1.17-.24 1.97-.403 2.427a4.92 4.92 0 0 1-1.153 1.77 4.92 4.92 0 0 1-1.77 1.153c-.457.163-1.257.349-2.427.403-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.17-.054-1.97-.24-2.427-.403a4.92 4.92 0 0 1-1.77-1.153 4.92 4.92 0 0 1-1.153-1.77c-.163-.457-.349-1.257-.403-2.427C2.175 15.747 2.163 15.367 2.163 12s.012-3.584.07-4.85c.054-1.17.24-1.97.403-2.427a4.92 4.92 0 0 1 1.153-1.77 4.92 4.92 0 0 1 1.77-1.153c.457-.163 1.257-.349 2.427-.403C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.332.014 7.052.072 5.775.13 4.902.333 4.14.63a6.96 6.96 0 0 0-2.51 1.64A6.96 6.96 0 0 0 .63 4.14C.333 4.902.13 5.775.072 7.052.014 8.332 0 8.741 0 12s.014 3.668.072 4.948c.058 1.277.261 2.15.558 2.912a6.96 6.96 0 0 0 1.64 2.51 6.96 6.96 0 0 0 2.51 1.64c.762.297 1.635.5 2.912.558C8.332 23.986 8.741 24 12 24s3.668-.014 4.948-.072c1.277-.058 2.15-.261 2.912-.558a6.96 6.96 0 0 0 2.51-1.64 6.96 6.96 0 0 0 1.64-2.51c.297-.762.5-1.635.558-2.912.058-1.28.072-1.689.072-4.948s-.014-3.668-.072-4.948c-.058-1.277-.261-2.15-.558-2.912a6.96 6.96 0 0 0-1.64-2.51 6.96 6.96 0 0 0-2.51-1.64c-.762-.297-1.635-.5-2.912-.558C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"
+      />
+    </svg>
+  )
+}
+
+function SiteFooterSocial() {
+  return (
+    <div className="site-footer__social">
+      <p className="site-footer__social-label">Christ First Social Media</p>
+      <div className="site-footer__social-actions">
+        <a
+          className="site-footer__social-btn site-footer__social-btn--facebook"
+          href={WARD_FACEBOOK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Albertson Ward on Facebook"
+        >
+          <FooterFacebookIcon />
+        </a>
+        <a
+          className="site-footer__social-btn site-footer__social-btn--instagram"
+          href={WARD_INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Albertson Ward on Instagram"
+        >
+          <FooterInstagramIcon />
+        </a>
+      </div>
+    </div>
   )
 }
 
@@ -197,6 +248,7 @@ export function Layout() {
               <strong>Brother Jacob Jones</strong> or <strong>Brother Michael Hallenberger</strong>.
             </p>
           </div>
+          <SiteFooterSocial />
           <p className="attribution">
             Built for ward members. Update content as goals change each year.
           </p>
@@ -301,6 +353,7 @@ export function AdminLayout() {
           <p className="site-footer__meta">
             Albertson Ward &middot; Ward Mission &middot; <Link to="/">Public site</Link>
           </p>
+          <SiteFooterSocial />
           <SiteDisclaimer />
         </div>
       </footer>
