@@ -19,7 +19,7 @@ export const STATIC_SITE_PHOTOS = {
   pageExperiences: '',
   pageLoveShareInvite: '',
   about: '/site/home-about.jpg',
-  wardPlanFeature: '/site/jesus-carries-child.jpg',
+  wardPlanFeature: '/site/ward-plan-feature.jpg',
   experiencesFeature: '/site/jesus-among-people.jpg',
-  loveShareFeature: '/site/missionary-badge-heart.jpg',
+  loveShareFeature: '/site/love-share-feature.jpg',
 } as const

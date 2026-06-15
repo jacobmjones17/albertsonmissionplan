@@ -96,7 +96,7 @@ export function MonthlyChallenges() {
                   <p className="challenge-card__goal">
                     <strong>Goal:</strong> {goal.title}
                   </p>
-                  <ul className="challenge-card__list clean">
+                  <ul className="challenge-card__list">
                     {goal.bullets.map((b, i) => renderBullet(goal, b.who, b.text, i))}
                   </ul>
                 </div>

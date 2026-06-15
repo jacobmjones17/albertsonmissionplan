@@ -129,27 +129,37 @@ export const CHALLENGES_SHEET_STYLES = `
     border-top: 1px solid #ece4cf;
   }
   .challenges-sheet__list li {
-    position: relative;
+    display: grid;
+    grid-template-columns: 3px 0.52in minmax(0, 1fr);
+    column-gap: 0.06in;
+    align-items: start;
     margin: 0;
-    padding: 0.014in 0 0.014in 0.09in;
+    padding: 0.014in 0;
     font-size: 6.75pt;
     line-height: 1.16;
     color: #3a3630;
   }
   .challenges-sheet__list li::before {
     content: "";
-    position: absolute;
-    left: 0;
-    top: 0.057in;
+    grid-column: 1;
     width: 3px;
     height: 3px;
+    margin-top: 0.04in;
     background: #b08745;
     border-radius: 1px;
+  }
+  .challenges-sheet__list .challenge-list-label {
+    grid-column: 2;
+    color: #1f3c63;
+    font-weight: 700;
+  }
+  .challenges-sheet__list .challenge-list-text {
+    grid-column: 3;
+    min-width: 0;
   }
   .challenges-sheet__list li + li {
     border-top: 1px solid #f0ebe0;
   }
-  .challenges-sheet__list strong { color: #1f3c63; font-weight: 700; }
   a { color: #1f3c63; text-decoration: none; }
   @media print {
     @page {

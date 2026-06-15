@@ -5,7 +5,10 @@ import { BootstrapProvider } from './BootstrapContext'
 import { App } from './App'
 import './index.css'
 import './site.css'
+import './theme.css'
 import './print.css'
+
+document.documentElement.removeAttribute('data-theme')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
