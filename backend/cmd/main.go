@@ -82,6 +82,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/health", srv.APIHealth)
 	mux.HandleFunc("GET /api/bootstrap", srv.APIBootstrap)
 	mux.HandleFunc("GET /api/home/experiences", srv.APIHomeExperiences)
 	mux.HandleFunc("GET /api/experiences", srv.APIExperiences)

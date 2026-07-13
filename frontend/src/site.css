@@ -1894,17 +1894,17 @@ ul.clean li::marker {
   letter-spacing: 0.01em;
   min-width: 0;
 }
-.ward-goals-spotlight__list li strong {
+.ward-goals-spotlight__list .ward-rich-line :is(strong, b) {
   font-weight: 700;
   color: var(--ink-strong);
 }
-.ward-goals-spotlight__list .inline-markup-link {
+.ward-goals-spotlight__list .ward-rich-line :is(a, .inline-markup-link) {
   font-weight: 700;
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.ward-goals-spotlight__list .inline-markup-link:hover {
+.ward-goals-spotlight__list .ward-rich-line :is(a, .inline-markup-link):hover {
   color: var(--accent-hover);
 }
 .ward-goals-spotlight__list li::before {
@@ -1996,6 +1996,17 @@ details.org.org-card .org-body ul {
 details.org.org-card .org-body ul li {
   line-height: 1.55;
   min-width: 0;
+}
+
+.org-body .ward-rich-line :is(strong, b) {
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+.org-body .ward-rich-line :is(a, .inline-markup-link) {
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .scripture-pull--ward {

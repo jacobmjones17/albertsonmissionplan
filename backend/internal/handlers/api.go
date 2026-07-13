@@ -20,6 +20,29 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// APIHealth reports whether the API can reach the database. Used by Render health checks.
+func (s *Server) APIHealth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := s.DB.PingContext(ctx); err != nil {
+		log.Printf("health db ping: %v", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "unhealthy",
+			"error":  "database unreachable",
+		})
+		return
+	}
+	var one int
+	if err := s.DB.QueryRowContext(ctx, `SELECT 1`).Scan(&one); err != nil {
+		log.Printf("health db query: %v", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "unhealthy",
+			"error":  "database query failed",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func readJSON(r *http.Request, dst any) error {
 	defer r.Body.Close()
 	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<22)) // 4 MiB

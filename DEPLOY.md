@@ -124,3 +124,18 @@ Match **`PUBLIC_BASE_URL`** to the hostname visitors use. Email links use **`PUB
 1. Visit **`/admin`**, register the first leader (auto-approved), or use **`seedadmin`** against production **`DATABASE_URL`** (run locally with prod URL — be careful).
 2. Plan Postgres lifecycle on Free (upgrade before 30‑day expiry).
 3. Confirm **`PUBLIC_BASE_URL`** matches the live URL.
+4. Smoke-test **`/api/health`** (should return `{"status":"ok"}`) and **`/api/ward-plan`** (should return JSON, not an error).
+
+---
+
+## Troubleshooting: ward plan or experiences won’t load
+
+If the site shell loads but **Ward Plan** shows “Could not load ward plan,” check the API:
+
+```bash
+curl -sS https://albertsonwardplan.com/api/ward-plan
+curl -sS https://albertsonwardplan.com/api/health
+```
+
+- **`/api/health` returns `database unreachable`** — the Web Service cannot talk to Postgres. On Render **Free**, the Postgres instance may have **expired** (30-day limit). Create a new Postgres database, ensure the Web Service’s **`DATABASE_URL`** points at it, then redeploy. A fresh database re-seeds default ward-plan content; re-enter custom goals in **`/admin/ward-plan`** if needed.
+- **`/api/ward-plan` returns 500** while **`/` still works** — same database issue, or stale connections after idle. Redeploy after fixing **`DATABASE_URL`**. The app’s health check is **`/api/health`** so Render will not mark the service healthy when the DB is down.

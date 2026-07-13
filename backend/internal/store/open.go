@@ -16,12 +16,15 @@ import (
 func Open(ctx context.Context) (*sql.DB, error) {
 	if u := strings.TrimSpace(os.Getenv("DATABASE_URL")); u != "" {
 		activeDriver = driverPostgreSQL
-		db, err := sql.Open("pgx", u)
+		db, err := sql.Open("pgx", normalizePostgresURL(u))
 		if err != nil {
 			return nil, err
 		}
-		db.SetMaxOpenConns(25)
-		db.SetConnMaxLifetime(time.Hour)
+		// Render Postgres closes idle connections; keep the pool fresh on free tiers.
+		db.SetMaxOpenConns(10)
+		db.SetMaxIdleConns(4)
+		db.SetConnMaxLifetime(5 * time.Minute)
+		db.SetConnMaxIdleTime(2 * time.Minute)
 		if err := db.PingContext(ctx); err != nil {
 			_ = db.Close()
 			return nil, err
@@ -113,6 +116,9 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
+	if err := migrateSchemaFixes(ctx, db); err != nil {
+		return err
+	}
 	if err := migrateOrgSectionTitles(ctx, db); err != nil {
 		return err
 	}
@@ -177,10 +183,58 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
+	if err := migrateSchemaFixes(ctx, db); err != nil {
+		return err
+	}
 	if err := seedIfEmptySQLiteAddons(ctx, db); err != nil {
 		return err
 	}
 	return migrateOrgSectionTitles(ctx, db)
+}
+
+// normalizePostgresURL tunes the DSN for managed Postgres (e.g. Render): require TLS and
+// avoid server-side prepared statements that break behind transaction-pooling proxies.
+func normalizePostgresURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
+	sep := "?"
+	if strings.Contains(raw, "?") {
+		sep = "&"
+	}
+	if !strings.Contains(raw, "sslmode=") {
+		raw += sep + "sslmode=require"
+		sep = "&"
+	}
+	if !strings.Contains(raw, "default_query_exec_mode=") {
+		raw += sep + "default_query_exec_mode=simple_protocol"
+	}
+	return raw
+}
+
+func migrateSchemaFixes(ctx context.Context, db *sql.DB) error {
+	if activeDriver == driverPostgreSQL {
+		fixes := []string{
+			`ALTER TABLE org_sections ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE leader_credentials ADD COLUMN IF NOT EXISTS first_name TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE leader_credentials ADD COLUMN IF NOT EXISTS last_name TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE leader_credentials ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ`,
+			`ALTER TABLE leader_credentials ADD COLUMN IF NOT EXISTS approved_by TEXT`,
+		}
+		for _, s := range fixes {
+			if _, err := db.ExecContext(ctx, s); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if _, err := db.ExecContext(ctx,
+		`ALTER TABLE org_sections ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+	); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column name") {
+		return err
+	}
+	return nil
 }
 
 func seedIfEmptySQLiteAddons(ctx context.Context, db *sql.DB) error {

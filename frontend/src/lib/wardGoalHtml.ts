@@ -64,7 +64,7 @@ function inlineMarkupToHtml(text: string): string {
     } else {
       const href = safeHref(match[3].trim())
       if (href) {
-        result += `<a href="${escapeHtml(href)}">${escapeHtml(match[2])}</a>`
+        result += `<a href="${escapeHtml(href)}" class="inline-markup-link">${escapeHtml(match[2])}</a>`
       } else {
         result += escapeHtml(match[0])
       }
@@ -75,10 +75,25 @@ function inlineMarkupToHtml(text: string): string {
   return result
 }
 
-/** Safe HTML for one ward-plan goal line in downloadable documents. */
-export function wardGoalLineHtml(content: string): string {
-  if (/<[a-z][\s\S]*>/i.test(content)) {
-    return DOMPurify.sanitize(content, PURIFY_OPTS)
+/** Strip a lone <p> wrapper so **markdown** inside editor HTML still bolds on display. */
+function normalizeWardGoalContent(content: string): string {
+  const trimmed = content.trim()
+  const paragraph = trimmed.match(/^<p>([\s\S]*)<\/p>$/i)
+  if (!paragraph) {
+    return trimmed
   }
-  return inlineMarkupToHtml(content)
+  const inner = paragraph[1].trim()
+  if (/<(?:strong|b|a|ul|ol|h[2-4])\b/i.test(inner)) {
+    return trimmed
+  }
+  return inner
+}
+
+/** Safe HTML for one ward-plan goal line (download + public ward plan page). */
+export function wardGoalLineHtml(content: string): string {
+  const normalized = normalizeWardGoalContent(content)
+  if (/<[a-z][\s\S]*>/i.test(normalized)) {
+    return DOMPurify.sanitize(normalized, PURIFY_OPTS)
+  }
+  return inlineMarkupToHtml(normalized)
 }
