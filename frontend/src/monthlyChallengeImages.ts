@@ -19,3 +19,23 @@ export const MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID: Record<Goal['id'], string> = {
 export function monthlyChallengeImageSrc(goalId: Goal['id']): string {
   return MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID[goalId]
 }
+
+const preloaded = new Set<string>()
+
+/** Warm the browser cache for one challenge illustration. */
+export function preloadMonthlyChallengeImage(goalId: Goal['id']): void {
+  const src = MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID[goalId]
+  if (preloaded.has(src)) {
+    return
+  }
+  preloaded.add(src)
+  const img = new Image()
+  img.src = src
+}
+
+/** Preload all twelve month images (call after first paint). */
+export function preloadAllMonthlyChallengeImages(): void {
+  for (const id of Object.keys(MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID) as Goal['id'][]) {
+    preloadMonthlyChallengeImage(id)
+  }
+}

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CHALLENGE_CARD_HEADING,
   MONTHLY_GOALS,
@@ -10,7 +10,11 @@ import { PageHero } from '../components/PageHero'
 import { DocumentDownloadIcon } from '../components/DocumentDownloadIcon'
 import { buildOfflineMonthlyChallengesHtml } from '../lib/downloadMonthlyChallenges'
 import { renderChallengeBullet } from '../lib/challengeBullets'
-import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
+import {
+  monthlyChallengeImageSrc,
+  preloadAllMonthlyChallengeImages,
+  preloadMonthlyChallengeImage,
+} from '../monthlyChallengeImages'
 
 function renderBullet(goal: Goal, who: string, text: string, key: number) {
   return renderChallengeBullet(goal, who, text, key)
@@ -26,6 +30,20 @@ export function MonthlyChallenges() {
 
   const pickMonth = useCallback((index: number) => {
     setSelectedMonth(index)
+  }, [])
+
+  useEffect(() => {
+    preloadMonthlyChallengeImage(MONTHLY_GOALS[selectedMonth]!.id)
+  }, [selectedMonth])
+
+  useEffect(() => {
+    const run = () => preloadAllMonthlyChallengeImages()
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(run)
+      return () => cancelIdleCallback(id)
+    }
+    const t = window.setTimeout(run, 200)
+    return () => window.clearTimeout(t)
   }, [])
 
   return (
@@ -55,6 +73,8 @@ export function MonthlyChallenges() {
                     aria-pressed={selectedMonth === i}
                     aria-label={`${MONTHS_LONG[i]}, ${CHALLENGE_CARD_HEADING[g.id]}`}
                     onClick={() => pickMonth(i)}
+                    onMouseEnter={() => preloadMonthlyChallengeImage(g.id)}
+                    onFocus={() => preloadMonthlyChallengeImage(g.id)}
                   >
                     <span className="challenge-month-tile__abbr">{MONTHS_SHORT[i]}</span>
                     <span className="challenge-month-tile__theme">{g.title}</span>
@@ -75,11 +95,13 @@ export function MonthlyChallenges() {
               >
                 <div className="challenge-card__art">
                   <img
+                    key={goal.id}
                     src={monthlyChallengeImageSrc(goal.id)}
                     alt=""
                     className="challenge-card__icon"
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
+                    fetchPriority="high"
                   />
                   <div className="challenge-card__art-front">
                     <p className="challenge-card__month">{MONTHS_LONG[selectedMonth]}</p>
