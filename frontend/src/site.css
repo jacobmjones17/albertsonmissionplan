@@ -102,10 +102,24 @@
   --banner-success-border: #c6ebd2;
   --banner-success-accent: #16a34a;
   --banner-success-text: #14532d;
-  --btn-primary-gradient: linear-gradient(180deg, #2a4d7a 0%, var(--accent) 100%);
-  --btn-primary-gradient-hover: linear-gradient(180deg, #21406a 0%, var(--accent-hover) 100%);
-  --btn-primary-shadow: 0 6px 18px -4px rgba(31, 60, 99, 0.5);
-  --btn-primary-shadow-hover: 0 10px 24px -6px rgba(31, 60, 99, 0.55);
+  /* Buttons follow the dark-brown + gold header: gold primary (same as the Leader Sign-In
+     pill) with dark-brown text, cream secondary with a gold border, dark-brown "selected"
+     pills with gold text. Contrast: #1b140a on #e0b868 ≈ 10:1, #3b2a17 on #fffdf6 ≈ 13:1,
+     #f3d79d on #2a1f14 ≈ 12:1 (all WCAG AA/AAA). */
+  --btn-primary-gradient: linear-gradient(180deg, #f3e2b8 0%, #e0b868 100%);
+  --btn-primary-gradient-hover: linear-gradient(180deg, #f8ecd0 0%, #e8c47c 100%);
+  --btn-primary-shadow: 0 6px 16px -6px rgba(90, 62, 20, 0.45);
+  --btn-primary-shadow-hover: 0 10px 22px -8px rgba(90, 62, 20, 0.5);
+  --btn-primary-text: #1b140a;
+  --btn-primary-border: #c99a4c;
+  --btn-secondary-bg: #fffdf6;
+  --btn-secondary-hover-bg: #f7eedb;
+  --btn-secondary-text: #3b2a17;
+  --btn-secondary-border: #b08745;
+  --btn-focus: #4a3418;
+  --selected-bg: #2a1f14;
+  --selected-border: #2a1f14;
+  --selected-text: #f3d79d;
   --header-photo-bg: rgba(253, 250, 243, 0.28);
   --header-photo-scrim: linear-gradient(
     to bottom,
@@ -1459,7 +1473,7 @@ button.btn-danger {
 button.btn-primary:focus-visible,
 button.btn-secondary:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--btn-focus);
 }
 
 button.btn-danger:focus-visible {
@@ -1470,7 +1484,8 @@ button.btn-danger:focus-visible {
 .btn-primary,
 button.btn-primary {
   background: var(--btn-primary-gradient);
-  color: var(--text-on-accent);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-border);
   box-shadow:
     var(--shadow-inset-light),
     var(--btn-primary-shadow),
@@ -1484,7 +1499,7 @@ button.btn-primary:hover {
     var(--shadow-inset-light),
     var(--btn-primary-shadow-hover),
     0 2px 0 rgba(0, 0, 0, 0.08);
-  color: var(--text-on-accent);
+  color: var(--btn-primary-text);
 }
 .btn-primary:active,
 button.btn-primary:active {
@@ -1495,16 +1510,16 @@ button.btn-primary:active {
 
 .btn-secondary,
 button.btn-secondary {
-  background: var(--bg-elevated);
-  color: var(--accent);
-  border-color: var(--border-strong);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
   box-shadow: var(--shadow-xs);
 }
 .btn-secondary:hover,
 button.btn-secondary:hover {
-  background: var(--bg-card);
-  border-color: var(--accent);
-  color: var(--accent-hover);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--gold-deep);
+  color: var(--btn-secondary-text);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -5922,7 +5937,8 @@ details.org .org-body {
   padding: 0.5rem 1.05rem;
   border-radius: 999px;
   background: var(--btn-primary-gradient);
-  color: var(--text-on-accent);
+  color: var(--btn-primary-text);
+  border: 1px solid var(--btn-primary-border);
   font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -6847,5 +6863,50 @@ label .event-form__hint {
     min-width: 0;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
+  }
+}
+
+/* ===== Theme: buttons and "selected" pills (dark brown + gold) ===== */
+/* Secondary buttons on the dark photo heroes: translucent with a gold outline. */
+.hero-page .btn-secondary,
+.hero-page button.btn-secondary {
+  background: rgba(18, 14, 10, 0.42);
+  color: #f3e2b8;
+  border-color: #e0b868;
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.hero-page .btn-secondary:hover,
+.hero-page button.btn-secondary:hover {
+  background: rgba(224, 184, 104, 0.2);
+  color: #fff6e0;
+  border-color: #f3e2b8;
+}
+.hero-page .btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(18, 14, 10, 0.8), 0 0 0 5px #e0b868;
+}
+.add-cal__summary:focus-visible {
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--btn-focus);
+}
+/* Selected tabs / toggles / current leader page. */
+.leader-nav a.active,
+.ward-plan-tabs__tab.is-active,
+.admin-challenges__month.is-active,
+.events-view-toggle button[aria-pressed="true"] {
+  background: var(--selected-bg);
+  border-color: var(--selected-border);
+  color: var(--selected-text);
+}
+.admin-challenges__month.is-active .admin-challenges__month-abbr {
+  color: #e0b868;
+}
+/* Phone menu: Leader Sign-In matches the gold pill in the header. */
+@media (max-width: 768px) {
+  .site-nav a.nav-leader-btn,
+  .site-header.site-header--overlap-home .site-nav.is-open a.nav-leader-btn {
+    color: var(--btn-primary-text);
+    background: var(--btn-primary-gradient);
+    border-color: var(--btn-primary-border);
   }
 }
