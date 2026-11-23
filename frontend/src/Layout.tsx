@@ -7,11 +7,16 @@ import { useBootstrap } from './BootstrapContext'
 import { WARD_FACEBOOK_URL, WARD_INSTAGRAM_URL } from './churchLinks'
 import { STATIC_SITE_PHOTOS } from './staticSitePhotos'
 
-const nav = [
+/**
+ * `short` labels are shown on mid-width desktops (1100–1399px) so the bar can breathe; the full
+ * label is still the link's accessible name and is shown in the phone/tablet menu and on wide
+ * screens.
+ */
+const nav: { to: string; label: string; short?: string; end?: boolean }[] = [
   { to: '/', label: 'Home', end: true },
   { to: '/ward-plan', label: 'Ward Plan' },
-  { to: '/monthly-challenges', label: 'Monthly Challenges' },
-  { to: '/experiences', label: 'Mission Experiences' },
+  { to: '/monthly-challenges', label: 'Monthly Challenges', short: 'Challenges' },
+  { to: '/experiences', label: 'Mission Experiences', short: 'Experiences' },
   { to: '/events', label: 'Events' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/love-share-invite', label: 'Love, Share, Invite' },
@@ -182,7 +187,7 @@ export function Layout() {
   /* Mobile: scrolling the page closes the open menu so content is not locked behind it. */
   useEffect(() => {
     if (!open) return
-    const mobileNav = window.matchMedia('(max-width: 768px)')
+    const mobileNav = window.matchMedia('(max-width: 1099px)')
     if (!mobileNav.matches) return
 
     function closeOnPageScroll() {
@@ -218,6 +223,16 @@ export function Layout() {
               Albertson Ward
             </span>
           </NavLink>
+          {/* Tablets / small laptop windows: the links fold into the menu, but Leader Sign-In
+              stays visible here (CSS shows this only at 769–1099px). */}
+          <NavLink
+            to="/admin"
+            className="header-leader-btn"
+            title={user?.isLeader ? 'Open leader tools' : 'Sign in for ward leaders'}
+          >
+            <LeaderKeyIcon />
+            {user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
+          </NavLink>
           <button
             ref={navToggleRef}
             type="button"
@@ -238,8 +253,17 @@ export function Layout() {
             <ul>
               {nav.map((item) => (
                 <li key={item.to}>
-                  <NavLink to={item.to} end={item.end}>
-                    {item.label}
+                  <NavLink to={item.to} end={item.end} aria-label={item.short ? item.label : undefined}>
+                    {item.short ? (
+                      <>
+                        <span className="nav-label-full">{item.label}</span>
+                        <span className="nav-label-short" aria-hidden="true">
+                          {item.short}
+                        </span>
+                      </>
+                    ) : (
+                      item.label
+                    )}
                   </NavLink>
                 </li>
               ))}
