@@ -104,13 +104,15 @@ export function Gallery() {
                         decoding="async"
                       />
                     </button>
-                    {it.title || credit || it.caption ? (
-                      <div className="gallery-card__caption">
-                        {it.title ? <p className="gallery-card__title">{it.title}</p> : null}
-                        {credit ? <p className="gallery-card__credit">{credit}</p> : null}
-                        {it.caption ? <p className="gallery-card__text">{it.caption}</p> : null}
-                      </div>
-                    ) : null}
+                    {/* Always rendered (same height on every tile) so rows line up; long text is
+                        clamped here and shown in full in the lightbox. */}
+                    <div className="gallery-card__caption">
+                      <p className="gallery-card__title" title={it.title || undefined}>
+                        {it.title || 'Untitled drawing'}
+                      </p>
+                      {credit ? <p className="gallery-card__credit" title={credit}>{credit}</p> : null}
+                      {it.caption ? <p className="gallery-card__text">{it.caption}</p> : null}
+                    </div>
                   </li>
                 )
               })}
