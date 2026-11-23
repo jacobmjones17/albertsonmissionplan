@@ -354,7 +354,7 @@ export function AdminHome() {
                 <Link to="/admin/events">
                   <span className="admin-links__text">
                     <span className="admin-links__label">Ward Events</span>
-                    <span className="admin-links__desc">Add baptisms, activities, open houses, and firesides to the calendar</span>
+                    <span className="admin-links__desc">Add baptisms, ward activities, temple trips, and service projects to the calendar</span>
                     {upcomingEvents !== null ? (
                       <span className="admin-links__status">
                         {upcomingEvents === 0

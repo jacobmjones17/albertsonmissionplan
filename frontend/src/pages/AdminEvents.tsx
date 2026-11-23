@@ -402,7 +402,7 @@ export function AdminEvents() {
         titleId="admin-events-title"
         eyebrow="Leader Tools"
         title="Ward Events"
-        lede="Add baptisms, activities, open houses, and firesides to the public calendar."
+        lede="Add baptisms, ward activities, temple trips, and service projects to the public calendar."
         compact
       />
       <div className="wrap admin-events-page">
@@ -450,8 +450,8 @@ export function AdminEvents() {
           ) : upcoming.length === 0 ? (
             <div className="panel-sites">
               <p className="lead" style={{ margin: 0 }}>
-                No upcoming events. Use <strong>Add Event</strong> to put the next baptism, activity,
-                or fireside on the calendar.
+                No upcoming events. Use <strong>Add Event</strong> to put the next baptism, ward activity,
+                temple trip, or service project on the calendar.
               </p>
             </div>
           ) : (

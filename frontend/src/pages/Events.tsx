@@ -279,7 +279,7 @@ export function Events() {
         titleId="events-title"
         eyebrow="Come and see"
         title="Ward Events"
-        lede="Baptisms, ward activities, open houses, and firesides. Everyone is welcome."
+        lede="Baptisms, ward activities, temple trips, and service projects. Everyone is welcome."
       />
       <div className="home-mission-strip home-mission-strip--tight">
         <p>
@@ -345,7 +345,7 @@ export function Events() {
                   </div>
                   <h2 id="events-empty-title">No upcoming events right now</h2>
                   <p>
-                    Check back soon. Baptisms, ward activities, open houses, and firesides will show
+                    Check back soon. Baptisms, ward activities, temple trips, and service projects will show
                     up here as they&apos;re planned.
                   </p>
                 </section>
