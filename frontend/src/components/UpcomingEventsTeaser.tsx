@@ -33,7 +33,7 @@ export function UpcomingEventsTeaser() {
     <section className="content-block home-events" aria-labelledby="sec-events">
       <div className="section-heading">
         <h2 id="sec-events">Upcoming Events</h2>
-        <p className="section-sub">Baptisms, activities, and firesides. Bring a friend!</p>
+        <p className="section-sub">Baptisms, ward activities, temple trips, and service projects. Bring a friend!</p>
       </div>
       <ul className="home-events__list" role="list">
         {events.map((e) => {
