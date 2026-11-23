@@ -4613,100 +4613,217 @@ details.org .org-body {
   margin: 0.25rem 0 0;
 }
 
-/* —— 404 / page not found —— */
-.not-found {
-  display: grid;
-  gap: 1.75rem 2.5rem;
-  align-items: center;
-  max-width: 60rem;
-  margin: 0 auto;
+/* —— 404 / page not found ——
+   One dark brown "chapel" panel: framed painting of the Savior beside a gentle message,
+   soft gold glow + vignette, serif headline, gold primary action. Mobile stacks with the
+   painting cropped to a 4:5 portrait centred on the faces. */
+.not-found-page {
+  padding: 0;
+  background: #120d09;
 }
-@media (min-width: 820px) {
-  .not-found {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  }
+/* The panel runs straight into the (also dark) footer, no parchment strip between them. */
+.not-found-page ~ .site-footer {
+  margin-top: 0;
 }
-.not-found__art {
-  margin: 0;
-  border-radius: var(--radius);
+.nf {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  background: var(--surface-feature-frame);
+  min-height: calc(100svh - 73px);
+  display: flex;
+  align-items: center;
+  padding: clamp(2.25rem, 6vw, 4.5rem) 1.35rem clamp(3rem, 7vw, 5rem);
+  color: var(--ink-on-dark);
+  background:
+    radial-gradient(ellipse 60% 55% at 30% 45%, rgba(224, 184, 104, 0.16), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45) 100%),
+    linear-gradient(165deg, #2b2118 0%, #1f1811 50%, #120d09 100%);
 }
-.not-found__art img {
+.nf::before {
+  /* hairline of gold at the top edge */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(224, 184, 104, 0.45), transparent);
+}
+.nf__inner {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 2.25rem;
+  justify-items: center;
+  text-align: center;
+}
+.nf__art {
+  position: relative;
+  margin: 0;
+  width: min(78vw, 20rem);
+  aspect-ratio: 4 / 5;
+  padding: 6px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(243, 226, 184, 0.55), rgba(176, 135, 69, 0.35) 45%, rgba(90, 62, 26, 0.5));
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(224, 184, 104, 0.15),
+    0 0 80px rgba(224, 184, 104, 0.12);
+}
+.nf__art img {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 34rem;
+  height: 100%;
   object-fit: cover;
-  object-position: center 30%;
+  object-position: 50% 28%;
+  border-radius: 9px;
 }
-@media (max-width: 819px) {
-  .not-found__art {
-    max-width: 26rem;
-    margin: 0 auto;
-  }
-  .not-found__art img {
-    max-height: 26rem;
-  }
+.nf__art::after {
+  /* soft inner vignette so the painting sits in the dark panel */
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 9px;
+  pointer-events: none;
+  box-shadow: inset 0 0 50px rgba(20, 14, 8, 0.55);
 }
-.not-found__title {
-  margin: 0 0 1rem;
+.nf__body {
+  max-width: 30rem;
+}
+.nf__eyebrow {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0 0 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e0b868;
+}
+.nf__dot {
+  opacity: 0.6;
+}
+.nf__title {
+  margin: 0;
   font-family: var(--font-serif);
-  font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 600;
-  line-height: 1.2;
-  color: var(--ink-strong);
+  font-size: clamp(2.3rem, 6.5vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.005em;
+  color: #f3e2b8;
+  text-wrap: balance;
 }
-.not-found__quote {
+.nf__rule {
+  display: block;
+  width: 3.5rem;
+  height: 1px;
+  margin: 1.25rem auto;
+  background: linear-gradient(90deg, transparent, #e0b868, transparent);
+}
+.nf__quote {
   margin: 0 0 1.25rem;
-  padding: 0.9rem 1.1rem;
-  border-left: 3px solid var(--gold);
-  background: linear-gradient(90deg, var(--gold-soft), transparent 80%);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0;
+  border: 0;
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 1.15rem;
-  line-height: 1.5;
-  color: var(--ink);
+  font-size: clamp(1.2rem, 2.4vw, 1.4rem);
+  line-height: 1.45;
+  color: #efe4cc;
 }
-.not-found__quote p {
+.nf__quote p {
   margin: 0;
+  text-wrap: balance;
 }
-.not-found__quote cite {
+.nf__quote cite {
   display: block;
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
   font-family: var(--font-sans);
   font-style: normal;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold-deep);
+  color: #c9a467;
 }
-.not-found__lead {
-  margin: 0 0 1rem;
-  color: var(--ink-muted);
+.nf__lead {
+  margin: 0 auto 1.75rem;
+  max-width: 26rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #cfc3ad;
 }
-.not-found__actions {
+.nf__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin: 0;
+  gap: 0.9rem 1.5rem;
+  align-items: center;
+  justify-content: center;
 }
-/* Shorter banner on the 404 page so the painting of the Savior is visible without scrolling. */
-.not-found-page .hero-page.hero-page--home {
-  min-height: min(38vh, 320px);
+.nf__btn {
+  min-width: 11rem;
+  justify-content: center;
 }
-@media (min-width: 768px) {
-  .not-found-page .hero-page.hero-page--home {
-    min-height: min(42vh, 360px);
-    padding-bottom: 2.25rem;
+.nf__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.1rem;
+  font-weight: 600;
+  color: #e9cf96;
+  text-decoration: underline;
+  text-decoration-color: rgba(224, 184, 104, 0.4);
+  text-underline-offset: 5px;
+}
+.nf__link:hover {
+  color: #f3e2b8;
+  text-decoration-color: #e0b868;
+}
+.nf__link span {
+  transition: transform var(--t-fast) var(--ease);
+}
+.nf__link:hover span {
+  transform: translateX(3px);
+}
+.nf__link:focus-visible,
+.nf__btn:focus-visible {
+  outline: 2px solid #f3d79d;
+  outline-offset: 3px;
+}
+@media (min-width: 820px) {
+  .nf__inner {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    gap: clamp(2.5rem, 6vw, 5rem);
+    align-items: center;
+    text-align: left;
+  }
+  .nf__art {
+    width: 100%;
+    max-width: 24rem;
+    aspect-ratio: 2 / 3;
+    max-height: 72vh;
+    justify-self: end;
+  }
+  .nf__art img {
+    object-position: 50% 30%;
+  }
+  .nf__body {
+    justify-self: start;
+  }
+  .nf__rule {
+    margin-left: 0;
+    background: linear-gradient(90deg, #e0b868, transparent);
+  }
+  .nf__lead {
+    margin-left: 0;
+  }
+  .nf__actions {
+    justify-content: flex-start;
   }
 }
-.not-found-page .wrap-wide {
-  padding-top: 2rem;
+@media (prefers-reduced-motion: reduce) {
+  .nf__link span {
+    transition: none;
+  }
 }
 
 /* ===== Leader tools: simplified rich-text toolbar ===== */
