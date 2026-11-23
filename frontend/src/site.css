@@ -4394,13 +4394,18 @@ details.org .org-body {
     padding-bottom: 1.75rem;
   }
 
-  /* Hero photo doesn't dominate; just enough to feel like a banner. */
+  /* Taller banner so Jesus and the sheep are nearly fully visible on phones.
+     object-position: top puts the sky under the navbar, with his head just below it. */
   .hero-page.hero-page--home {
-    min-height: 46vh;
+    min-height: min(67vh, 36rem);
   }
   .hero-page.hero-page--home.hero-page--underlap-header {
     padding-top: calc(var(--header-h) + 2.25rem);
     padding-bottom: 2.5rem;
+  }
+  .hero-page__bg-img,
+  .site-header.site-header--has-photo .site-header__photo-img {
+    object-position: center top;
   }
 
   /* Headline scale-down so long titles don't break awkwardly on narrow phones. */
