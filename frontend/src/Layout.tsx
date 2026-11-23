@@ -11,6 +11,7 @@ const nav = [
   { to: '/ward-plan', label: 'Ward Plan' },
   { to: '/monthly-challenges', label: 'Monthly Challenges' },
   { to: '/experiences', label: 'Mission Experiences' },
+  { to: '/gallery', label: 'Gallery' },
   { to: '/love-share-invite', label: 'Love, Share, Invite' },
 ]
 
@@ -293,9 +294,20 @@ function LeaderNavBadge({ count, label }: { count: number | null; label: string 
 /** Persistent leader navigation (all /admin pages once signed in). Scrolls sideways on phones. */
 function LeaderNav({ onSignOut }: { onSignOut: () => void }) {
   const { pendingExperiences, pendingAccounts } = useLeaderCounts()
+  const innerRef = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  // On phones the leader nav scrolls sideways; keep the current page's link in view.
+  useEffect(() => {
+    const inner = innerRef.current
+    const active = inner?.querySelector<HTMLElement>('a.active')
+    if (!inner || !active || inner.scrollWidth <= inner.clientWidth) return
+    const a = active.getBoundingClientRect()
+    const box = inner.getBoundingClientRect()
+    inner.scrollLeft += a.left - box.left - (box.width - a.width) / 2
+  }, [pathname])
   return (
     <nav className="leader-nav" aria-label="Leader tools">
-      <div className="leader-nav__inner">
+      <div className="leader-nav__inner" ref={innerRef}>
         <ul className="leader-nav__list">
           <li>
             <NavLink to="/admin" end>
@@ -316,6 +328,9 @@ function LeaderNav({ onSignOut }: { onSignOut: () => void }) {
           </li>
           <li>
             <NavLink to="/admin/ward-plan">Ward Plan</NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/gallery">Gallery</NavLink>
           </li>
         </ul>
         <ul className="leader-nav__list leader-nav__list--end">

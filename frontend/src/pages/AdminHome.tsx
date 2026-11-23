@@ -162,6 +162,20 @@ export function AdminHome() {
     void refresh()
   }, [refresh])
 
+  const [galleryCount, setGalleryCount] = useState<{ total: number; hidden: number } | null>(null)
+  useEffect(() => {
+    if (!user?.isLeader) {
+      setGalleryCount(null)
+      return
+    }
+    apiJson<{ items: { hidden?: boolean }[] | null }>('/api/admin/gallery')
+      .then((d) => {
+        const list = Array.isArray(d.items) ? d.items : []
+        setGalleryCount({ total: list.length, hidden: list.filter((i) => i.hidden).length })
+      })
+      .catch(() => setGalleryCount(null))
+  }, [user?.isLeader])
+
   useEffect(() => {
     if (signInEmail) setEmail(signInEmail)
   }, [signInEmail])
@@ -254,7 +268,7 @@ export function AdminHome() {
         title={user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
         lede={
           user?.isLeader
-            ? 'Review experiences, approve leaders, and edit the ward plan.'
+            ? 'Review experiences, approve leaders, edit the ward plan, and share drawings.'
             : 'For ward leaders: sign in to review experiences and edit the ward plan.'
         }
         compact
@@ -305,6 +319,21 @@ export function AdminHome() {
                       {pendingAccounts}
                     </span>
                   : null}
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/gallery">
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Ward Gallery</span>
+                    <span className="admin-links__desc">Upload and arrange drawings from children and members</span>
+                    {galleryCount !== null ? (
+                      <span className="admin-links__status">
+                        {galleryCount.total === 0
+                          ? 'No drawings yet'
+                          : `${galleryCount.total} ${galleryCount.total === 1 ? 'drawing' : 'drawings'}${galleryCount.hidden ? ` · ${galleryCount.hidden} hidden` : ''}`}
+                      </span>
+                    ) : null}
+                  </span>
                 </Link>
               </li>
               <li>

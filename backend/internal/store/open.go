@@ -110,6 +110,29 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
+		// Ward Gallery: drawings stored in the database (Render's disk is ephemeral). Image
+		// bytes live in the row; list queries never select the two BYTEA columns.
+		`CREATE TABLE IF NOT EXISTS gallery_items (
+			id BIGSERIAL PRIMARY KEY,
+			title TEXT NOT NULL DEFAULT '',
+			caption TEXT NOT NULL DEFAULT '',
+			artist TEXT NOT NULL DEFAULT '',
+			age_group TEXT NOT NULL DEFAULT '',
+			width INTEGER NOT NULL,
+			height INTEGER NOT NULL,
+			thumb_width INTEGER NOT NULL,
+			thumb_height INTEGER NOT NULL,
+			image_hash TEXT NOT NULL,
+			image_data BYTEA NOT NULL,
+			thumb_data BYTEA NOT NULL,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			featured BOOLEAN NOT NULL DEFAULT FALSE,
+			hidden BOOLEAN NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			created_by TEXT NOT NULL DEFAULT '',
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_gallery_items_order ON gallery_items(featured, sort_order);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {
@@ -177,6 +200,27 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
+		`CREATE TABLE IF NOT EXISTS gallery_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL DEFAULT '',
+			caption TEXT NOT NULL DEFAULT '',
+			artist TEXT NOT NULL DEFAULT '',
+			age_group TEXT NOT NULL DEFAULT '',
+			width INTEGER NOT NULL,
+			height INTEGER NOT NULL,
+			thumb_width INTEGER NOT NULL,
+			thumb_height INTEGER NOT NULL,
+			image_hash TEXT NOT NULL,
+			image_data BLOB NOT NULL,
+			thumb_data BLOB NOT NULL,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			featured INTEGER NOT NULL DEFAULT 0 CHECK (featured IN (0, 1)),
+			hidden INTEGER NOT NULL DEFAULT 0 CHECK (hidden IN (0, 1)),
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			created_by TEXT NOT NULL DEFAULT '',
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_gallery_items_order ON gallery_items(featured, sort_order);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {

@@ -15,6 +15,8 @@ import { MonthlyChallenges } from './pages/MonthlyChallenges'
 import { NotFound } from './pages/NotFound'
 import { PrintMonthlyChallenges } from './pages/PrintMonthlyChallenges'
 import { WardPlan } from './pages/WardPlan'
+import { Gallery } from './pages/Gallery'
+import { AdminGallery } from './pages/AdminGallery'
 
 const SITE_TITLE = 'Albertson Ward Plan'
 
@@ -30,12 +32,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/monthly-challenges/print': 'Printable Monthly Challenges',
   '/experiences': 'Mission Experiences',
   '/love-share-invite': 'Love, Share, Invite',
+  '/gallery': 'Ward Gallery',
   '/admin': 'Leader Tools',
   '/admin/forgot-password': 'Forgot Password',
   '/admin/reset-password': 'Reset Password',
   '/admin/moderate': 'Moderate Experiences',
   '/admin/approvals': 'Leader Approvals',
   '/admin/ward-plan': 'Edit Ward Plan',
+  '/admin/gallery': 'Manage Ward Gallery',
 }
 
 function pageTitleFor(pathname: string): string {
@@ -79,6 +83,7 @@ export function App() {
         <Route path="/monthly-challenges" element={<MonthlyChallenges />} />
         <Route path="/experiences" element={<Experiences />} />
         <Route path="/love-share-invite" element={<LoveShareInvite />} />
+        <Route path="/gallery" element={<Gallery />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>
@@ -89,6 +94,7 @@ export function App() {
           <Route path="moderate" element={<AdminModerate />} />
           <Route path="approvals" element={<AdminApprovals />} />
           <Route path="ward-plan" element={<AdminWardPlan />} />
+          <Route path="gallery" element={<AdminGallery />} />
         </Route>
       </Route>
     </Routes>

@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/microcosm-cc/bluemonday v1.0.27
 	golang.org/x/crypto v0.37.0
+	golang.org/x/image v0.26.0
 	modernc.org/sqlite v1.50.1
 )
 

@@ -93,6 +93,7 @@ func main() {
 	mux.HandleFunc("GET /api/experiences", srv.APIExperiences)
 	mux.HandleFunc("POST /api/experiences", srv.APIPostExperience)
 	mux.HandleFunc("GET /api/ward-plan", srv.APIWardPlan)
+	srv.RegisterGalleryRoutes(mux)
 
 	mux.HandleFunc("GET /api/admin/pending", srv.APIAdminPending)
 	mux.HandleFunc("POST /api/admin/moderate", srv.APIAdminModerate)
