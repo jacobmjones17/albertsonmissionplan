@@ -151,6 +151,8 @@ export function Experiences() {
 
         <FeaturePhoto
           src={STATIC_SITE_PHOTOS.experiencesFeature}
+          rotateSlot="experiences-feature"
+          ratio={1600 / 1124}
           alt="Painting of Jesus Christ tenderly taking the hands of a woman among a gathered crowd"
           caption="“The greatest service we can provide is to help others come unto Christ.” — Elder Dieter F. Uchtdorf"
         />

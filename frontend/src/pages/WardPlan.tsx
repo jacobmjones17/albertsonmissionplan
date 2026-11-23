@@ -128,6 +128,8 @@ export function WardPlan() {
 
         <FeaturePhoto
           src={STATIC_SITE_PHOTOS.wardPlanFeature}
+          rotateSlot="ward-plan-feature"
+          ratio={1800 / 1195}
           alt="Statue of the resurrected Jesus Christ with outstretched arms, set against the earth and a starry sky"
           caption={
             '“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” — John 3:16'

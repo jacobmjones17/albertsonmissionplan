@@ -1205,6 +1205,45 @@ main {
   }
 }
 
+/* Rotating slots (FeaturePhoto rotateSlot): a fixed box at the original photo's shape, so the
+   original photo looks exactly as before and a Ward Gallery drawing swaps in without a jump. */
+.page-feature-photo__frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+.page-feature-photo--painting .page-feature-photo__frame {
+  max-height: 520px;
+}
+.page-feature-photo--framed .page-feature-photo__frame > .page-feature-photo__img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: center top;
+}
+.page-feature-photo--flat.page-feature-photo--framed .page-feature-photo__frame > .page-feature-photo__img {
+  object-fit: contain;
+}
+/* Drawings: whole picture, never cropped, on a parchment mat. */
+.page-feature-photo--drawing .page-feature-photo__frame {
+  background: #f4ead6;
+  background-image: radial-gradient(circle at 50% 40%, #faf3e3 0%, #f1e5cc 100%);
+  border-radius: var(--radius);
+}
+.page-feature-photo--framed .page-feature-photo__frame > .page-feature-photo__img--drawing {
+  box-sizing: border-box;
+  padding: clamp(0.75rem, 3%, 1.5rem);
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 3px 6px rgba(60, 40, 10, 0.2));
+}
+@media (max-width: 520px) {
+  .page-feature-photo--painting .page-feature-photo__frame {
+    max-height: 360px;
+  }
+}
+
 .wrap--home {
   padding-top: clamp(2rem, 4vw, 3rem);
   padding-bottom: 3rem;

@@ -122,6 +122,9 @@ export function Home() {
         </section>
         <FeaturePhoto
           src={STATIC_SITE_PHOTOS.about}
+          rotateSlot="home-about"
+          ratio={1013 / 810}
+          drawingCaption="“If you’re not a full-time missionary with a missionary badge pinned on your coat, now is the time to paint one on your heart—painted, as Paul said, ‘not with ink, but with the Spirit of the living God.’” — Elder Neil L. Andersen"
           size="narrow"
           variant="flat"
           alt="“If you’re not a full-time missionary with a missionary badge pinned on your coat, now is the time to paint one on your heart—painted, as Paul said, ‘not with ink, but with the Spirit of the living God.’” — Elder Neil L. Andersen"

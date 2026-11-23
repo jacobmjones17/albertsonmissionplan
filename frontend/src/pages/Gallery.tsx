@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { apiJson } from '../api'
 import { GalleryLightbox } from '../components/GalleryLightbox'
 import { PageHero } from '../components/PageHero'
 import { shuffled, type GalleryItem } from '../lib/gallery'
+import { loadGalleryItems } from '../lib/galleryDrawings'
 
 export function Gallery() {
   const [items, setItems] = useState<GalleryItem[] | null>(null)
@@ -11,10 +11,10 @@ export function Gallery() {
   const lastOpened = useRef<number | null>(null)
 
   useEffect(() => {
-    apiJson<{ items: GalleryItem[] | null }>('/api/gallery')
+    loadGalleryItems()
       // The API returns every visible drawing; shuffle the whole set once per load. The grid
       // and the lightbox's prev/next both follow this order.
-      .then((d) => setItems(Array.isArray(d.items) ? shuffled(d.items) : []))
+      .then((list) => setItems(shuffled(list)))
       .catch((e) => {
         setErr(e instanceof Error ? e.message : 'Could not load the gallery.')
         setItems([])

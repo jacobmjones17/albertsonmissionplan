@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { apiJson } from './api'
+import { GalleryDrawingsProvider } from './lib/galleryDrawings'
 import { LeaderCountsProvider, useLeaderCounts } from './lib/leaderCounts'
 import { useBootstrap } from './BootstrapContext'
 import { WARD_FACEBOOK_URL, WARD_INSTAGRAM_URL } from './churchLinks'
@@ -255,7 +256,10 @@ export function Layout() {
           </nav>
         </div>
       </SiteHeaderShell>
-      <Outlet />
+      {/* In-page photos (never heroes) show rotating Ward Gallery drawings. */}
+      <GalleryDrawingsProvider>
+        <Outlet />
+      </GalleryDrawingsProvider>
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">

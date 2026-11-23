@@ -120,6 +120,8 @@ export function LoveShareInvite() {
         <div className="love-share-outro">
           <FeaturePhoto
             src={STATIC_SITE_PHOTOS.loveShareFeature}
+            rotateSlot="love-share-feature"
+            ratio={1200 / 1552}
             alt="A ward member’s crayon drawing of Jesus Christ under a rainbow, welcoming smiling children and animals in a green field"
             size="narrow"
             variant="flat"

@@ -4,6 +4,7 @@ import { apiJson, apiUpload } from '../api'
 import { PageHero } from '../components/PageHero'
 import { Toast, type ToastPayload } from '../components/Toast'
 import { type GalleryItem } from '../lib/gallery'
+import { invalidateGalleryItems } from '../lib/galleryDrawings'
 import { useUnsavedChangesWarning } from '../lib/useUnsavedChangesWarning'
 
 const MAX_BYTES = 15 * 1024 * 1024
@@ -44,6 +45,8 @@ export function AdminGallery() {
   const cameraInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
+    // Anything changed here should show up on the public pages without a full reload.
+    invalidateGalleryItems()
     try {
       const d = await apiJson<{ items: GalleryItem[] | null }>('/api/admin/gallery')
       setItems(Array.isArray(d.items) ? d.items : [])
