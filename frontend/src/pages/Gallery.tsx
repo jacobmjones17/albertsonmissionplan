@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiJson } from '../api'
 import { GalleryLightbox } from '../components/GalleryLightbox'
 import { PageHero } from '../components/PageHero'
-import { galleryCredit, type GalleryItem } from '../lib/gallery'
+import { galleryCredit, shuffled, type GalleryItem } from '../lib/gallery'
 
 export function Gallery() {
   const [items, setItems] = useState<GalleryItem[] | null>(null)
@@ -12,7 +12,9 @@ export function Gallery() {
 
   useEffect(() => {
     apiJson<{ items: GalleryItem[] | null }>('/api/gallery')
-      .then((d) => setItems(Array.isArray(d.items) ? d.items : []))
+      // The API returns every visible drawing; shuffle the whole set once per load. The grid
+      // and the lightbox's prev/next both follow this order.
+      .then((d) => setItems(Array.isArray(d.items) ? shuffled(d.items) : []))
       .catch((e) => {
         setErr(e instanceof Error ? e.message : 'Could not load the gallery.')
         setItems([])
@@ -85,7 +87,7 @@ export function Gallery() {
               {items.map((it, i) => {
                 const credit = galleryCredit(it)
                 return (
-                  <li key={it.id} className={`gallery-card${it.featured ? ' gallery-card--featured' : ''}`}>
+                  <li key={it.id} className="gallery-card">
                     <button
                       type="button"
                       className="gallery-card__button"
@@ -101,7 +103,6 @@ export function Gallery() {
                         loading={i < 6 ? 'eager' : 'lazy'}
                         decoding="async"
                       />
-                      {it.featured ? <span className="gallery-card__badge">★ Featured</span> : null}
                     </button>
                     {it.title || credit || it.caption ? (
                       <div className="gallery-card__caption">

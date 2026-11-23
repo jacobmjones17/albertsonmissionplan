@@ -237,7 +237,6 @@ export function AdminGallery() {
           caption: next.caption,
           artist: next.artist,
           ageGroup: next.ageGroup,
-          featured: next.featured,
           hidden: Boolean(next.hidden),
         },
       })
@@ -249,22 +248,6 @@ export function AdminGallery() {
       return false
     } finally {
       setBusyId(null)
-    }
-  }
-
-  async function move(index: number, delta: number) {
-    if (!items) return
-    const j = index + delta
-    if (j < 0 || j >= items.length) return
-    const next = [...items]
-    ;[next[index], next[j]] = [next[j], next[index]]
-    setItems(next)
-    try {
-      await apiJson('/api/admin/gallery/reorder', { method: 'POST', json: { ids: next.map((x) => x.id) } })
-      await load()
-    } catch (e) {
-      setToast({ message: e instanceof Error ? e.message : 'Could not save the order.', variant: 'error' })
-      await load()
     }
   }
 
@@ -455,7 +438,8 @@ export function AdminGallery() {
             On the Gallery{items && items.length ? ` (${items.length})` : ''}
           </h2>
           <p className="panel-sites__note" style={{ marginTop: 0 }}>
-            Featured drawings show first with a star. Hidden drawings stay here but are off the public
+            Newest first. The public page shows every drawing that isn&apos;t hidden, in a new random
+            order each time it loads. Hidden drawings stay here but are off the public
             page{hiddenCount ? ` (${hiddenCount} hidden now)` : ''}. <Link to="/gallery">View the public gallery</Link>
           </p>
           {items === null ? (
@@ -471,7 +455,7 @@ export function AdminGallery() {
             </div>
           ) : (
             <ul className="admin-gallery-list" role="list">
-              {items.map((it, i) => {
+              {items.map((it) => {
                 const credit = galleryCredit(it)
                 const busy = busyId === it.id
                 return (
@@ -481,7 +465,6 @@ export function AdminGallery() {
                     </a>
                     <div className="admin-gallery-item__body">
                       <p className="admin-gallery-item__badges">
-                        {it.featured ? <span className="gallery-badge gallery-badge--featured">★ Featured</span> : null}
                         {it.hidden ? <span className="gallery-badge gallery-badge--hidden">Hidden</span> : null}
                         <span className="admin-gallery-item__when">Added {it.when}</span>
                       </p>
@@ -528,27 +511,10 @@ export function AdminGallery() {
                           type="button"
                           className="btn-secondary"
                           disabled={busy}
-                          aria-pressed={it.featured}
-                          onClick={() => void saveItem(it, { featured: !it.featured }, it.featured ? 'No longer featured.' : 'Featured on the gallery.')}
-                        >
-                          {it.featured ? 'Unfeature' : '★ Feature'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          disabled={busy}
                           onClick={() => void saveItem(it, { hidden: !it.hidden }, it.hidden ? 'Shown on the gallery.' : 'Hidden from the gallery.')}
                         >
                           {it.hidden ? 'Show' : 'Hide'}
                         </button>
-                        <span className="admin-gallery-item__move">
-                          <button type="button" className="btn-secondary" disabled={busy || i === 0} onClick={() => void move(i, -1)} aria-label="Move earlier" title="Move earlier">
-                            ↑
-                          </button>
-                          <button type="button" className="btn-secondary" disabled={busy || i === items.length - 1} onClick={() => void move(i, 1)} aria-label="Move later" title="Move later">
-                            ↓
-                          </button>
-                        </span>
                         <button type="button" className="btn-danger" disabled={busy} onClick={() => void remove(it)}>
                           Delete
                         </button>

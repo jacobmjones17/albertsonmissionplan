@@ -12,7 +12,6 @@ export type GalleryItem = {
   imageUrl: string
   thumbUrl: string
   alt: string
-  featured: boolean
   hidden?: boolean
   when: string
 }
@@ -45,3 +44,16 @@ export const AGE_GROUP_SUGGESTIONS = [
   'Elders Quorum',
   'Ward member',
 ]
+
+/**
+ * Fisher-Yates shuffle (returns a new array). The public gallery shows every visible drawing,
+ * in a fresh random order on each page load, so no one's picture is always at the bottom.
+ */
+export function shuffled<T>(list: readonly T[], random: () => number = Math.random): T[] {
+  const out = list.slice()
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}

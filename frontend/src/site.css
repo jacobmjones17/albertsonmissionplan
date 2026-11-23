@@ -5103,10 +5103,6 @@ details.org .org-body {
   box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
-.gallery-card--featured {
-  border-color: #e0b868;
-  box-shadow: 0 0 0 2px rgba(224, 184, 104, 0.45), var(--shadow-xs);
-}
 .gallery-card__button {
   position: relative;
   display: block;
@@ -5124,18 +5120,6 @@ details.org .org-body {
 .gallery-card__button:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: -3px;
-}
-.gallery-card__badge {
-  position: absolute;
-  top: 0.55rem;
-  left: 0.55rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #f3e2b8 0%, #e0b868 100%);
-  color: #1b140a;
-  font-size: 0.75rem;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 .gallery-card__caption {
   padding: 0.7rem 0.9rem 0.8rem;
@@ -5548,7 +5532,6 @@ details.org .org-body {
   font-size: 0.75rem;
   font-weight: 800;
 }
-.gallery-badge--featured { background: #f3e2b8; color: #5c4317; }
 .gallery-badge--hidden { background: #e5e1d8; color: #3d382f; }
 .admin-gallery-item__when {
   font-size: 0.8rem;
@@ -5581,10 +5564,6 @@ details.org .org-body {
 .admin-gallery-item__actions button {
   padding: 0.45rem 0.8rem;
   min-height: 2.5rem;
-}
-.admin-gallery-item__move {
-  display: inline-flex;
-  gap: 0.4rem;
 }
 .admin-gallery-item__edit-actions {
   display: flex;

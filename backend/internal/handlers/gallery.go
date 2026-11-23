@@ -32,7 +32,6 @@ func (s *Server) RegisterGalleryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/gallery/{id}/{size}", s.APIGalleryImage)
 	mux.HandleFunc("GET /api/admin/gallery", s.APIAdminGallery)
 	mux.HandleFunc("POST /api/admin/gallery", s.APIAdminGalleryUpload)
-	mux.HandleFunc("POST /api/admin/gallery/reorder", s.APIAdminGalleryReorder)
 	mux.HandleFunc("POST /api/admin/gallery/{id}/edit", s.APIAdminGalleryEdit)
 	mux.HandleFunc("POST /api/admin/gallery/{id}/delete", s.APIAdminGalleryDelete)
 }
@@ -50,7 +49,6 @@ type galleryItemDTO struct {
 	ImageURL    string `json:"imageUrl"`
 	ThumbURL    string `json:"thumbUrl"`
 	Alt         string `json:"alt"`
-	Featured    bool   `json:"featured"`
 	Hidden      bool   `json:"hidden,omitempty"`
 	When        string `json:"when"`
 }
@@ -83,8 +81,8 @@ func toGalleryDTO(g store.GalleryItem) galleryItemDTO {
 		ImageURL: fmt.Sprintf("/api/gallery/%d/image?v=%s", g.ID, g.ImageHash),
 		ThumbURL: fmt.Sprintf("/api/gallery/%d/thumb?v=%s", g.ID, g.ImageHash),
 		Alt:      galleryAlt(g),
-		Featured: g.Featured, Hidden: g.Hidden,
-		When: formatWhen(g.CreatedAt),
+		Hidden:   g.Hidden,
+		When:     formatWhen(g.CreatedAt),
 	}
 }
 
@@ -291,7 +289,6 @@ type galleryEditRequest struct {
 	Caption  string `json:"caption"`
 	Artist   string `json:"artist"`
 	AgeGroup string `json:"ageGroup"`
-	Featured bool   `json:"featured"`
 	Hidden   bool   `json:"hidden"`
 }
 
@@ -304,7 +301,7 @@ func galleryIDFromPath(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	return id, true
 }
 
-// APIAdminGalleryEdit updates a drawing's text, featured, and hidden flags.
+// APIAdminGalleryEdit updates a drawing's text and hidden flag.
 func (s *Server) APIAdminGalleryEdit(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.requireAdmin(w, r); !ok {
 		return
@@ -352,26 +349,6 @@ func (s *Server) APIAdminGalleryDelete(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("gallery delete %d: %v", id, err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not delete."})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
-}
-
-// APIAdminGalleryReorder saves the manager's drag/arrow order: {"ids": [3, 1, 2]}.
-func (s *Server) APIAdminGalleryReorder(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdmin(w, r); !ok {
-		return
-	}
-	var req struct {
-		IDs []int64 `json:"ids"`
-	}
-	if err := readJSON(r, &req); err != nil || len(req.IDs) > 5000 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request."})
-		return
-	}
-	if err := store.ReorderGalleryItems(r.Context(), s.DB, req.IDs); err != nil {
-		log.Printf("gallery reorder: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not save the order."})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

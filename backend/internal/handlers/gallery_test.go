@@ -123,7 +123,7 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 		t.Errorf("alt = %q", it.Alt)
 	}
 
-	// Second upload goes to the top.
+	// The API lists newest first (the public page shuffles client-side).
 	rec = h.upload(sampleJPEG(t, 300, 400), map[string]string{"title": "Temple"}, true)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("upload 2: %d", rec.Code)
@@ -153,7 +153,7 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 	}
 
 	// Hide: gone from the public list and its image is 404 for visitors, still there for leaders.
-	edit := map[string]any{"title": it.Title, "caption": it.Caption, "artist": it.Artist, "ageGroup": it.AgeGroup, "hidden": true, "featured": false}
+	edit := map[string]any{"title": it.Title, "caption": it.Caption, "artist": it.Artist, "ageGroup": it.AgeGroup, "hidden": true}
 	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/edit", edit, true); rec.Code != http.StatusOK {
 		t.Fatalf("hide: %d %s", rec.Code, rec.Body.String())
 	}
@@ -171,23 +171,16 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 		t.Errorf("admin list = %d items", len(all))
 	}
 
-	// Unhide + feature: featured drawing comes first.
-	edit["hidden"], edit["featured"] = false, true
+	// Unhide: back on the public list, which returns every visible drawing (no paging).
+	edit["hidden"] = false
 	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/edit", edit, true); rec.Code != http.StatusOK {
-		t.Fatalf("feature: %d", rec.Code)
+		t.Fatalf("unhide: %d", rec.Code)
 	}
-	if pub := h.list("/api/gallery", false); len(pub) != 2 || pub[0].ID != it.ID || !pub[0].Featured {
-		t.Errorf("featured order: %+v", pub)
+	if pub := h.list("/api/gallery", false); len(pub) != 2 || pub[0].ID != templeID || pub[1].ID != it.ID {
+		t.Errorf("unhidden list: %+v", pub)
 	}
-
-	// Reorder (unfeature first so order alone decides).
-	edit["featured"] = false
-	h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/edit", edit, true)
-	if rec := h.postJSON("/api/admin/gallery/reorder", map[string]any{"ids": []int64{it.ID, templeID}}, true); rec.Code != http.StatusOK {
-		t.Fatalf("reorder: %d", rec.Code)
-	}
-	if pub := h.list("/api/gallery", false); pub[0].ID != it.ID {
-		t.Errorf("reorder not applied: %+v", pub)
+	if strings.Contains(h.do(httptest.NewRequest(http.MethodGet, "/api/gallery", nil), false).Body.String(), "featured") {
+		t.Errorf("public API still exposes featured")
 	}
 
 	// Delete.
@@ -209,7 +202,6 @@ func TestGalleryAdminEndpointsRequireLeader(t *testing.T) {
 		h.upload(sampleJPEG(t, 10, 10), nil, false),
 		h.postJSON("/api/admin/gallery/1/edit", map[string]any{}, false),
 		h.postJSON("/api/admin/gallery/1/delete", nil, false),
-		h.postJSON("/api/admin/gallery/reorder", map[string]any{"ids": []int64{1}}, false),
 	}
 	for i, rec := range checks {
 		if rec.Code != http.StatusForbidden {

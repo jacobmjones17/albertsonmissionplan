@@ -19,19 +19,16 @@ type GalleryItem struct {
 	ThumbWidth  int
 	ThumbHeight int
 	ImageHash   string
-	SortOrder   int
-	Featured    bool
 	Hidden      bool
 	CreatedAt   time.Time
 }
 
-// GalleryItemInput is the editable text + flags of a drawing.
+// GalleryItemInput is the editable text + hidden flag of a drawing.
 type GalleryItemInput struct {
 	Title    string
 	Caption  string
 	Artist   string
 	AgeGroup string
-	Featured bool
 	Hidden   bool
 }
 
@@ -46,11 +43,11 @@ type GalleryImages struct {
 var ErrGalleryNotFound = errors.New("gallery item not found")
 
 const galleryCols = `id, title, caption, artist, age_group, width, height, thumb_width, thumb_height,
-	image_hash, sort_order, featured, hidden, created_at`
+	image_hash, hidden, created_at`
 
-// Featured drawings first, then the leaders' order (new uploads get the lowest sort_order so
-// they appear at the top until someone reorders).
-const galleryOrder = ` ORDER BY featured DESC, sort_order ASC, id DESC`
+// Newest first. The public page shuffles the list on every load, so this order is mainly for
+// the leader manager.
+const galleryOrder = ` ORDER BY id DESC`
 
 func scanGalleryItems(rows *sql.Rows) ([]GalleryItem, error) {
 	defer rows.Close()
@@ -59,7 +56,7 @@ func scanGalleryItems(rows *sql.Rows) ([]GalleryItem, error) {
 		var g GalleryItem
 		var created nullTime
 		if err := rows.Scan(&g.ID, &g.Title, &g.Caption, &g.Artist, &g.AgeGroup, &g.Width, &g.Height,
-			&g.ThumbWidth, &g.ThumbHeight, &g.ImageHash, &g.SortOrder, &g.Featured, &g.Hidden, &created); err != nil {
+			&g.ThumbWidth, &g.ThumbHeight, &g.ImageHash, &g.Hidden, &created); err != nil {
 			return nil, err
 		}
 		if created.Valid {
@@ -104,22 +101,14 @@ func GetGalleryItem(ctx context.Context, db *sql.DB, id int64) (*GalleryItem, er
 	return &items[0], nil
 }
 
-// InsertGalleryItem stores a new drawing at the top of the order.
+// InsertGalleryItem stores a new drawing.
 func InsertGalleryItem(ctx context.Context, db *sql.DB, in GalleryItemInput, img GalleryImages, createdBy string) (int64, error) {
-	var minOrder sql.NullInt64
-	if err := sxQueryRow(db, ctx, `SELECT MIN(sort_order) FROM gallery_items`).Scan(&minOrder); err != nil {
-		return 0, err
-	}
-	order := 0
-	if minOrder.Valid {
-		order = int(minOrder.Int64) - 1
-	}
 	args := []any{in.Title, in.Caption, in.Artist, in.AgeGroup, img.Width, img.Height, img.ThumbWidth,
-		img.ThumbHeight, img.Hash, img.Image, img.Thumb, order, in.Featured, in.Hidden, createdBy}
+		img.ThumbHeight, img.Hash, img.Image, img.Thumb, in.Hidden, createdBy}
 	q := `INSERT INTO gallery_items (title, caption, artist, age_group, width, height, thumb_width,
-		thumb_height, image_hash, image_data, thumb_data, sort_order, featured, hidden, created_by,
+		thumb_height, image_hash, image_data, thumb_data, hidden, created_by,
 		created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 	if activeDriver == driverSQLite {
 		res, err := sxExec(db, ctx, q, args...)
 		if err != nil {
@@ -132,11 +121,11 @@ func InsertGalleryItem(ctx context.Context, db *sql.DB, in GalleryItemInput, img
 	return id, err
 }
 
-// UpdateGalleryItem changes a drawing's text and flags.
+// UpdateGalleryItem changes a drawing's text and hidden flag.
 func UpdateGalleryItem(ctx context.Context, db *sql.DB, id int64, in GalleryItemInput) error {
 	res, err := sxExec(db, ctx, `UPDATE gallery_items SET title = $1, caption = $2, artist = $3,
-		age_group = $4, featured = $5, hidden = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
-		in.Title, in.Caption, in.Artist, in.AgeGroup, in.Featured, in.Hidden, id)
+		age_group = $4, hidden = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+		in.Title, in.Caption, in.Artist, in.AgeGroup, in.Hidden, id)
 	return affectedOrNotFound(res, err)
 }
 
@@ -144,22 +133,6 @@ func UpdateGalleryItem(ctx context.Context, db *sql.DB, id int64, in GalleryItem
 func DeleteGalleryItem(ctx context.Context, db *sql.DB, id int64) error {
 	res, err := sxExec(db, ctx, `DELETE FROM gallery_items WHERE id = $1`, id)
 	return affectedOrNotFound(res, err)
-}
-
-// ReorderGalleryItems sets sort_order to each id's position in ids. Ids not listed keep their
-// order (after the listed ones).
-func ReorderGalleryItems(ctx context.Context, db *sql.DB, ids []int64) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-	for i, id := range ids {
-		if _, err := sxTxExec(tx, ctx, `UPDATE gallery_items SET sort_order = $1 WHERE id = $2`, i, id); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
 }
 
 // GalleryImage returns the stored display image (thumb=false) or thumbnail, plus the item's

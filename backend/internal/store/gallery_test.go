@@ -45,14 +45,11 @@ func testGalleryStore(t *testing.T) {
 	if err != nil || total != 2 || nHidden != 1 {
 		t.Fatalf("counts %d %d %v", total, nHidden, err)
 	}
-	if err := UpdateGalleryItem(ctx, db, a, GalleryItemInput{Title: "A2", Featured: true}); err != nil {
-		t.Fatal(err)
-	}
-	if err := ReorderGalleryItems(ctx, db, []int64{a, b}); err != nil {
+	if err := UpdateGalleryItem(ctx, db, a, GalleryItemInput{Title: "A2", Artist: "Mia"}); err != nil {
 		t.Fatal(err)
 	}
 	g, err := GetGalleryItem(ctx, db, a)
-	if err != nil || g.Title != "A2" || !g.Featured || g.SortOrder != 0 || g.CreatedAt.IsZero() {
+	if err != nil || g.Title != "A2" || g.Artist != "Mia" || g.Hidden || g.CreatedAt.IsZero() {
 		t.Fatalf("get = %+v, %v", g, err)
 	}
 	if err := DeleteGalleryItem(ctx, db, a); err != nil {
