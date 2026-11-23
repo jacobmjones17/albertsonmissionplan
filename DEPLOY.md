@@ -114,6 +114,7 @@ docker run --rm -p 8080:8080 \
 | `RESEND_API_KEY` | Resend API key when `MAIL_PROVIDER=resend` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | SMTP server when `MAIL_PROVIDER=smtp` |
 | `MAIL_FROM` / `MAIL_FROM_NAME` / `MAIL_SITE_LABEL` | Sender address/name and subject label; see `.env.example` |
+| `MAIL_TIME_ZONE` | Zone for request/submission times in leader emails (default `America/Denver`) |
 
 ---
 

@@ -17,6 +17,7 @@ func (s *Server) trimmedPublicBaseURL() string {
 
 // notifyPendingLeaderSignup emails approved leaders (best-effort). Does not block the HTTP handler.
 func (s *Server) notifyPendingLeaderSignup(email, firstName, lastName string) {
+	requestedAt := time.Now()
 	if s.Mail == nil {
 		return
 	}
@@ -38,7 +39,7 @@ func (s *Server) notifyPendingLeaderSignup(email, firstName, lastName string) {
 	fn := strings.TrimSpace(firstName)
 	ln := strings.TrimSpace(lastName)
 	name := strings.TrimSpace(fn + " " + ln)
-	subject, plain, html, err := mail.RenderPendingSignupEmail(name, email, fmt.Sprintf("%s/admin/approvals", base))
+	subject, plain, html, err := mail.RenderPendingSignupEmail(name, email, fmt.Sprintf("%s/admin/approvals", base), requestedAt)
 	if err != nil {
 		log.Printf("render pending signup mail: %v", err)
 		return

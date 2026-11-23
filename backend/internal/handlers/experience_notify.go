@@ -24,6 +24,7 @@ func truncateForEmailBody(s string, maxRunes int) string {
 
 // notifyPendingExperienceSubmission emails approved leaders when a member submits an experience (best-effort).
 func (s *Server) notifyPendingExperienceSubmission(body, authorLabel string) {
+	submittedAt := time.Now()
 	if s.Mail == nil {
 		return
 	}
@@ -48,7 +49,7 @@ func (s *Server) notifyPendingExperienceSubmission(body, authorLabel string) {
 	}
 	preview := truncateForEmailBody(body, experienceEmailPreviewRunes)
 	moderateURL := fmt.Sprintf("%s/admin/moderate", base)
-	subject, plain, html, err := mail.RenderPendingExperienceEmail(author, preview, moderateURL)
+	subject, plain, html, err := mail.RenderPendingExperienceEmail(author, preview, moderateURL, submittedAt)
 	if err != nil {
 		log.Printf("render pending experience mail: %v", err)
 		return

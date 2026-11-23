@@ -157,29 +157,34 @@ func (c *Client) SendAlternative(_ context.Context, to []string, subject, plainB
 		return nil
 	}
 	auth := smtp.PlainAuth("", c.user, c.password, c.host)
-	boundary := randomMIMEBoundary()
-	plainPart := crlfSMTPBody(plainBody)
-	htmlPart := crlfSMTPBody(htmlBody)
+	msg := buildAlternativeMessage(c.fromHeader, clean, subject, plainBody, htmlBody, randomMIMEBoundary())
+	return smtp.SendMail(c.addr, auth, c.fromAddr, clean, msg)
+}
 
+// buildAlternativeMessage assembles a multipart/alternative message: the text/plain part first
+// (shown by text-only clients and used for previews), then text/html.
+func buildAlternativeMessage(fromHeader string, to []string, subject, plainBody, htmlBody, boundary string) []byte {
 	var msg strings.Builder
-	fmt.Fprintf(&msg, "From: %s\r\n", c.fromHeader)
-	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(clean, ", "))
+	fmt.Fprintf(&msg, "From: %s\r\n", fromHeader)
+	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(to, ", "))
 	fmt.Fprintf(&msg, "Subject: %s\r\n", encodeSubject(subject))
 	fmt.Fprintf(&msg, "MIME-Version: 1.0\r\n")
 	fmt.Fprintf(&msg, "Content-Type: multipart/alternative; boundary=%q\r\n", boundary)
 	fmt.Fprintf(&msg, "\r\n--%s\r\n", boundary)
 	fmt.Fprintf(&msg, "Content-Type: text/plain; charset=UTF-8\r\n")
 	fmt.Fprintf(&msg, "Content-Transfer-Encoding: 8bit\r\n\r\n")
-	fmt.Fprintf(&msg, "%s\r\n", plainPart)
+	fmt.Fprintf(&msg, "%s\r\n", crlfSMTPBody(plainBody))
 	fmt.Fprintf(&msg, "--%s\r\n", boundary)
 	fmt.Fprintf(&msg, "Content-Type: text/html; charset=UTF-8\r\n")
 	fmt.Fprintf(&msg, "Content-Transfer-Encoding: 8bit\r\n\r\n")
-	fmt.Fprintf(&msg, "%s\r\n", htmlPart)
+	fmt.Fprintf(&msg, "%s\r\n", crlfSMTPBody(htmlBody))
 	fmt.Fprintf(&msg, "--%s--\r\n", boundary)
-	return smtp.SendMail(c.addr, auth, c.fromAddr, clean, []byte(msg.String()))
+	return []byte(msg.String())
 }
 
 func encodeSubject(s string) string {
+	// Never let user-entered text (names) break out of the Subject header.
+	s = strings.Join(strings.Fields(s), " ")
 	if s == "" {
 		return ""
 	}

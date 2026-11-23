@@ -8,7 +8,44 @@ import (
 	"os"
 	"strings"
 	texttpl "text/template"
+	"time"
+	_ "time/tzdata" // MAIL_TIME_ZONE works even where the OS has no zoneinfo
 )
+
+// DefaultTimeZone is used for "received at" times in leader emails when MAIL_TIME_ZONE is unset.
+const DefaultTimeZone = "America/Denver"
+
+// wardLocation returns MAIL_TIME_ZONE (IANA name) or America/Denver.
+func wardLocation() *time.Location {
+	name := strings.TrimSpace(os.Getenv("MAIL_TIME_ZONE"))
+	if name == "" {
+		name = DefaultTimeZone
+	}
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		loc, _ = time.LoadLocation(DefaultTimeZone)
+	}
+	return loc
+}
+
+// FormatWardTime renders t in the ward's zone with the zone abbreviation, e.g.
+// "Monday, November 23, 2026 at 12:20 AM MST".
+func FormatWardTime(t time.Time) string {
+	if t.IsZero() {
+		t = time.Now()
+	}
+	return t.In(wardLocation()).Format("Monday, January 2, 2006 at 3:04 PM MST")
+}
+
+// subjectName keeps user-entered names safe for a Subject header: one line, trimmed, capped.
+func subjectName(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	r := []rune(s)
+	if len(r) > 60 {
+		s = strings.TrimSpace(string(r[:60])) + "…"
+	}
+	return s
+}
 
 //go:embed templates/*.tmpl
 var tmplFS embed.FS
@@ -24,7 +61,12 @@ func init() {
 	tmplPendingSignupText = texttpl.Must(texttpl.ParseFS(tmplFS, "templates/pending_signup.text.tmpl"))
 	tmplPasswordResetText = texttpl.Must(texttpl.ParseFS(tmplFS, "templates/password_reset.text.tmpl"))
 	tmplPendingExperienceText = texttpl.Must(texttpl.ParseFS(tmplFS, "templates/pending_experience.text.tmpl"))
-	htmlTemplates = htmltpl.Must(htmltpl.ParseFS(tmplFS,
+	htmlTemplates = htmltpl.Must(htmltpl.New("email").Funcs(htmltpl.FuncMap{
+		// detail builds the {Label, Value} pair used by the "email_detail_row" partial.
+		"detail": func(label, value string) map[string]string {
+			return map[string]string{"Label": label, "Value": value}
+		},
+	}).ParseFS(tmplFS,
 		"templates/email_layout.html.tmpl",
 		"templates/pending_signup.html.tmpl",
 		"templates/password_reset.html.tmpl",
@@ -43,6 +85,7 @@ func SiteLabel() string {
 
 type htmlEmailData struct {
 	SiteLabel  string
+	Eyebrow    string
 	EmailTitle string
 	Headline   string
 	Preheader  string
@@ -52,9 +95,14 @@ type htmlEmailData struct {
 }
 
 // RenderPendingSignupEmail builds subject + multipart bodies from embedded templates.
-func RenderPendingSignupEmail(requesterDisplayName, requesterEmail, approvalsURL string) (subject string, plain string, html string, err error) {
+func RenderPendingSignupEmail(requesterDisplayName, requesterEmail, approvalsURL string, requestedAt time.Time) (subject string, plain string, html string, err error) {
 	label := SiteLabel()
-	subject = fmt.Sprintf("%s — New leader account request", label)
+	name := subjectName(requesterDisplayName)
+	if name == "" {
+		name = subjectName(requesterEmail)
+	}
+	subject = "New leader request: " + name
+	when := FormatWardTime(requestedAt)
 
 	var pb bytes.Buffer
 	if err := tmplPendingSignupText.Execute(&pb, struct {
@@ -62,7 +110,8 @@ func RenderPendingSignupEmail(requesterDisplayName, requesterEmail, approvalsURL
 		RequesterDisplayName string
 		RequesterEmail       string
 		ApprovalsURL         string
-	}{label, requesterDisplayName, requesterEmail, approvalsURL}); err != nil {
+		RequestedAt          string
+	}{label, requesterDisplayName, requesterEmail, approvalsURL, when}); err != nil {
 		return "", "", "", err
 	}
 	plain = pb.String()
@@ -72,19 +121,22 @@ func RenderPendingSignupEmail(requesterDisplayName, requesterEmail, approvalsURL
 		RequesterDisplayName string
 		RequesterEmail       string
 		ApprovalsURL         htmltpl.URL
+		RequestedAt          string
 	}{
 		htmlEmailData: htmlEmailData{
 			SiteLabel:  label,
-			EmailTitle: "New leader account request",
-			Headline:   "New leader account request",
-			Preheader:  fmt.Sprintf("%s requested access to leader tools", requesterDisplayName),
+			Eyebrow:    label + " · Leader Tools",
+			EmailTitle: subject,
+			Headline:   "New leader request",
+			Preheader:  fmt.Sprintf("%s asked for access to leader tools on %s", name, when),
 			FooterNote: "You received this email because you are an approved ward leader.",
 			CTAURL:     htmltpl.URL(approvalsURL),
-			CTALabel:   "Review pending accounts",
+			CTALabel:   "Review leader requests",
 		},
 		RequesterDisplayName: requesterDisplayName,
 		RequesterEmail:       requesterEmail,
 		ApprovalsURL:         htmltpl.URL(approvalsURL),
+		RequestedAt:          when,
 	}
 
 	var hb bytes.Buffer
@@ -119,6 +171,7 @@ func RenderPasswordResetEmail(leaderEmail, resetLink string, expiryHours int) (s
 	}{
 		htmlEmailData: htmlEmailData{
 			SiteLabel:  label,
+			Eyebrow:    label + " · Leader Tools",
 			EmailTitle: "Reset your leader password",
 			Headline:   "Reset your password",
 			Preheader:  "Use the link inside to choose a new leader password",
@@ -140,9 +193,18 @@ func RenderPasswordResetEmail(leaderEmail, resetLink string, expiryHours int) (s
 }
 
 // RenderPendingExperienceEmail builds subject + multipart bodies when a mission experience awaits moderation.
-func RenderPendingExperienceEmail(authorLabel, bodyPreview, moderateURL string) (subject string, plain string, html string, err error) {
+func RenderPendingExperienceEmail(authorLabel, bodyPreview, moderateURL string, submittedAt time.Time) (subject string, plain string, html string, err error) {
 	label := SiteLabel()
-	subject = fmt.Sprintf("%s — New mission experience to review", label)
+	author := subjectName(authorLabel)
+	if author == "" {
+		author = "Anonymous"
+	}
+	if strings.EqualFold(author, "anonymous") {
+		subject = "New missionary experience (anonymous)"
+	} else {
+		subject = "New missionary experience from " + author
+	}
+	when := FormatWardTime(submittedAt)
 
 	var pb bytes.Buffer
 	if err := tmplPendingExperienceText.Execute(&pb, struct {
@@ -150,7 +212,8 @@ func RenderPendingExperienceEmail(authorLabel, bodyPreview, moderateURL string) 
 		AuthorLabel string
 		BodyPreview string
 		ModerateURL string
-	}{label, authorLabel, bodyPreview, moderateURL}); err != nil {
+		SubmittedAt string
+	}{label, author, bodyPreview, moderateURL, when}); err != nil {
 		return "", "", "", err
 	}
 	plain = pb.String()
@@ -160,19 +223,22 @@ func RenderPendingExperienceEmail(authorLabel, bodyPreview, moderateURL string) 
 		AuthorLabel string
 		BodyPreview string
 		ModerateURL htmltpl.URL
+		SubmittedAt string
 	}{
 		htmlEmailData: htmlEmailData{
 			SiteLabel:  label,
-			EmailTitle: "New mission experience",
-			Headline:   "New mission experience",
-			Preheader:  fmt.Sprintf("From %s — waiting for your review", authorLabel),
+			Eyebrow:    label + " · Leader Tools",
+			EmailTitle: subject,
+			Headline:   "New missionary experience",
+			Preheader:  fmt.Sprintf("From %s, %s. Waiting for your review.", author, when),
 			FooterNote: "You received this email because you are an approved ward leader.",
 			CTAURL:     htmltpl.URL(moderateURL),
-			CTALabel:   "Review moderation queue",
+			CTALabel:   "Review experiences",
 		},
-		AuthorLabel: authorLabel,
+		AuthorLabel: author,
 		BodyPreview: bodyPreview,
 		ModerateURL: htmltpl.URL(moderateURL),
+		SubmittedAt: when,
 	}
 
 	var hb bytes.Buffer
