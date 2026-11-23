@@ -10,6 +10,7 @@
  * - `about`, `wardPlanFeature`, `experiencesFeature`, `loveShareFeature` are decorative in-page
  *   photos rendered below the hero / near the footer (`FeaturePhoto`). `about` is used only on
  *   the home page bottom. Setting a path to "" hides that page's feature photo entirely.
+ * - `notFound` — painting of the Savior shown on the "page not found" view (mistyped links).
  */
 export const STATIC_SITE_PHOTOS = {
   header: '/site/header.jpg',
@@ -18,8 +19,9 @@ export const STATIC_SITE_PHOTOS = {
   pageMonthlyChallenges: '',
   pageExperiences: '',
   pageLoveShareInvite: '',
-  about: '/site/home-about.jpg',
+  about: '/site/missionary-badge-heart.jpg',
   wardPlanFeature: '/site/ward-plan-feature.jpg',
   experiencesFeature: '/site/jesus-among-people.jpg',
   loveShareFeature: '/site/love-share-feature.jpg',
+  notFound: '/site/jesus-carries-child.jpg',
 } as const

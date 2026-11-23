@@ -1,6 +1,6 @@
 /* ===========================================================================
    Albertson Ward Mission — visual design system
-   Light: warm parchment (default) · Dark: Observatory theme in theme.css
+   Palette: warm parchment (light only)
    Type:    Cormorant Garamond (display) · Source Sans 3 (text)
    =========================================================================== */
 
@@ -1689,7 +1689,7 @@ button.btn-danger:active {
 }
 
 /* Scripture pull (ward plan) */
-h2.scripture-pull {
+.scripture-pull {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
@@ -1706,7 +1706,7 @@ h2.scripture-pull {
   box-shadow: var(--shadow-xs);
   position: relative;
 }
-h2.scripture-pull::before {
+.scripture-pull::before {
   content: "“";
   position: absolute;
   left: 1rem;
@@ -4413,4 +4413,224 @@ details.org .org-body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ===========================================================================
+   UI polish (ui-polish-fixes)
+   =========================================================================== */
+
+/* —— Scripture pull quote is now a <blockquote> with <p> + <cite> —— */
+.scripture-pull p {
+  margin: 0;
+}
+.scripture-pull cite {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+
+/* —— Loading + empty states —— */
+.loading-note {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+  font-size: 0.98rem;
+  color: var(--ink-muted);
+}
+.loading-note__spinner {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--gold-deep);
+  animation: loading-note-spin 0.9s linear infinite;
+}
+@keyframes loading-note-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-note__spinner {
+    animation: none;
+  }
+}
+.home-empty-note {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+/* —— Month picker tiles: show the short theme in full (no ellipsis) —— */
+.challenge-month-tile__theme {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+@media (min-width: 900px) {
+  .challenge-month-tile__theme {
+    font-size: 0.82rem;
+  }
+}
+
+/* —— Ward goals rich text: one consistent typographic treatment —— */
+/* Editor-applied font families/sizes should not change the page's type scale. */
+.ward-rich-line [style] {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+/* Links already underline; an extra <u> inside a link would double up. */
+.ward-rich-line a u {
+  text-decoration: none;
+}
+.ward-rich-line u {
+  text-underline-offset: 3px;
+}
+/* Nested sub-points inside a goal: plain indented lines with a small hollow marker, not a
+   second copy of the big gold bullet + flex layout from the top-level list. */
+.ward-goals-spotlight__list .ward-rich-line :is(ul, ol) {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ward-goals-spotlight__list .ward-rich-line li {
+  display: block;
+  position: relative;
+  margin: 0.25rem 0 0;
+  padding: 0 0 0 1.1rem;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+.ward-goals-spotlight__list .ward-rich-line li::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  margin: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--gold-deep);
+  box-shadow: none;
+}
+.ward-goals-spotlight__list .ward-rich-line li p {
+  margin: 0;
+}
+
+/* —— Download buttons —— */
+.ward-plan-actions .document-download {
+  margin: 0.25rem 0 0;
+}
+
+/* —— 404 / page not found —— */
+.not-found {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  align-items: center;
+  max-width: 60rem;
+  margin: 0 auto;
+}
+@media (min-width: 820px) {
+  .not-found {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+.not-found__art {
+  margin: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  background: var(--surface-feature-frame);
+}
+.not-found__art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 34rem;
+  object-fit: cover;
+  object-position: center 30%;
+}
+@media (max-width: 819px) {
+  .not-found__art {
+    max-width: 26rem;
+    margin: 0 auto;
+  }
+  .not-found__art img {
+    max-height: 26rem;
+  }
+}
+.not-found__title {
+  margin: 0 0 1rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-strong);
+}
+.not-found__quote {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(90deg, var(--gold-soft), transparent 80%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.not-found__quote p {
+  margin: 0;
+}
+.not-found__quote cite {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.not-found__lead {
+  margin: 0 0 1rem;
+  color: var(--ink-muted);
+}
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+}
+/* Shorter banner on the 404 page so the painting of the Savior is visible without scrolling. */
+.not-found-page .hero-page.hero-page--home {
+  min-height: min(38vh, 320px);
+}
+@media (min-width: 768px) {
+  .not-found-page .hero-page.hero-page--home {
+    min-height: min(42vh, 360px);
+    padding-bottom: 2.25rem;
+  }
+}
+.not-found-page .wrap-wide {
+  padding-top: 2rem;
 }

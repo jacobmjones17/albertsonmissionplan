@@ -238,7 +238,7 @@ export function Layout() {
           <p className="site-footer__meta">
             Albertson Ward &middot; Ward Mission &middot;{' '}
             <Link to="/admin" title={user?.isLeader ? 'Open leader dashboard' : undefined}>
-              {user?.isLeader ? 'Leader tools' : 'Leader sign-in'}
+              {user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
             </Link>
           </p>
           <div className="site-footer__contact">
@@ -323,7 +323,7 @@ export function AdminLayout() {
           </NavLink>
           <div className="admin-header-actions">
             <Link to="/" className="btn btn-secondary">
-              Public site
+              Public Site
             </Link>
             {user?.isLeader ? (
               <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
@@ -341,7 +341,7 @@ export function AdminLayout() {
                 <span className="admin-back-link__arrow">
                   <AdminBackArrowIcon />
                 </span>
-                Leader tools
+                Leader Tools
               </Link>
             </p>
           </div>
@@ -351,7 +351,7 @@ export function AdminLayout() {
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">
-            Albertson Ward &middot; Ward Mission &middot; <Link to="/">Public site</Link>
+            Albertson Ward &middot; Ward Mission &middot; <Link to="/">Public Site</Link>
           </p>
           <SiteFooterSocial />
           <SiteDisclaimer />

@@ -1,6 +1,6 @@
 import type { Goal } from '../monthlyData'
 import { MONTHLY_GOALS } from '../monthlyData'
-import { MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID } from '../monthlyChallengeImages'
+import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
 import { fetchImageAsDataUrl } from './fetchImageAsDataUrl'
 import { buildMonthlyChallengesHtml } from './printDocuments'
 
@@ -11,7 +11,7 @@ export async function buildOfflineMonthlyChallengesHtml(year: number): Promise<s
   await Promise.all(
     MONTHLY_GOALS.map(async (goal) => {
       const id = goal.id as Goal['id']
-      const path = MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID[id]
+      const path = monthlyChallengeImageSrc(id)
       imageSrcByGoalId[id] = await fetchImageAsDataUrl(path)
     }),
   )

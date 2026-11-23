@@ -4,7 +4,7 @@ import {
   MONTHS_SHORT,
   type Goal,
 } from '../monthlyData'
-import { MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID } from '../monthlyChallengeImages'
+import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
 import { CHALLENGES_PRINT_HINT, CHALLENGES_SHEET_STYLES } from './challengesSheetStyles'
 import { challengeBulletHtml } from './challengeBullets'
 import { escapeHtml, wrapPrintHtml } from './downloadDocument'
@@ -20,7 +20,7 @@ export function buildMonthlyChallengesHtml(
   const cells = MONTHLY_GOALS.map((goal, index) => {
     const bullets = goal.bullets.map((b) => challengeBulletHtml(goal, b.who, b.text)).join('\n')
     const id = goal.id as Goal['id']
-    const imgSrc = imageSrcByGoalId[id] ?? MONTHLY_CHALLENGE_IMAGE_BY_GOAL_ID[id]
+    const imgSrc = imageSrcByGoalId[id] ?? monthlyChallengeImageSrc(id)
     const img = escapeHtml(imgSrc)
     const month = escapeHtml(MONTHS_SHORT[index]!)
     const name = escapeHtml(CHALLENGE_CARD_HEADING[goal.id as Goal['id']])

@@ -13,10 +13,6 @@ export function PrintMonthlyChallenges() {
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    document.title = `Monthly Challenges — Albertson Ward Plan`
-  }, [])
-
-  useEffect(() => {
     if (document.getElementById(SHEET_STYLE_ID)) return
     const el = document.createElement('style')
     el.id = SHEET_STYLE_ID
@@ -41,7 +37,7 @@ export function PrintMonthlyChallenges() {
     <div className="print-doc print-doc--challenges-sheet">
       <div className="print-doc__toolbar no-print">
         <Link to="/monthly-challenges" className="print-doc__back">
-          ← Back
+          ← Back to Monthly Challenges
         </Link>
         <p className="print-doc__print-note">
           In print settings, choose <strong>Landscape</strong>, paper size <strong>Letter</strong>, and scale{' '}
@@ -61,6 +57,12 @@ export function PrintMonthlyChallenges() {
           </button>
         </div>
       </div>
+
+      <p className="print-doc__small-screen-note no-print" role="note">
+        This one-page sheet is sized for Letter paper in landscape, so it&apos;s easiest to print from a
+        computer. On a phone, tap <strong>Download</strong> to save it, or scroll the month-by-month
+        preview below.
+      </p>
 
       <article className="print-doc__body print-doc__body--sheet">
         <p className="sheet-print-hint" dangerouslySetInnerHTML={{ __html: CHALLENGES_PRINT_HINT }} />
