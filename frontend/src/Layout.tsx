@@ -12,6 +12,7 @@ const nav = [
   { to: '/ward-plan', label: 'Ward Plan' },
   { to: '/monthly-challenges', label: 'Monthly Challenges' },
   { to: '/experiences', label: 'Mission Experiences' },
+  { to: '/events', label: 'Events' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/love-share-invite', label: 'Love, Share, Invite' },
 ]
@@ -332,6 +333,9 @@ function LeaderNav({ onSignOut }: { onSignOut: () => void }) {
           </li>
           <li>
             <NavLink to="/admin/ward-plan">Ward Plan</NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/events">Events</NavLink>
           </li>
           <li>
             <NavLink to="/admin/gallery">Gallery</NavLink>

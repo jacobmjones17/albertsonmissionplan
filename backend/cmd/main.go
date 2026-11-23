@@ -94,6 +94,7 @@ func main() {
 	mux.HandleFunc("POST /api/experiences", srv.APIPostExperience)
 	mux.HandleFunc("GET /api/ward-plan", srv.APIWardPlan)
 	srv.RegisterGalleryRoutes(mux)
+	srv.RegisterEventRoutes(mux)
 
 	mux.HandleFunc("GET /api/admin/pending", srv.APIAdminPending)
 	mux.HandleFunc("POST /api/admin/moderate", srv.APIAdminModerate)
