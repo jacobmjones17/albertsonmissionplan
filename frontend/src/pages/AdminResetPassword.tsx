@@ -48,7 +48,7 @@ export function AdminResetPassword() {
   }
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="reset-password-title"
         eyebrow="Leader"
@@ -56,7 +56,7 @@ export function AdminResetPassword() {
         lede="Paste the token from your email if it wasn’t filled in automatically."
         compact
       />
-      <main id="main" className="wrap">
+      <div className="wrap">
         <p className="lead">
           <Link to="/admin">← Back to sign in</Link>
         </p>
@@ -106,7 +106,7 @@ export function AdminResetPassword() {
             </button>
           </p>
         </form>
-      </main>
-    </>
+      </div>
+    </main>
   )
 }
