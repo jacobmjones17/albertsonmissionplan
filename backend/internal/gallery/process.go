@@ -81,32 +81,97 @@ func isHEIC(b []byte) bool {
 	return false
 }
 
-// Process validates and converts one upload.
-func Process(data []byte) (*Result, error) {
+// decodeUpload validates an upload (size, type, pixel count) and decodes it, returning the image and
+// its EXIF orientation (1 when not a JPEG or absent).
+func decodeUpload(data []byte) (image.Image, int, error) {
 	if len(data) > MaxUploadBytes {
-		return nil, ErrTooLarge
+		return nil, 0, ErrTooLarge
 	}
 	kind, err := Sniff(data)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, ErrCorrupt
+		return nil, 0, ErrCorrupt
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 {
-		return nil, ErrCorrupt
+		return nil, 0, ErrCorrupt
 	}
 	if cfg.Width*cfg.Height > MaxPixels {
-		return nil, ErrTooManyPx
+		return nil, 0, ErrTooManyPx
 	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, ErrCorrupt
+		return nil, 0, ErrCorrupt
 	}
 	orientation := 1
 	if kind == "jpeg" {
 		orientation = jpegOrientation(data)
+	}
+	return src, orientation, nil
+}
+
+// ProcessCover validates one upload and center-crops it to fill exactly w×h (display) and
+// thumbW×thumbH (thumbnail), like CSS object-fit: cover. Used for artwork that must keep a
+// fixed shape, such as the 3:2 Monthly Challenges cards. Metadata is dropped the same way as
+// Process (only pixels are re-encoded).
+func ProcessCover(data []byte, w, h, thumbW, thumbH int) (*Result, error) {
+	src, orientation, err := decodeUpload(data)
+	if err != nil {
+		return nil, err
+	}
+	// Downscale first (bounded memory), then rotate upright, then crop+scale to the target.
+	work := orient(scaleOnWhite(src, 2*maxInt(w, h), draw.CatmullRom), orientation)
+	display := coverScale(work, w, h, draw.CatmullRom)
+	thumb := coverScale(display, thumbW, thumbH, draw.ApproxBiLinear)
+	var db, tb bytes.Buffer
+	if err := jpeg.Encode(&db, display, &jpeg.Options{Quality: displayQuality}); err != nil {
+		return nil, err
+	}
+	if err := jpeg.Encode(&tb, thumb, &jpeg.Options{Quality: thumbQuality}); err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(db.Bytes())
+	return &Result{
+		Display: db.Bytes(), DisplayWidth: w, DisplayHeight: h,
+		Thumb: tb.Bytes(), ThumbWidth: thumbW, ThumbHeight: thumbH,
+		Hash: hex.EncodeToString(sum[:6]),
+	}, nil
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// coverScale crops the centre of src to the w:h aspect ratio and scales it to exactly w×h.
+func coverScale(src image.Image, w, h int, scaler draw.Scaler) *image.RGBA {
+	b := src.Bounds()
+	sw, sh := b.Dx(), b.Dy()
+	crop := b
+	if sw*h > sh*w { // too wide: trim the sides
+		cw := sh * w / h
+		x0 := b.Min.X + (sw-cw)/2
+		crop = image.Rect(x0, b.Min.Y, x0+cw, b.Max.Y)
+	} else if sw*h < sh*w { // too tall: trim top and bottom
+		ch := sw * h / w
+		y0 := b.Min.Y + (sh-ch)/2
+		crop = image.Rect(b.Min.X, y0, b.Max.X, y0+ch)
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
+	scaler.Scale(dst, dst.Bounds(), src, crop, draw.Over, nil)
+	return dst
+}
+
+// Process validates and converts one upload.
+func Process(data []byte) (*Result, error) {
+	src, orientation, err := decodeUpload(data)
+	if err != nil {
+		return nil, err
 	}
 
 	// Scale straight from the decoded source into a small white canvas (flattens PNG/WebP

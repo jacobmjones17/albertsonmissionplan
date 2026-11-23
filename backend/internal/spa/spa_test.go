@@ -31,6 +31,7 @@ func TestFileServerStatuses(t *testing.T) {
 		{"/Monthly-Challenges", 200, true},
 		{"/monthly-challenges/print", 200, true},
 		{"/admin/reset-password", 200, true},
+		{"/admin/challenges", 200, true},
 		{"/assets/app.js", 200, false},
 		{"/site/header.jpg", 200, false},
 		{"/does-not-exist", 404, true},

@@ -29,6 +29,7 @@ var clientRoutes = map[string]bool{
 	"/admin/ward-plan":          true,
 	"/admin/gallery":            true,
 	"/admin/events":             true,
+	"/admin/challenges":         true,
 }
 
 // IsClientRoute reports whether the cleaned request path is a known SPA route. Matching is

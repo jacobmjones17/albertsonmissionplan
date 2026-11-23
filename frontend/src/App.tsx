@@ -19,6 +19,7 @@ import { Gallery } from './pages/Gallery'
 import { AdminGallery } from './pages/AdminGallery'
 import { Events } from './pages/Events'
 import { AdminEvents } from './pages/AdminEvents'
+import { AdminChallenges } from './pages/AdminChallenges'
 
 const SITE_TITLE = 'Albertson Ward Plan'
 
@@ -44,6 +45,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/ward-plan': 'Edit Ward Plan',
   '/admin/gallery': 'Manage Ward Gallery',
   '/admin/events': 'Manage Ward Events',
+  '/admin/challenges': 'Edit Monthly Challenges',
 }
 
 function pageTitleFor(pathname: string): string {
@@ -101,6 +103,7 @@ export function App() {
           <Route path="ward-plan" element={<AdminWardPlan />} />
           <Route path="gallery" element={<AdminGallery />} />
           <Route path="events" element={<AdminEvents />} />
+          <Route path="challenges" element={<AdminChallenges />} />
         </Route>
       </Route>
     </Routes>

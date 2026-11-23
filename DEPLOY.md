@@ -3,13 +3,13 @@
 The production artifact is a single Go binary that serves the React SPA and JSON API from one process. On Render, data lives in **PostgreSQL** via **`DATABASE_URL`**. Locally, you can omit **`DATABASE_URL`** and use embedded **SQLite** instead (see below).
 
 **Production domain:** `albertsonwardplan.com`  
-**Hosting target:** [Render](https://render.com/) — **free Web Service** + **free Postgres** via **`render.yaml`**.
+**Hosting target:** [Render](https://render.com/) — **free Web Service** + **paid Basic-256mb Postgres** (`wardmission-db`) via **`render.yaml`**.
 
 ---
 
-## Free-tier caveats (Render)
+## Plan notes (Render)
 
-- **Postgres:** Free databases **expire 30 days after creation** unless you upgrade ([Render docs](https://render.com/docs/free)). Plan ahead for upgrade or export before expiry.
+- **Postgres:** `wardmission-db` is on the paid **Basic-256mb** plan (`plan: basic-256mb` in `render.yaml`, plan ID `0.1c-256mb`), so it does **not** expire. (Free Postgres databases expire 30 days after creation, so never set the plan back to `free`.) The Ward Gallery drawings and Monthly Challenges pictures live in this database, so keep backups.
 - **Web:** Free instances **spin down after ~15 minutes idle**; first request after idle may take ~1 minute ([docs](https://render.com/docs/free)).
 - **Email:** Free Web Services **cannot send outbound mail on ports 25 / 465 / 587**, so classic SMTP will not work on Free. Use the built-in **Resend** HTTPS provider instead: set `MAIL_ENABLED=true`, `MAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `MAIL_FROM` (an address on a domain verified in Resend) in the service's **Environment** tab. Check the deploy log for `mail enabled via resend`.
 
@@ -127,7 +127,7 @@ Match **`PUBLIC_BASE_URL`** to the hostname visitors use. Email links use **`PUB
 ## After deploy
 
 1. Visit **`/admin`**, register the first leader (auto-approved), or use **`seedadmin`** against production **`DATABASE_URL`** (run locally with prod URL — be careful).
-2. Plan Postgres lifecycle on Free (upgrade before 30‑day expiry).
+2. Confirm `wardmission-db` shows the **Basic-256mb** plan in the Render dashboard (matches `render.yaml`).
 3. Confirm **`PUBLIC_BASE_URL`** matches the live URL.
 4. Smoke-test **`/api/health`** (should return `{"status":"ok"}`) and **`/api/ward-plan`** (should return JSON, not an error).
 
@@ -142,5 +142,5 @@ curl -sS https://albertsonwardplan.com/api/ward-plan
 curl -sS https://albertsonwardplan.com/api/health
 ```
 
-- **`/api/health` returns `database unreachable`** — the Web Service cannot talk to Postgres. On Render **Free**, the Postgres instance may have **expired** (30-day limit). Create a new Postgres database, ensure the Web Service’s **`DATABASE_URL`** points at it, then redeploy. A fresh database re-seeds default ward-plan content; re-enter custom goals in **`/admin/ward-plan`** if needed.
+- **`/api/health` returns `database unreachable`** — the Web Service cannot talk to Postgres. Check the database is running in the Render dashboard (a **Free** Postgres instance would have **expired** after 30 days; this one is on paid Basic-256mb). If you ever need a new database, create it, make sure the Web Service’s **`DATABASE_URL`** points at it, then redeploy. A fresh database re-seeds the default ward-plan content and the original Monthly Challenges; re-enter custom goals in **`/admin/ward-plan`** and challenge edits in **`/admin/challenges`** if needed.
 - **`/api/ward-plan` returns 500** while **`/` still works** — same database issue, or stale connections after idle. Redeploy after fixing **`DATABASE_URL`**. The app’s health check is **`/api/health`** so Render will not mark the service healthy when the DB is down.

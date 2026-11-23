@@ -24,6 +24,7 @@ func newGalleryHarness(t *testing.T) *galleryHarness {
 	s := newTestServer(t, nil)
 	mux := http.NewServeMux()
 	s.RegisterGalleryRoutes(mux)
+	s.RegisterChallengeRoutes(mux)
 	// First registration is auto-approved and signed in; keep its session cookie.
 	body, _ := json.Marshal(map[string]string{"email": "lead@example.org", "password": "pw-lead-123", "firstName": "Lea", "lastName": "Der"})
 	rec := httptest.NewRecorder()

@@ -187,6 +187,24 @@ export function AdminHome() {
       .catch(() => setUpcomingEvents(null))
   }, [user?.isLeader])
 
+  const [challengeCount, setChallengeCount] = useState<{ total: number; hidden: number; edited: number } | null>(null)
+  useEffect(() => {
+    if (!user?.isLeader) {
+      setChallengeCount(null)
+      return
+    }
+    apiJson<{ items: { hidden?: boolean; isOriginalText?: boolean; isOriginalImage?: boolean }[] | null }>('/api/admin/challenges')
+      .then((d) => {
+        const list = Array.isArray(d.items) ? d.items : []
+        setChallengeCount({
+          total: list.length,
+          hidden: list.filter((i) => i.hidden).length,
+          edited: list.filter((i) => !i.isOriginalText || !i.isOriginalImage).length,
+        })
+      })
+      .catch(() => setChallengeCount(null))
+  }, [user?.isLeader])
+
   useEffect(() => {
     if (signInEmail) setEmail(signInEmail)
   }, [signInEmail])
@@ -279,7 +297,7 @@ export function AdminHome() {
         title={user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
         lede={
           user?.isLeader
-            ? 'Review experiences, approve leaders, edit the ward plan, post events, and share drawings.'
+            ? 'Review experiences, approve leaders, edit the ward plan and monthly challenges, post events, and share drawings.'
             : 'For ward leaders: sign in to review experiences and edit the ward plan.'
         }
         compact
@@ -367,6 +385,19 @@ export function AdminHome() {
                   <span className="admin-links__text">
                     <span className="admin-links__label">Edit Ward Plan Goals</span>
                     <span className="admin-links__desc">Ward-wide and organization goals</span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/challenges">
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Monthly Challenges</span>
+                    <span className="admin-links__desc">Edit each month’s challenge, ideas, and picture</span>
+                    {challengeCount !== null ? (
+                      <span className="admin-links__status">
+                        {`${challengeCount.total} months · ${challengeCount.hidden ? `${challengeCount.hidden} hidden` : 'all shown'}${challengeCount.edited ? ` · ${challengeCount.edited} edited` : ''}`}
+                      </span>
+                    ) : null}
                   </span>
                 </Link>
               </li>
