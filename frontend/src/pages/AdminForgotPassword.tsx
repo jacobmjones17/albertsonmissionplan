@@ -29,15 +29,15 @@ export function AdminForgotPassword() {
   }
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="forgot-password-title"
         eyebrow="Leader"
-        title="Forgot password"
+        title="Forgot Password"
         lede="We’ll email a reset link to approved leader accounts."
         compact
       />
-      <main id="main" className="wrap">
+      <div className="wrap">
         <p className="lead">
           <Link to="/admin">← Back to sign in</Link>
         </p>
@@ -60,7 +60,7 @@ export function AdminForgotPassword() {
             </button>
           </p>
         </form>
-      </main>
-    </>
+      </div>
+    </main>
   )
 }

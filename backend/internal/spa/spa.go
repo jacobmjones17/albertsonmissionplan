@@ -10,7 +10,8 @@ import (
 // clientRoutes lists every path the React router renders a real page for (see
 // frontend/src/App.tsx). Unknown paths still get index.html so the SPA can render its
 // "page not found" view, but with a 404 status so crawlers and link checkers see the truth.
-// Keep this in sync when adding a route in App.tsx.
+// Keep this in sync with PAGE_TITLES in frontend/src/App.tsx; TestClientRoutesMatchApp fails
+// when the two lists drift apart.
 var clientRoutes = map[string]bool{
 	"/":                         true,
 	"/ward-plan":                true,
@@ -18,12 +19,14 @@ var clientRoutes = map[string]bool{
 	"/monthly-challenges/print": true,
 	"/experiences":              true,
 	"/love-share-invite":        true,
+	"/gallery":                  true,
 	"/admin":                    true,
 	"/admin/forgot-password":    true,
 	"/admin/reset-password":     true,
 	"/admin/moderate":           true,
 	"/admin/approvals":          true,
 	"/admin/ward-plan":          true,
+	"/admin/gallery":            true,
 }
 
 // IsClientRoute reports whether the cleaned request path is a known SPA route. Matching is
@@ -50,12 +53,12 @@ func FileServer(dist fs.FS, indexHTML []byte) http.Handler {
 			serveIndexHTML(w, indexHTML, http.StatusOK)
 			return
 		}
-		f, err := dist.Open(rel)
-		if err == nil {
-			_ = f.Close()
+		if fi, err := fs.Stat(dist, rel); err == nil && !fi.IsDir() {
 			fileServer.ServeHTTP(w, r)
 			return
 		}
+		// Directories (e.g. /site, /assets) are never listed: they fall through to the
+		// not-found page below like any other unknown path.
 		// Unknown API/auth endpoints and missing static files (anything with an extension)
 		// get a plain 404 instead of the HTML app shell.
 		if isAPIPath(upath) || path.Ext(upath) != "" {

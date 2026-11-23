@@ -1,8 +1,12 @@
-{{ .SiteLabel }} — New leader account request
+New leader request: {{ .RequesterDisplayName }}
 
-{{ .RequesterDisplayName }} ({{ .RequesterEmail }}) requested access to ward leader tools.
+{{ .RequesterDisplayName }} asked for access to the {{ .SiteLabel }} leader tools.
 
-Review pending accounts:
+Name:      {{ .RequesterDisplayName }}
+Email:     {{ .RequesterEmail }}
+Requested: {{ .RequestedAt }}
+
+Review leader requests:
 {{ .ApprovalsURL }}
 
-You are receiving this because you are listed as an approved ward leader.
+You are receiving this because you are an approved {{ .SiteLabel }} leader.

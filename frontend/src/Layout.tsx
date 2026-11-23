@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, useLocation, type Location } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { apiJson } from './api'
+import { GalleryDrawingsProvider } from './lib/galleryDrawings'
+import { LeaderCountsProvider, useLeaderCounts } from './lib/leaderCounts'
 import { useBootstrap } from './BootstrapContext'
 import { WARD_FACEBOOK_URL, WARD_INSTAGRAM_URL } from './churchLinks'
 import { STATIC_SITE_PHOTOS } from './staticSitePhotos'
@@ -10,6 +12,7 @@ const nav = [
   { to: '/ward-plan', label: 'Ward Plan' },
   { to: '/monthly-challenges', label: 'Monthly Challenges' },
   { to: '/experiences', label: 'Mission Experiences' },
+  { to: '/gallery', label: 'Gallery' },
   { to: '/love-share-invite', label: 'Love, Share, Invite' },
 ]
 
@@ -29,6 +32,17 @@ function BrandMark() {
         />
       </svg>
     </span>
+  )
+}
+
+function LeaderKeyIcon() {
+  return (
+    <svg className="nav-leader-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-3.9 0-8 1.95-8 4.75V21h16v-2.25C20 15.95 15.9 14 12 14Z"
+      />
+    </svg>
   )
 }
 
@@ -228,11 +242,24 @@ export function Layout() {
                   </NavLink>
                 </li>
               ))}
+              <li className="site-nav__leader">
+                <NavLink
+                  to="/admin"
+                  className="nav-leader-btn"
+                  title={user?.isLeader ? 'Open leader tools' : 'Sign in for ward leaders'}
+                >
+                  <LeaderKeyIcon />
+                  {user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
+                </NavLink>
+              </li>
             </ul>
           </nav>
         </div>
       </SiteHeaderShell>
-      <Outlet />
+      {/* In-page photos (never heroes) show rotating Ward Gallery drawings. */}
+      <GalleryDrawingsProvider>
+        <Outlet />
+      </GalleryDrawingsProvider>
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">
@@ -259,32 +286,75 @@ export function Layout() {
   )
 }
 
-function AdminBackArrowIcon() {
+function LeaderNavBadge({ count, label }: { count: number | null; label: string }) {
+  if (!count) return null
   return (
-    <svg
-      className="admin-back-link__icon"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-    </svg>
+    <span className="leader-nav__badge" aria-label={`${count} ${label}`}>
+      {count}
+    </span>
   )
 }
 
-function adminShowsBackToTools({ pathname }: Location): boolean {
+/** Persistent leader navigation (all /admin pages once signed in). Scrolls sideways on phones. */
+function LeaderNav({ onSignOut }: { onSignOut: () => void }) {
+  const { pendingExperiences, pendingAccounts } = useLeaderCounts()
+  const innerRef = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  // On phones the leader nav scrolls sideways; keep the current page's link in view.
+  useEffect(() => {
+    const inner = innerRef.current
+    const active = inner?.querySelector<HTMLElement>('a.active')
+    if (!inner || !active || inner.scrollWidth <= inner.clientWidth) return
+    const a = active.getBoundingClientRect()
+    const box = inner.getBoundingClientRect()
+    inner.scrollLeft += a.left - box.left - (box.width - a.width) / 2
+  }, [pathname])
   return (
-    pathname === '/admin/moderate' ||
-    pathname === '/admin/approvals' ||
-    pathname === '/admin/ward-plan'
+    <nav className="leader-nav" aria-label="Leader tools">
+      <div className="leader-nav__inner" ref={innerRef}>
+        <ul className="leader-nav__list">
+          <li>
+            <NavLink to="/admin" end>
+              Home
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/moderate">
+              Experiences
+              <LeaderNavBadge count={pendingExperiences} label="waiting for review" />
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/approvals">
+              Leader Accounts
+              <LeaderNavBadge count={pendingAccounts} label="waiting for approval" />
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/ward-plan">Ward Plan</NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/gallery">Gallery</NavLink>
+          </li>
+        </ul>
+        <ul className="leader-nav__list leader-nav__list--end">
+          <li>
+            <Link to="/">Public Site</Link>
+          </li>
+          <li>
+            <button type="button" className="leader-nav__signout" onClick={onSignOut}>
+              Sign Out
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
   )
 }
 
 export function AdminLayout() {
   const { refresh, user } = useBootstrap()
-  const loc = useLocation()
-  const showBackToTools = adminShowsBackToTools(loc)
+  const isLeader = Boolean(user?.isLeader)
 
   async function signOut() {
     try {
@@ -321,33 +391,21 @@ export function AdminLayout() {
               Albertson Ward
             </span>
           </NavLink>
-          <div className="admin-header-actions">
-            <Link to="/" className="btn btn-secondary">
-              Public Site
-            </Link>
-            {user?.isLeader ? (
-              <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
-                Sign out
-              </button>
-            ) : null}
-          </div>
+          {isLeader ? null : (
+            <div className="admin-header-actions">
+              <Link to="/" className="btn btn-secondary">
+                Public Site
+              </Link>
+            </div>
+          )}
         </div>
       </SiteHeaderShell>
-      <div className="admin-shell admin-body">
-        {showBackToTools ? (
-          <div className="wrap admin-crumb-wrap">
-            <p className="admin-crumb">
-              <Link to="/admin" className="admin-back-link">
-                <span className="admin-back-link__arrow">
-                  <AdminBackArrowIcon />
-                </span>
-                Leader Tools
-              </Link>
-            </p>
-          </div>
-        ) : null}
-        <Outlet />
-      </div>
+      <LeaderCountsProvider enabled={isLeader}>
+        {isLeader ? <LeaderNav onSignOut={() => void signOut()} /> : null}
+        <div className="admin-shell admin-body">
+          <Outlet />
+        </div>
+      </LeaderCountsProvider>
       <footer className="site-footer">
         <div className="site-footer__inner">
           <p className="site-footer__meta">

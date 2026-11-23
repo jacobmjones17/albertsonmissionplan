@@ -73,6 +73,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("mail: %v", err)
 	}
+	if mc == nil {
+		log.Printf("mail disabled (MAIL_ENABLED is not true): leader request, experience and password-reset emails will not be sent")
+	} else {
+		log.Printf("mail enabled via %s", mail.ProviderName(mc))
+	}
 	if mc != nil && strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")) == "" {
 		log.Printf("warning: MAIL_ENABLED=true but PUBLIC_BASE_URL is empty — outbound emails will omit usable links")
 	}
@@ -88,6 +93,7 @@ func main() {
 	mux.HandleFunc("GET /api/experiences", srv.APIExperiences)
 	mux.HandleFunc("POST /api/experiences", srv.APIPostExperience)
 	mux.HandleFunc("GET /api/ward-plan", srv.APIWardPlan)
+	srv.RegisterGalleryRoutes(mux)
 
 	mux.HandleFunc("GET /api/admin/pending", srv.APIAdminPending)
 	mux.HandleFunc("POST /api/admin/moderate", srv.APIAdminModerate)

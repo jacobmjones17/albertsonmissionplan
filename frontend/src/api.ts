@@ -98,3 +98,40 @@ export async function apiJson<T>(
   }
   return parsed as T
 }
+
+/**
+ * multipart POST with upload progress (fetch can't report upload progress). Resolves with the
+ * parsed JSON body; rejects with the server's `error` message.
+ */
+export function apiUpload<T>(
+  path: string,
+  form: FormData,
+  onProgress?: (fraction: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', path)
+    xhr.withCredentials = true
+    xhr.setRequestHeader('Accept', 'application/json')
+    if (csrfToken) xhr.setRequestHeader('X-CSRF-Token', csrfToken)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total)
+    }
+    xhr.onerror = () => reject(new Error('Network error. Check your connection and try again.'))
+    xhr.onload = () => {
+      let parsed: unknown = null
+      try {
+        parsed = xhr.responseText ? (JSON.parse(xhr.responseText) as unknown) : null
+      } catch {
+        parsed = null
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(parsed as T)
+        return
+      }
+      const err = parsed as { error?: string } | null
+      reject(new Error(err?.error || (xhr.status === 413 ? 'That file is too large.' : `Upload failed (${xhr.status}).`)))
+    }
+    xhr.send(form)
+  })
+}

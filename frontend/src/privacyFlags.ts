@@ -120,11 +120,11 @@ const SKIP_AFTER_CONJ = new Set([
 export function privacyFlagHint(kind: PrivacyFlagKind): string {
   switch (kind) {
     case 'brother_sister':
-      return 'Title + name'
+      return 'Brother/Sister + a name'
     case 'two_cap':
-      return 'Two-word name'
+      return 'Looks like a first and last name'
     case 'lone_conj':
-      return 'After and/or'
+      return 'Name after “and” / “or”'
     default:
       return ''
   }
@@ -177,6 +177,10 @@ export function computePrivacyFlags(raw: string): PrivacyFlag[] {
       continue
     }
     if (seenPair.has(full)) {
+      continue
+    }
+    // "Brother Hansen" is already flagged as Brother/Sister + name; don't list it twice.
+    if (out.some((f) => f.start < i + full.length && i < f.end)) {
       continue
     }
     seenPair.add(full)

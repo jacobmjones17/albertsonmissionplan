@@ -2,8 +2,11 @@
 # https://render.com/docs/infrastructure-as-code
 #
 # Limitations: Free Postgres expires after 30 days unless upgraded (Render docs).
-# Free Web Services spin down after idle (~15 min). Outbound SMTP ports may be blocked on Free —
-# use MAIL_ENABLED only if mail works for your plan or switch to an HTTPS email API later.
+# Free Web Services spin down after idle (~15 min). Outbound SMTP ports are blocked on Free, so
+# for email (leader-request alerts, new experiences, password resets) set these in the dashboard
+# (Environment tab) rather than here, so a Blueprint sync never overwrites them:
+#   MAIL_ENABLED=true  MAIL_PROVIDER=resend  RESEND_API_KEY=<secret>
+#   MAIL_FROM=noreply@albertsonwardplan.com (domain verified in Resend)  MAIL_FROM_NAME (optional)
 
 databases:
   - name: wardmission-db

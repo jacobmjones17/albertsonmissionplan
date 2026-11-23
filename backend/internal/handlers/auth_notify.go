@@ -17,6 +17,7 @@ func (s *Server) trimmedPublicBaseURL() string {
 
 // notifyPendingLeaderSignup emails approved leaders (best-effort). Does not block the HTTP handler.
 func (s *Server) notifyPendingLeaderSignup(email, firstName, lastName string) {
+	requestedAt := time.Now()
 	if s.Mail == nil {
 		return
 	}
@@ -38,12 +39,25 @@ func (s *Server) notifyPendingLeaderSignup(email, firstName, lastName string) {
 	fn := strings.TrimSpace(firstName)
 	ln := strings.TrimSpace(lastName)
 	name := strings.TrimSpace(fn + " " + ln)
-	subject, plain, html, err := mail.RenderPendingSignupEmail(name, email, fmt.Sprintf("%s/admin/approvals", base))
+	subject, plain, html, err := mail.RenderPendingSignupEmail(name, email, fmt.Sprintf("%s/admin/approvals", base), requestedAt)
 	if err != nil {
 		log.Printf("render pending signup mail: %v", err)
 		return
 	}
-	if err := s.Mail.SendAlternative(ctx, admins, subject, plain, html); err != nil {
-		log.Printf("send pending signup mail: %v", err)
+	s.sendToEachLeader(ctx, "pending signup", admins, subject, plain, html)
+}
+
+// sendToEachLeader sends one message per recipient so leaders don't see each other's
+// addresses and one bad address can't stop the rest. Failures are logged, never returned:
+// notifications are best-effort and must not affect the request that triggered them.
+func (s *Server) sendToEachLeader(ctx context.Context, what string, recipients []string, subject, plain, html string) {
+	sent := 0
+	for _, to := range recipients {
+		if err := s.Mail.SendAlternative(ctx, []string{to}, subject, plain, html); err != nil {
+			log.Printf("send %s mail to %s: %v", what, to, err)
+			continue
+		}
+		sent++
 	}
+	log.Printf("%s mail: sent to %d of %d leaders", what, sent, len(recipients))
 }

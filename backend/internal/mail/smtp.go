@@ -23,18 +23,71 @@ type Client struct {
 	fromHeader string
 }
 
-// FromEnv builds a Client when MAIL_ENABLED=true and required SMTP vars are set.
-// Returns nil when mail is disabled (not an error).
-func FromEnv() (*Client, error) {
+// Sender delivers one multipart (plain + HTML) message. Implemented by the SMTP Client and the
+// HTTPS ResendClient; handlers depend only on this interface so tests can substitute a fake.
+type Sender interface {
+	SendAlternative(ctx context.Context, to []string, subject, plainBody, htmlBody string) error
+}
+
+// FromEnv builds a Sender when MAIL_ENABLED=true. MAIL_PROVIDER selects the transport:
+//   - "smtp" (default): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM
+//   - "resend": RESEND_API_KEY, MAIL_FROM (HTTPS API — works on hosts that block SMTP ports,
+//     such as Render's free tier)
+//
+// Returns (nil, nil) when mail is disabled (not an error). The returned interface is a true nil
+// in that case, so `sender == nil` checks work.
+func FromEnv() (Sender, error) {
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("MAIL_ENABLED")), "true") {
 		return nil, nil
 	}
+	switch provider := strings.ToLower(strings.TrimSpace(os.Getenv("MAIL_PROVIDER"))); provider {
+	case "", "smtp":
+		c, err := smtpFromEnv()
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	case "resend":
+		c, err := resendFromEnv()
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	default:
+		return nil, fmt.Errorf("unknown MAIL_PROVIDER %q (use smtp or resend)", provider)
+	}
+}
+
+// ProviderName reports which transport a Sender uses (for startup logs).
+func ProviderName(s Sender) string {
+	switch s.(type) {
+	case *Client:
+		return "smtp"
+	case *ResendClient:
+		return "resend"
+	case nil:
+		return "disabled"
+	default:
+		return "custom"
+	}
+}
+
+// fromHeaderFromEnv formats "Name <addr>" from MAIL_FROM_NAME + MAIL_FROM.
+func fromHeaderFromEnv(from string) string {
+	name := strings.TrimSpace(os.Getenv("MAIL_FROM_NAME"))
+	if name == "" {
+		return from
+	}
+	line := strings.ReplaceAll(strings.ReplaceAll(name, "\r", " "), "\n", " ")
+	return fmt.Sprintf("%s <%s>", line, from)
+}
+
+func smtpFromEnv() (*Client, error) {
 	host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
 	portStr := strings.TrimSpace(os.Getenv("SMTP_PORT"))
 	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
 	pass := strings.TrimSpace(os.Getenv("SMTP_PASSWORD"))
 	from := strings.TrimSpace(os.Getenv("MAIL_FROM"))
-	name := strings.TrimSpace(os.Getenv("MAIL_FROM_NAME"))
 	if host == "" || portStr == "" || user == "" || pass == "" || from == "" {
 		return nil, fmt.Errorf("MAIL_ENABLED=true requires SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM")
 	}
@@ -42,11 +95,7 @@ func FromEnv() (*Client, error) {
 	if err != nil || port <= 0 || port > 65535 {
 		return nil, fmt.Errorf("invalid SMTP_PORT %q", portStr)
 	}
-	fromHeader := from
-	if name != "" {
-		line := strings.ReplaceAll(strings.ReplaceAll(name, "\r", " "), "\n", " ")
-		fromHeader = fmt.Sprintf("%s <%s>", line, from)
-	}
+	fromHeader := fromHeaderFromEnv(from)
 	addr := fmt.Sprintf("%s:%d", host, port)
 	return &Client{
 		addr: addr, host: host, user: user, password: pass,
@@ -108,29 +157,34 @@ func (c *Client) SendAlternative(_ context.Context, to []string, subject, plainB
 		return nil
 	}
 	auth := smtp.PlainAuth("", c.user, c.password, c.host)
-	boundary := randomMIMEBoundary()
-	plainPart := crlfSMTPBody(plainBody)
-	htmlPart := crlfSMTPBody(htmlBody)
+	msg := buildAlternativeMessage(c.fromHeader, clean, subject, plainBody, htmlBody, randomMIMEBoundary())
+	return smtp.SendMail(c.addr, auth, c.fromAddr, clean, msg)
+}
 
+// buildAlternativeMessage assembles a multipart/alternative message: the text/plain part first
+// (shown by text-only clients and used for previews), then text/html.
+func buildAlternativeMessage(fromHeader string, to []string, subject, plainBody, htmlBody, boundary string) []byte {
 	var msg strings.Builder
-	fmt.Fprintf(&msg, "From: %s\r\n", c.fromHeader)
-	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(clean, ", "))
+	fmt.Fprintf(&msg, "From: %s\r\n", fromHeader)
+	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(to, ", "))
 	fmt.Fprintf(&msg, "Subject: %s\r\n", encodeSubject(subject))
 	fmt.Fprintf(&msg, "MIME-Version: 1.0\r\n")
 	fmt.Fprintf(&msg, "Content-Type: multipart/alternative; boundary=%q\r\n", boundary)
 	fmt.Fprintf(&msg, "\r\n--%s\r\n", boundary)
 	fmt.Fprintf(&msg, "Content-Type: text/plain; charset=UTF-8\r\n")
 	fmt.Fprintf(&msg, "Content-Transfer-Encoding: 8bit\r\n\r\n")
-	fmt.Fprintf(&msg, "%s\r\n", plainPart)
+	fmt.Fprintf(&msg, "%s\r\n", crlfSMTPBody(plainBody))
 	fmt.Fprintf(&msg, "--%s\r\n", boundary)
 	fmt.Fprintf(&msg, "Content-Type: text/html; charset=UTF-8\r\n")
 	fmt.Fprintf(&msg, "Content-Transfer-Encoding: 8bit\r\n\r\n")
-	fmt.Fprintf(&msg, "%s\r\n", htmlPart)
+	fmt.Fprintf(&msg, "%s\r\n", crlfSMTPBody(htmlBody))
 	fmt.Fprintf(&msg, "--%s--\r\n", boundary)
-	return smtp.SendMail(c.addr, auth, c.fromAddr, clean, []byte(msg.String()))
+	return []byte(msg.String())
 }
 
 func encodeSubject(s string) string {
+	// Never let user-entered text (names) break out of the Subject header.
+	s = strings.Join(strings.Fields(s), " ")
 	if s == "" {
 		return ""
 	}
