@@ -268,7 +268,7 @@ ${n}
     font-style: italic;
     color: #5b554a;
   }
-  a { color: #1f3c63; }
+  a { color: #5c3d17; }
   @media print {
     body { padding: 0; }
     .doc-month { page-break-after: always; }
@@ -319,7 +319,7 @@ ${e}
     text-align: center;
     font-size: 9.5pt;
     line-height: 1.35;
-    color: #1f3c63;
+    color: #5c3d17;
     background: #fffdf6;
     border: 1px solid #e2dac6;
     border-radius: 4px;
@@ -349,7 +349,7 @@ ${e}
     font-size: 12pt;
     font-weight: 600;
     line-height: 1.1;
-    color: #1f3c63;
+    color: #5c3d17;
   }
   .challenges-sheet__grid {
     flex: 1;
@@ -399,9 +399,9 @@ ${e}
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #1f3c63;
+    color: #5c3d17;
     background: rgba(255, 253, 246, 0.95);
-    border: 1px solid rgba(31, 60, 99, 0.22);
+    border: 1px solid rgba(92, 61, 23, 0.22);
     border-radius: 999px;
   }
   .challenges-sheet__body {
@@ -445,7 +445,7 @@ ${e}
   }
   .challenges-sheet__list .challenge-list-label {
     grid-column: 2;
-    color: #1f3c63;
+    color: #5c3d17;
     font-weight: 700;
   }
   .challenges-sheet__list .challenge-list-text {
@@ -455,7 +455,7 @@ ${e}
   .challenges-sheet__list li + li {
     border-top: 1px solid #f0ebe0;
   }
-  a { color: #1f3c63; text-decoration: none; }
+  a { color: #5c3d17; text-decoration: none; }
   @media print {
     @page {
       size: 11in 8.5in;
@@ -519,7 +519,7 @@ ${e}
     text-align: center;
     font-size: 9.5pt;
     line-height: 1.35;
-    color: #1f3c63;
+    color: #5c3d17;
     background: #fffdf6;
     border: 1px solid #e2dac6;
     border-radius: 4px;
@@ -538,7 +538,7 @@ ${e}
   .ward-goals-sheet__header {
     margin: 0 0 0.28in;
     padding-bottom: 0.22in;
-    border-bottom: 1px solid rgba(31, 60, 99, 0.12);
+    border-bottom: 1px solid rgba(92, 61, 23, 0.12);
   }
   .ward-goals-sheet__eyebrow {
     margin: 0 0 0.1in;
@@ -619,7 +619,7 @@ ${e}
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  a { color: #1f3c63; }
+  a { color: #5c3d17; }
   @media print {
     @page {
       size: letter;
@@ -648,7 +648,7 @@ ${e}
       -webkit-print-color-adjust: exact;
     }
     .ward-goals-sheet__header {
-      border-bottom-color: rgba(31, 60, 99, 0.12);
+      border-bottom-color: rgba(92, 61, 23, 0.12);
     }
     .ward-goals-sheet__list li::before {
       print-color-adjust: exact;

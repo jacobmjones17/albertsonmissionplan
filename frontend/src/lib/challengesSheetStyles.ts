@@ -24,7 +24,7 @@ export const CHALLENGES_SHEET_STYLES = `
     text-align: center;
     font-size: 9.5pt;
     line-height: 1.35;
-    color: #1f3c63;
+    color: #5c3d17;
     background: #fffdf6;
     border: 1px solid #e2dac6;
     border-radius: 4px;
@@ -54,7 +54,7 @@ export const CHALLENGES_SHEET_STYLES = `
     font-size: 12pt;
     font-weight: 600;
     line-height: 1.1;
-    color: #1f3c63;
+    color: #5c3d17;
   }
   .challenges-sheet__grid {
     flex: 1;
@@ -104,9 +104,9 @@ export const CHALLENGES_SHEET_STYLES = `
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #1f3c63;
+    color: #5c3d17;
     background: rgba(255, 253, 246, 0.95);
-    border: 1px solid rgba(31, 60, 99, 0.22);
+    border: 1px solid rgba(92, 61, 23, 0.22);
     border-radius: 999px;
   }
   .challenges-sheet__body {
@@ -150,7 +150,7 @@ export const CHALLENGES_SHEET_STYLES = `
   }
   .challenges-sheet__list .challenge-list-label {
     grid-column: 2;
-    color: #1f3c63;
+    color: #5c3d17;
     font-weight: 700;
   }
   .challenges-sheet__list .challenge-list-text {
@@ -160,7 +160,7 @@ export const CHALLENGES_SHEET_STYLES = `
   .challenges-sheet__list li + li {
     border-top: 1px solid #f0ebe0;
   }
-  a { color: #1f3c63; text-decoration: none; }
+  a { color: #5c3d17; text-decoration: none; }
   @media print {
     @page {
       size: 11in 8.5in;

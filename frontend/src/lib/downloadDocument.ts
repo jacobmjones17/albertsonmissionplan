@@ -63,7 +63,7 @@ const PRINT_DOC_STYLES = `
     font-style: italic;
     color: #5b554a;
   }
-  a { color: #1f3c63; }
+  a { color: #5c3d17; }
   @media print {
     body { padding: 0; }
     .doc-month { page-break-after: always; }
