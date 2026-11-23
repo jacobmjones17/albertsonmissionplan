@@ -15,6 +15,7 @@ import (
 var clientRoutes = map[string]bool{
 	"/":                         true,
 	"/ward-plan":                true,
+	"/ward-plan/print":          true,
 	"/monthly-challenges":       true,
 	"/monthly-challenges/print": true,
 	"/experiences":              true,

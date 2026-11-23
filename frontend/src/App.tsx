@@ -14,6 +14,7 @@ import { LoveShareInvite } from './pages/LoveShareInvite'
 import { MonthlyChallenges } from './pages/MonthlyChallenges'
 import { NotFound } from './pages/NotFound'
 import { PrintMonthlyChallenges } from './pages/PrintMonthlyChallenges'
+import { PrintWardPlan } from './pages/PrintWardPlan'
 import { WardPlan } from './pages/WardPlan'
 import { Gallery } from './pages/Gallery'
 import { AdminGallery } from './pages/AdminGallery'
@@ -31,6 +32,7 @@ const SITE_TITLE = 'Albertson Ward Plan'
 const PAGE_TITLES: Record<string, string> = {
   '/': '',
   '/ward-plan': 'Ward Plan',
+  '/ward-plan/print': 'Printable Ward Goals',
   '/monthly-challenges': 'Monthly Challenges',
   '/monthly-challenges/print': 'Printable Monthly Challenges',
   '/experiences': 'Mission Experiences',
@@ -83,6 +85,7 @@ export function App() {
       <SiteTitle />
       <Routes>
         <Route path="/monthly-challenges/print" element={<PrintMonthlyChallenges />} />
+        <Route path="/ward-plan/print" element={<PrintWardPlan />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/ward-plan" element={<WardPlan />} />
