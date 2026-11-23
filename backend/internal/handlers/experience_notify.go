@@ -53,7 +53,5 @@ func (s *Server) notifyPendingExperienceSubmission(body, authorLabel string) {
 		log.Printf("render pending experience mail: %v", err)
 		return
 	}
-	if err := s.Mail.SendAlternative(ctx, admins, subject, plain, html); err != nil {
-		log.Printf("send pending experience mail: %v", err)
-	}
+	s.sendToEachLeader(ctx, "pending experience", admins, subject, plain, html)
 }

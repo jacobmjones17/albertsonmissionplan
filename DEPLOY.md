@@ -11,7 +11,7 @@ The production artifact is a single Go binary that serves the React SPA and JSON
 
 - **Postgres:** Free databases **expire 30 days after creation** unless you upgrade ([Render docs](https://render.com/docs/free)). Plan ahead for upgrade or export before expiry.
 - **Web:** Free instances **spin down after ~15 minutes idle**; first request after idle may take ~1 minute ([docs](https://render.com/docs/free)).
-- **SMTP:** Free Web Services **cannot send outbound mail on ports 25 / 465 / 587**. Password-reset and leader notification emails via classic SMTP often **will not work on Free**; use a paid tier or an HTTPS email API later.
+- **Email:** Free Web Services **cannot send outbound mail on ports 25 / 465 / 587**, so classic SMTP will not work on Free. Use the built-in **Resend** HTTPS provider instead: set `MAIL_ENABLED=true`, `MAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `MAIL_FROM` (an address on a domain verified in Resend) in the service's **Environment** tab. Check the deploy log for `mail enabled via resend`.
 
 ---
 
@@ -109,7 +109,11 @@ docker run --rm -p 8080:8080 \
 | `PUBLIC_BASE_URL` | Canonical HTTPS URL **without** trailing slash |
 | `COOKIE_SECURE` | `true` behind HTTPS |
 | `PORT` | Listen port (default `:8080`; Render sets `PORT`) |
-| `MAIL_*` | See `.env.example` |
+| `MAIL_ENABLED` | `true` to send leader-request, new-experience, and password-reset emails (default off) |
+| `MAIL_PROVIDER` | `smtp` (default) or `resend` (HTTPS; required on Render Free) |
+| `RESEND_API_KEY` | Resend API key when `MAIL_PROVIDER=resend` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | SMTP server when `MAIL_PROVIDER=smtp` |
+| `MAIL_FROM` / `MAIL_FROM_NAME` / `MAIL_SITE_LABEL` | Sender address/name and subject label; see `.env.example` |
 
 ---
 

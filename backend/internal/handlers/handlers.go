@@ -14,8 +14,8 @@ import (
 type Server struct {
 	DB            *sql.DB
 	Auth          *auth.Config
-	Mail          *mail.Client
-	PublicBaseURL string // Canonical site URL with scheme, no trailing slash — used in outbound emails.
+	Mail          mail.Sender // nil when MAIL_ENABLED is not true
+	PublicBaseURL string      // Canonical site URL with scheme, no trailing slash — used in outbound emails.
 }
 
 func formatWhen(t time.Time) string {

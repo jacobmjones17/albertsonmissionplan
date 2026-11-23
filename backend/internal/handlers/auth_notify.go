@@ -43,7 +43,20 @@ func (s *Server) notifyPendingLeaderSignup(email, firstName, lastName string) {
 		log.Printf("render pending signup mail: %v", err)
 		return
 	}
-	if err := s.Mail.SendAlternative(ctx, admins, subject, plain, html); err != nil {
-		log.Printf("send pending signup mail: %v", err)
+	s.sendToEachLeader(ctx, "pending signup", admins, subject, plain, html)
+}
+
+// sendToEachLeader sends one message per recipient so leaders don't see each other's
+// addresses and one bad address can't stop the rest. Failures are logged, never returned:
+// notifications are best-effort and must not affect the request that triggered them.
+func (s *Server) sendToEachLeader(ctx context.Context, what string, recipients []string, subject, plain, html string) {
+	sent := 0
+	for _, to := range recipients {
+		if err := s.Mail.SendAlternative(ctx, []string{to}, subject, plain, html); err != nil {
+			log.Printf("send %s mail to %s: %v", what, to, err)
+			continue
+		}
+		sent++
 	}
+	log.Printf("%s mail: sent to %d of %d leaders", what, sent, len(recipients))
 }
