@@ -325,62 +325,64 @@ img {
   z-index: 2;
 }
 
-/* Home only: navbar reads as one strip with hero — translucent over shared photo */
+/* Over the photo hero (home + inner-page photo heroes, until the page scrolls past it): a dark
+   frosted bar with gold type. After scrolling, the class is removed and the solid parchment
+   header above applies. Gold tokens: #e8c98a (links / small type), #f3e2b8 (brand, active). */
 .site-header.site-header--overlap-home {
   position: sticky;
   top: 0;
   z-index: 100;
   isolation: isolate;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(18, 14, 10, 0.82);
+  backdrop-filter: saturate(1.2) blur(16px);
+  -webkit-backdrop-filter: saturate(1.2) blur(16px);
+  border-bottom: 1px solid rgba(224, 184, 104, 0.42);
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.1) inset,
-    0 10px 28px rgba(0, 0, 0, 0.14);
+    0 1px 0 rgba(224, 184, 104, 0.14) inset,
+    0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 .site-header.site-header--overlap-home .brand,
 .site-header.site-header--overlap-home .brand:hover {
-  color: #fffefb;
+  color: #f3e2b8;
 }
 
 .site-header.site-header--overlap-home .brand-eyebrow {
-  color: rgba(255, 226, 190, 0.96);
+  color: #e8c98a;
 }
 
 .site-header.site-header--overlap-home .site-nav a {
-  color: rgba(255, 255, 255, 0.9);
+  color: #e8c98a;
 }
 
 .site-header.site-header--overlap-home .site-nav a:hover {
-  color: var(--text-on-hero);
-  background: rgba(255, 255, 255, 0.14);
+  color: #f3e2b8;
+  background: rgba(224, 184, 104, 0.16);
 }
 
 .site-header.site-header--overlap-home .site-nav a[aria-current="page"] {
-  color: var(--text-on-hero);
-  background: rgba(255, 255, 255, 0.2);
+  color: #f3e2b8;
+  background: rgba(224, 184, 104, 0.22);
 }
 
 .site-header.site-header--overlap-home .site-nav a[aria-current="page"]::after {
-  background: rgba(255, 220, 180, 0.95);
+  background: #e0b868;
 }
 
 .site-header.site-header--overlap-home .nav-toggle {
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(224, 184, 104, 0.55);
+  background: rgba(16, 12, 8, 0.35);
 }
 
 .site-header.site-header--overlap-home .nav-toggle:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(224, 184, 104, 0.18);
+  border-color: #e0b868;
 }
 
 .site-header.site-header--overlap-home .nav-toggle span,
 .site-header.site-header--overlap-home .nav-toggle span::before,
 .site-header.site-header--overlap-home .nav-toggle span::after {
-  background: var(--ink-strong);
+  background: #e8c98a;
 }
 
 .header-inner {
@@ -686,11 +688,12 @@ main {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  /* Darkened so gold hero type stays readable over the light watercolor. */
   background: linear-gradient(
     180deg,
-    rgba(35, 40, 48, 0.32) 0%,
-    rgba(18, 20, 24, 0.38) 45%,
-    rgba(12, 14, 18, 0.58) 100%
+    rgba(16, 12, 8, 0.4) 0%,
+    rgba(14, 11, 8, 0.64) 40%,
+    rgba(10, 8, 6, 0.8) 100%
   );
 }
 .hero-page__inner {
@@ -706,10 +709,10 @@ main {
   margin: 0 0 0.65rem;
   line-height: 1.08;
   letter-spacing: 0.01em;
-  color: var(--text-on-hero);
+  color: #e8c98a;
   text-shadow:
-    0 2px 28px rgba(0, 0, 0, 0.4),
-    0 0 2px rgba(0, 0, 0, 0.3);
+    0 2px 28px rgba(0, 0, 0, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.4);
 }
 
 /* One calm line under the title — avoids stacked eyebrow + lede + paragraph */
@@ -720,8 +723,8 @@ main {
   font-size: clamp(0.95rem, 1.45vw, 1.05rem);
   font-weight: 400;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
-  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.35);
+  color: #f3e2b8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 
 .home-hero__ctas {
@@ -739,7 +742,8 @@ main {
   font-size: clamp(1.2rem, 2vw, 1.55rem);
   font-weight: 500;
   font-style: italic;
-  color: rgba(255, 255, 255, 0.93);
+  color: #f0d9a8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 .hero-page.hero-page--home .page-hero__eyebrow--on-photo {
   font-family: var(--font-sans);
@@ -747,10 +751,12 @@ main {
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  /* Small caps text: lighter gold + shadow to clear 4.5:1 over the brightest part of the art. */
+  color: #f3e2b8;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
   margin: 0 0 0.75rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(224, 184, 104, 0.45);
   display: inline-block;
 }
 .hero-page.hero-page--home .page-hero__lede--on-photo {
@@ -760,7 +766,8 @@ main {
   font-weight: 500;
   font-style: italic;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.93);
+  color: #f0d9a8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 
 .inline-markup-link {
@@ -4173,6 +4180,11 @@ details.org .org-body {
   }
 
   /* Mobile dropdown always uses the light panel (readable on any scroll position). */
+  /* The frosted header bar becomes the backdrop root, so the panel's own blur can't reach the
+     hero behind it; use a solid panel there so hero text never shows through the menu. */
+  .site-header.site-header--overlap-home .site-nav {
+    background: #fffdf8;
+  }
   .site-header.site-header--overlap-home .site-nav.is-open a {
     color: var(--ink-muted);
   }
