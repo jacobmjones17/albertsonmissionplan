@@ -176,6 +176,17 @@ export function AdminHome() {
       .catch(() => setGalleryCount(null))
   }, [user?.isLeader])
 
+  const [upcomingEvents, setUpcomingEvents] = useState<number | null>(null)
+  useEffect(() => {
+    if (!user?.isLeader) {
+      setUpcomingEvents(null)
+      return
+    }
+    apiJson<{ events: { upcoming?: boolean }[] | null }>('/api/admin/events')
+      .then((d) => setUpcomingEvents((Array.isArray(d.events) ? d.events : []).filter((e) => e.upcoming).length))
+      .catch(() => setUpcomingEvents(null))
+  }, [user?.isLeader])
+
   useEffect(() => {
     if (signInEmail) setEmail(signInEmail)
   }, [signInEmail])
@@ -268,7 +279,7 @@ export function AdminHome() {
         title={user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
         lede={
           user?.isLeader
-            ? 'Review experiences, approve leaders, edit the ward plan, and share drawings.'
+            ? 'Review experiences, approve leaders, edit the ward plan, post events, and share drawings.'
             : 'For ward leaders: sign in to review experiences and edit the ward plan.'
         }
         compact
@@ -319,6 +330,21 @@ export function AdminHome() {
                       {pendingAccounts}
                     </span>
                   : null}
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/events">
+                  <span className="admin-links__text">
+                    <span className="admin-links__label">Ward Events</span>
+                    <span className="admin-links__desc">Add baptisms, activities, open houses, and firesides to the calendar</span>
+                    {upcomingEvents !== null ? (
+                      <span className="admin-links__status">
+                        {upcomingEvents === 0
+                          ? 'No upcoming events'
+                          : `${upcomingEvents} upcoming ${upcomingEvents === 1 ? 'event' : 'events'}`}
+                      </span>
+                    ) : null}
+                  </span>
                 </Link>
               </li>
               <li>

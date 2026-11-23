@@ -28,6 +28,10 @@ func wardLocation() *time.Location {
 	return loc
 }
 
+// WardLocation is the ward's local time zone (MAIL_TIME_ZONE, default America/Denver). Events
+// on the public calendar are entered and shown in this zone too.
+func WardLocation() *time.Location { return wardLocation() }
+
 // FormatWardTime renders t in the ward's zone with the zone abbreviation, e.g.
 // "Monday, November 23, 2026 at 12:20 AM MST".
 func FormatWardTime(t time.Time) string {

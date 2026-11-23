@@ -126,6 +126,23 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 			created_by TEXT NOT NULL DEFAULT '',
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
+		// Ward events calendar. Dates and times are ward-local wall-clock values
+		// ("2026-12-05", "18:30") interpreted in MAIL_TIME_ZONE, so they never shift with DST.
+		`CREATE TABLE IF NOT EXISTS ward_events (
+			id BIGSERIAL PRIMARY KEY,
+			title TEXT NOT NULL,
+			event_date TEXT NOT NULL,
+			all_day BOOLEAN NOT NULL DEFAULT FALSE,
+			start_time TEXT NOT NULL DEFAULT '',
+			end_time TEXT NOT NULL DEFAULT '',
+			location TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			link_url TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			created_by TEXT NOT NULL DEFAULT '',
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_ward_events_date ON ward_events(event_date);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {
@@ -207,6 +224,21 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 			created_by TEXT NOT NULL DEFAULT '',
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);`,
+		`CREATE TABLE IF NOT EXISTS ward_events (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			event_date TEXT NOT NULL,
+			all_day INTEGER NOT NULL DEFAULT 0 CHECK (all_day IN (0, 1)),
+			start_time TEXT NOT NULL DEFAULT '',
+			end_time TEXT NOT NULL DEFAULT '',
+			location TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			link_url TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			created_by TEXT NOT NULL DEFAULT '',
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_ward_events_date ON ward_events(event_date);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {

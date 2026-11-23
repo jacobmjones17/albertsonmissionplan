@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
 import { FeaturePhoto } from '../components/FeaturePhoto'
+import { UpcomingEventsTeaser } from '../components/UpcomingEventsTeaser'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type Experience = { body: string; author: string; when?: string }
@@ -84,6 +85,7 @@ export function Home() {
       </section>
 
       <div className="wrap wrap--home">
+        <UpcomingEventsTeaser />
         <section className="content-block content-block--experiences" aria-labelledby="sec-experiences">
           <div className="section-heading">
             <h2 id="sec-experiences">Mission Experiences</h2>
