@@ -9,6 +9,7 @@ type Experience = { body: string; author: string; when?: string }
 export function Home() {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [err, setErr] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [heroBroken, setHeroBroken] = useState(false)
 
   const headerBackdrop = String(STATIC_SITE_PHOTOS.header).trim()
@@ -18,7 +19,8 @@ export function Home() {
   useEffect(() => {
     apiJson<{ experiences: Experience[] }>('/api/home/experiences')
       .then((d: { experiences: Experience[] }) => setExperiences(d.experiences))
-      .catch(() => setErr('Could not load experiences.'))
+      .catch(() => setErr('Could not load experiences right now.'))
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -52,10 +54,10 @@ export function Home() {
           </p>
           <nav className="home-hero__ctas" aria-label="Popular pages">
             <Link className="btn btn-primary" to="/ward-plan">
-              Ward plan
+              Ward Plan
             </Link>
             <Link className="btn btn-secondary" to="/monthly-challenges">
-              Monthly challenges
+              Monthly Challenges
             </Link>
           </nav>
         </div>
@@ -63,7 +65,7 @@ export function Home() {
 
       <section className="home-about" aria-labelledby="home-about-title">
         <div className="home-about__inner">
-          <h2 id="home-about-title">We are all missionaries</h2>
+          <h2 id="home-about-title">We Are All Missionaries</h2>
           <p>This site exists to encourage you and your family in the Lord&apos;s work.</p>
 
           <blockquote className="home-about__quote">
@@ -84,10 +86,21 @@ export function Home() {
       <div className="wrap wrap--home">
         <section className="content-block content-block--experiences" aria-labelledby="sec-experiences">
           <div className="section-heading">
-            <h2 id="sec-experiences">Mission experiences</h2>
+            <h2 id="sec-experiences">Mission Experiences</h2>
             <p className="section-sub">Stories from members, reviewed by ward leaders before publishing.</p>
           </div>
+          {loading ? (
+            <p className="loading-note" role="status">
+              <span className="loading-note__spinner" aria-hidden="true" />
+              Loading experiences…
+            </p>
+          ) : null}
           {err ? <p className="lead">{err}</p> : null}
+          {!loading && !err && experiences.length === 0 ? (
+            <p className="home-empty-note">
+              No stories have been published yet. Be the first to share how the Lord has blessed you.
+            </p>
+          ) : null}
           {experiences.length > 0 ? (
             <div className="testimonial-stack">
               {experiences.map((ex, i) => (
@@ -103,11 +116,16 @@ export function Home() {
           ) : null}
           <p className="cta-row">
             <Link className="btn btn-primary" to="/experiences">
-              Read more &amp; share an experience
+              Read and Share Experiences
             </Link>
           </p>
         </section>
-        <FeaturePhoto src={STATIC_SITE_PHOTOS.about} />
+        <FeaturePhoto
+          src={STATIC_SITE_PHOTOS.about}
+          size="narrow"
+          variant="flat"
+          alt="“If you’re not a full-time missionary with a missionary badge pinned on your coat, now is the time to paint one on your heart—painted, as Paul said, ‘not with ink, but with the Spirit of the living God.’” — Elder Neil L. Andersen"
+        />
       </div>
     </main>
   )

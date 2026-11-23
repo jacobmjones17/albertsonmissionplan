@@ -1,6 +1,6 @@
 /* ===========================================================================
    Albertson Ward Mission — visual design system
-   Light: warm parchment (default) · Dark: Observatory theme in theme.css
+   Palette: warm parchment (light only)
    Type:    Cormorant Garamond (display) · Source Sans 3 (text)
    =========================================================================== */
 
@@ -325,62 +325,64 @@ img {
   z-index: 2;
 }
 
-/* Home only: navbar reads as one strip with hero — translucent over shared photo */
+/* Over the photo hero (home + inner-page photo heroes, until the page scrolls past it): a dark
+   frosted bar with gold type. After scrolling, the class is removed and the solid parchment
+   header above applies. Gold tokens: #e8c98a (links / small type), #f3e2b8 (brand, active). */
 .site-header.site-header--overlap-home {
   position: sticky;
   top: 0;
   z-index: 100;
   isolation: isolate;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(18, 14, 10, 0.82);
+  backdrop-filter: saturate(1.2) blur(16px);
+  -webkit-backdrop-filter: saturate(1.2) blur(16px);
+  border-bottom: 1px solid rgba(224, 184, 104, 0.42);
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.1) inset,
-    0 10px 28px rgba(0, 0, 0, 0.14);
+    0 1px 0 rgba(224, 184, 104, 0.14) inset,
+    0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 .site-header.site-header--overlap-home .brand,
 .site-header.site-header--overlap-home .brand:hover {
-  color: #fffefb;
+  color: #f3e2b8;
 }
 
 .site-header.site-header--overlap-home .brand-eyebrow {
-  color: rgba(255, 226, 190, 0.96);
+  color: #e8c98a;
 }
 
 .site-header.site-header--overlap-home .site-nav a {
-  color: rgba(255, 255, 255, 0.9);
+  color: #e8c98a;
 }
 
 .site-header.site-header--overlap-home .site-nav a:hover {
-  color: var(--text-on-hero);
-  background: rgba(255, 255, 255, 0.14);
+  color: #f3e2b8;
+  background: rgba(224, 184, 104, 0.16);
 }
 
 .site-header.site-header--overlap-home .site-nav a[aria-current="page"] {
-  color: var(--text-on-hero);
-  background: rgba(255, 255, 255, 0.2);
+  color: #f3e2b8;
+  background: rgba(224, 184, 104, 0.22);
 }
 
 .site-header.site-header--overlap-home .site-nav a[aria-current="page"]::after {
-  background: rgba(255, 220, 180, 0.95);
+  background: #e0b868;
 }
 
 .site-header.site-header--overlap-home .nav-toggle {
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(224, 184, 104, 0.55);
+  background: rgba(16, 12, 8, 0.35);
 }
 
 .site-header.site-header--overlap-home .nav-toggle:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(224, 184, 104, 0.18);
+  border-color: #e0b868;
 }
 
 .site-header.site-header--overlap-home .nav-toggle span,
 .site-header.site-header--overlap-home .nav-toggle span::before,
 .site-header.site-header--overlap-home .nav-toggle span::after {
-  background: var(--ink-strong);
+  background: #e8c98a;
 }
 
 .header-inner {
@@ -686,11 +688,12 @@ main {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  /* Darkened so gold hero type stays readable over the light watercolor. */
   background: linear-gradient(
     180deg,
-    rgba(35, 40, 48, 0.32) 0%,
-    rgba(18, 20, 24, 0.38) 45%,
-    rgba(12, 14, 18, 0.58) 100%
+    rgba(16, 12, 8, 0.4) 0%,
+    rgba(14, 11, 8, 0.64) 40%,
+    rgba(10, 8, 6, 0.8) 100%
   );
 }
 .hero-page__inner {
@@ -706,10 +709,10 @@ main {
   margin: 0 0 0.65rem;
   line-height: 1.08;
   letter-spacing: 0.01em;
-  color: var(--text-on-hero);
+  color: #e8c98a;
   text-shadow:
-    0 2px 28px rgba(0, 0, 0, 0.4),
-    0 0 2px rgba(0, 0, 0, 0.3);
+    0 2px 28px rgba(0, 0, 0, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.4);
 }
 
 /* One calm line under the title — avoids stacked eyebrow + lede + paragraph */
@@ -720,8 +723,8 @@ main {
   font-size: clamp(0.95rem, 1.45vw, 1.05rem);
   font-weight: 400;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
-  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.35);
+  color: #f3e2b8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 
 .home-hero__ctas {
@@ -739,7 +742,8 @@ main {
   font-size: clamp(1.2rem, 2vw, 1.55rem);
   font-weight: 500;
   font-style: italic;
-  color: rgba(255, 255, 255, 0.93);
+  color: #f0d9a8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 .hero-page.hero-page--home .page-hero__eyebrow--on-photo {
   font-family: var(--font-sans);
@@ -747,10 +751,12 @@ main {
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  /* Small caps text: lighter gold + shadow to clear 4.5:1 over the brightest part of the art. */
+  color: #f3e2b8;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
   margin: 0 0 0.75rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(224, 184, 104, 0.45);
   display: inline-block;
 }
 .hero-page.hero-page--home .page-hero__lede--on-photo {
@@ -760,7 +766,8 @@ main {
   font-weight: 500;
   font-style: italic;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.93);
+  color: #f0d9a8;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.5);
 }
 
 .inline-markup-link {
@@ -1689,7 +1696,7 @@ button.btn-danger:active {
 }
 
 /* Scripture pull (ward plan) */
-h2.scripture-pull {
+.scripture-pull {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
@@ -1706,7 +1713,7 @@ h2.scripture-pull {
   box-shadow: var(--shadow-xs);
   position: relative;
 }
-h2.scripture-pull::before {
+.scripture-pull::before {
   content: "“";
   position: absolute;
   left: 1rem;
@@ -4173,6 +4180,11 @@ details.org .org-body {
   }
 
   /* Mobile dropdown always uses the light panel (readable on any scroll position). */
+  /* The frosted header bar becomes the backdrop root, so the panel's own blur can't reach the
+     hero behind it; use a solid panel there so hero text never shows through the menu. */
+  .site-header.site-header--overlap-home .site-nav {
+    background: #fffdf8;
+  }
   .site-header.site-header--overlap-home .site-nav.is-open a {
     color: var(--ink-muted);
   }
@@ -4413,4 +4425,224 @@ details.org .org-body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ===========================================================================
+   UI polish (ui-polish-fixes)
+   =========================================================================== */
+
+/* —— Scripture pull quote is now a <blockquote> with <p> + <cite> —— */
+.scripture-pull p {
+  margin: 0;
+}
+.scripture-pull cite {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+
+/* —— Loading + empty states —— */
+.loading-note {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+  font-size: 0.98rem;
+  color: var(--ink-muted);
+}
+.loading-note__spinner {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--gold-deep);
+  animation: loading-note-spin 0.9s linear infinite;
+}
+@keyframes loading-note-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-note__spinner {
+    animation: none;
+  }
+}
+.home-empty-note {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+/* —— Month picker tiles: show the short theme in full (no ellipsis) —— */
+.challenge-month-tile__theme {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+@media (min-width: 900px) {
+  .challenge-month-tile__theme {
+    font-size: 0.82rem;
+  }
+}
+
+/* —— Ward goals rich text: one consistent typographic treatment —— */
+/* Editor-applied font families/sizes should not change the page's type scale. */
+.ward-rich-line [style] {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+/* Links already underline; an extra <u> inside a link would double up. */
+.ward-rich-line a u {
+  text-decoration: none;
+}
+.ward-rich-line u {
+  text-underline-offset: 3px;
+}
+/* Nested sub-points inside a goal: plain indented lines with a small hollow marker, not a
+   second copy of the big gold bullet + flex layout from the top-level list. */
+.ward-goals-spotlight__list .ward-rich-line :is(ul, ol) {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ward-goals-spotlight__list .ward-rich-line li {
+  display: block;
+  position: relative;
+  margin: 0.25rem 0 0;
+  padding: 0 0 0 1.1rem;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+.ward-goals-spotlight__list .ward-rich-line li::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  margin: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--gold-deep);
+  box-shadow: none;
+}
+.ward-goals-spotlight__list .ward-rich-line li p {
+  margin: 0;
+}
+
+/* —— Download buttons —— */
+.ward-plan-actions .document-download {
+  margin: 0.25rem 0 0;
+}
+
+/* —— 404 / page not found —— */
+.not-found {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  align-items: center;
+  max-width: 60rem;
+  margin: 0 auto;
+}
+@media (min-width: 820px) {
+  .not-found {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+.not-found__art {
+  margin: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  background: var(--surface-feature-frame);
+}
+.not-found__art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 34rem;
+  object-fit: cover;
+  object-position: center 30%;
+}
+@media (max-width: 819px) {
+  .not-found__art {
+    max-width: 26rem;
+    margin: 0 auto;
+  }
+  .not-found__art img {
+    max-height: 26rem;
+  }
+}
+.not-found__title {
+  margin: 0 0 1rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-strong);
+}
+.not-found__quote {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(90deg, var(--gold-soft), transparent 80%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.not-found__quote p {
+  margin: 0;
+}
+.not-found__quote cite {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.not-found__lead {
+  margin: 0 0 1rem;
+  color: var(--ink-muted);
+}
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+}
+/* Shorter banner on the 404 page so the painting of the Savior is visible without scrolling. */
+.not-found-page .hero-page.hero-page--home {
+  min-height: min(38vh, 320px);
+}
+@media (min-width: 768px) {
+  .not-found-page .hero-page.hero-page--home {
+    min-height: min(42vh, 360px);
+    padding-bottom: 2.25rem;
+  }
+}
+.not-found-page .wrap-wide {
+  padding-top: 2rem;
 }

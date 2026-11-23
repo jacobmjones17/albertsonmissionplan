@@ -12,6 +12,7 @@ import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
 import { PageHero } from '../components/PageHero'
 import { Toast, type ToastPayload } from '../components/Toast'
+import { PASSWORD_GUIDANCE, PASSWORD_MAX_LENGTH } from '../lib/passwordRules'
 
 type AuthTab = 'login' | 'register'
 
@@ -480,7 +481,7 @@ export function AdminHome() {
                   <PasswordInput
                     autoComplete="new-password"
                     required
-                    maxLength={72}
+                    maxLength={PASSWORD_MAX_LENGTH}
                     value={password}
                     onChange={setPassword}
                   />
@@ -490,13 +491,13 @@ export function AdminHome() {
                   <PasswordInput
                     autoComplete="new-password"
                     required
-                    maxLength={72}
+                    maxLength={PASSWORD_MAX_LENGTH}
                     value={password2}
                     onChange={setPassword2}
                   />
                 </label>
                 <p className="panel-sites__note" style={{ margin: 0 }}>
-                  Pick any password you like (no length or character rules).
+                  {PASSWORD_GUIDANCE}
                 </p>
                 <p>
                   <button type="submit" className="btn btn-primary" disabled={busy}>

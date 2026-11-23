@@ -1,4 +1,4 @@
-/* Small download control on content pages */
+/* Labeled download button on content pages (uses .btn .btn-secondary) */
 .document-download {
   display: flex;
   flex-wrap: wrap;
@@ -7,25 +7,10 @@
 }
 
 .document-download__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.35rem;
-  height: 2.35rem;
-  padding: 0;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--ink-muted);
-  text-decoration: none;
-  box-shadow: var(--shadow-xs);
-  cursor: pointer;
-  font: inherit;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease,
-    transform 0.15s ease;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.15rem;
+  max-width: 100%;
+  text-align: center;
 }
 
 .document-download__btn:disabled {
@@ -40,18 +25,6 @@
   font-size: 0.82rem;
   color: var(--rose);
   text-align: center;
-}
-
-.document-download__btn:hover {
-  color: var(--accent);
-  border-color: var(--accent-ring);
-  background: var(--bg-elevated);
-  transform: translateY(-1px);
-}
-
-.document-download__btn:focus-visible {
-  outline: 2px solid var(--accent-ring);
-  outline-offset: 2px;
 }
 
 /* Printable / downloadable ward documents */
@@ -325,5 +298,28 @@
 
   .print-doc--challenges-sheet .print-doc__body--sheet {
     padding: 0.75rem;
+  }
+}
+
+/* Small screens: explain the print sheet instead of letting it run off the edge */
+.print-doc__small-screen-note {
+  display: none;
+}
+@media (max-width: 900px) {
+  .print-doc__small-screen-note {
+    display: block;
+    margin: 0.85rem 0.75rem 0;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--ink);
+    background: #fffdf6;
+    border: 1px solid #e2dac6;
+    border-radius: 6px;
+  }
+  /* The landscape print instructions don't apply on a phone screen. */
+  .print-doc--challenges-sheet .sheet-print-hint,
+  .print-doc--challenges-sheet .print-doc__print-note {
+    display: none;
   }
 }

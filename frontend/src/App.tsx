@@ -12,15 +12,42 @@ import { Experiences } from './pages/Experiences'
 import { Home } from './pages/Home'
 import { LoveShareInvite } from './pages/LoveShareInvite'
 import { MonthlyChallenges } from './pages/MonthlyChallenges'
+import { NotFound } from './pages/NotFound'
 import { PrintMonthlyChallenges } from './pages/PrintMonthlyChallenges'
 import { WardPlan } from './pages/WardPlan'
 
 const SITE_TITLE = 'Albertson Ward Plan'
 
+/**
+ * Browser-tab title per route ("Monthly Challenges | Albertson Ward Plan"). Keep in sync with
+ * the routes below and with `clientRoutes` in backend/internal/spa/spa.go (unknown paths get a
+ * 404 status from the server and the NotFound page here).
+ */
+const PAGE_TITLES: Record<string, string> = {
+  '/': '',
+  '/ward-plan': 'Ward Plan',
+  '/monthly-challenges': 'Monthly Challenges',
+  '/monthly-challenges/print': 'Printable Monthly Challenges',
+  '/experiences': 'Mission Experiences',
+  '/love-share-invite': 'Love, Share, Invite',
+  '/admin': 'Leader Tools',
+  '/admin/forgot-password': 'Forgot Password',
+  '/admin/reset-password': 'Reset Password',
+  '/admin/moderate': 'Moderate Experiences',
+  '/admin/approvals': 'Leader Approvals',
+  '/admin/ward-plan': 'Edit Ward Plan',
+}
+
+function pageTitleFor(pathname: string): string {
+  const key = pathname.toLowerCase().replace(/\/+$/, '') || '/'
+  const page = key in PAGE_TITLES ? PAGE_TITLES[key] : 'Page Not Found'
+  return page ? `${page} | ${SITE_TITLE}` : SITE_TITLE
+}
+
 function SiteTitle() {
   const loc = useLocation()
   useEffect(() => {
-    document.title = SITE_TITLE
+    document.title = pageTitleFor(loc.pathname)
   }, [loc.pathname])
   return null
 }
@@ -45,13 +72,14 @@ export function App() {
     <>
       <SiteTitle />
       <Routes>
-      <Route path="/monthly-challenges/print" element={<PrintMonthlyChallenges />} />
+        <Route path="/monthly-challenges/print" element={<PrintMonthlyChallenges />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/ward-plan" element={<WardPlan />} />
         <Route path="/monthly-challenges" element={<MonthlyChallenges />} />
         <Route path="/experiences" element={<Experiences />} />
         <Route path="/love-share-invite" element={<LoveShareInvite />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminHome />} />

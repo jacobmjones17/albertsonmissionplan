@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiJson } from '../api'
 import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
-import { DocumentDownloadIcon } from '../components/DocumentDownloadIcon'
+import { DocumentDownloadButton } from '../components/DocumentDownloadButton'
 import { buildWardPlanHtml } from '../lib/printDocuments'
 import { WardGoalLine } from '../components/richtext/WardGoalLine'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
@@ -13,6 +13,7 @@ export function WardPlan() {
   const [wardGoals, setWardGoals] = useState<string[]>([])
   const [orgs, setOrgs] = useState<Org[]>([])
   const [err, setErr] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     apiJson<{ wardGoals: string[]; orgs: Org[] }>('/api/ward-plan')
@@ -20,11 +21,12 @@ export function WardPlan() {
         setWardGoals(d.wardGoals)
         setOrgs(d.orgs)
       })
-      .catch(() => setErr('Could not load ward plan.'))
+      .catch(() => setErr('Could not load the ward plan. Please refresh the page to try again.'))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="page-title"
         eyebrow="Albertson Ward"
@@ -37,19 +39,32 @@ export function WardPlan() {
           leaders participate in missionary work, retention, and activation.
         </p>
       </div>
-      <main id="main">
-        <div className="wrap-wide ward-plan-page">
-          {err ? <p className="flash">{err}</p> : null}
-          <section className="ward-goals-spotlight" aria-labelledby="ward-goals">
-            <header className="ward-goals-spotlight__header">
-              <p className="ward-goals-spotlight__eyebrow">Together</p>
-              <h2 id="ward-goals" className="ward-goals-spotlight__title">
-                Ward goals
-              </h2>
-              <p className="ward-goals-spotlight__lead">
-                <strong>We will strengthen our ward by:</strong>
-              </p>
-            </header>
+      <div className="wrap-wide ward-plan-page">
+        {err ? (
+          <p className="flash" role="alert">
+            {err}
+          </p>
+        ) : null}
+        <section
+          className="ward-goals-spotlight"
+          aria-labelledby="ward-goals"
+          aria-busy={loading || undefined}
+        >
+          <header className="ward-goals-spotlight__header">
+            <p className="ward-goals-spotlight__eyebrow">Together</p>
+            <h2 id="ward-goals" className="ward-goals-spotlight__title">
+              Ward Goals
+            </h2>
+            <p className="ward-goals-spotlight__lead">
+              <strong>We will strengthen our ward by:</strong>
+            </p>
+          </header>
+          {loading ? (
+            <p className="loading-note" role="status">
+              <span className="loading-note__spinner" aria-hidden="true" />
+              Loading ward goals…
+            </p>
+          ) : (
             <ul className="ward-goals-spotlight__list">
               {wardGoals.map((g, i) => (
                 <li key={i}>
@@ -57,27 +72,33 @@ export function WardPlan() {
                 </li>
               ))}
             </ul>
-          </section>
+          )}
+        </section>
 
-          <div className="ward-plan-actions">
-            <p className="ward-plan-actions__label">Download ward goals</p>
-            <DocumentDownloadIcon
-              label="Download ward goals"
-              filename="Albertson-Ward-Goals.html"
-              disabled={wardGoals.length === 0}
-              buildDocument={async () => buildWardPlanHtml(wardGoals)}
-            />
-          </div>
+        <div className="ward-plan-actions">
+          <DocumentDownloadButton
+            label="Download Printable Goals"
+            filename="Albertson-Ward-Goals.html"
+            disabled={wardGoals.length === 0}
+            buildDocument={async () => buildWardPlanHtml(wardGoals)}
+          />
+        </div>
 
-          <section className="ward-plan-org-section" aria-labelledby="org-goals">
-            <header className="ward-plan-org-section__header">
-              <p className="page-inline-eyebrow">By organization</p>
-              <h2 id="org-goals">Auxiliary and quorum goals</h2>
-              <p className="ward-plan-org-section__intro">
-                Each organization has specific ways to help accomplish the ward mission plan. Expand a
-                card to read its goals.
-              </p>
-            </header>
+        <section className="ward-plan-org-section" aria-labelledby="org-goals">
+          <header className="ward-plan-org-section__header">
+            <p className="page-inline-eyebrow">By organization</p>
+            <h2 id="org-goals">Auxiliary and Quorum Goals</h2>
+            <p className="ward-plan-org-section__intro">
+              Each organization has specific ways to help accomplish the ward mission plan. Expand a
+              card to read its goals.
+            </p>
+          </header>
+          {loading ? (
+            <p className="loading-note" role="status">
+              <span className="loading-note__spinner" aria-hidden="true" />
+              Loading organization goals…
+            </p>
+          ) : (
             <div className="org-goals-grid">
               {orgs.map((o) => (
                 <details className="org org-card" key={o.slug}>
@@ -94,21 +115,25 @@ export function WardPlan() {
                 </details>
               ))}
             </div>
-          </section>
+          )}
+        </section>
 
-          <h2 className="scripture-pull scripture-pull--ward" id="scripture">
-            Matthew 28:19 — &ldquo;Go ye therefore, and teach all nations, baptizing them in the name of
-            the Father, and of the Son, and of the Holy Ghost.&rdquo;
-          </h2>
+        <blockquote className="scripture-pull scripture-pull--ward" id="scripture">
+          <p>
+            &ldquo;Go ye therefore, and teach all nations, baptizing them in the name of the Father,
+            and of the Son, and of the Holy Ghost.&rdquo;
+          </p>
+          <cite>Matthew 28:19</cite>
+        </blockquote>
 
-          <FeaturePhoto
-            src={STATIC_SITE_PHOTOS.wardPlanFeature}
-            caption={
-              '“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” — John 3:16'
-            }
-          />
-        </div>
-      </main>
-    </>
+        <FeaturePhoto
+          src={STATIC_SITE_PHOTOS.wardPlanFeature}
+          alt="Statue of the resurrected Jesus Christ with outstretched arms, set against the earth and a starry sky"
+          caption={
+            '“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” — John 3:16'
+          }
+        />
+      </div>
+    </main>
   )
 }

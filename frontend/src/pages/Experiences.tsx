@@ -54,7 +54,7 @@ export function Experiences() {
   }
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="page-title"
         eyebrow="Stories of faith"
@@ -73,89 +73,88 @@ export function Experiences() {
             Submit a Church referral
           </a>{' '}
           (with their permission), or read more on{' '}
-          <Link to="/love-share-invite">Love, Share, and Invite</Link>.
+          <Link to="/love-share-invite">Love, Share, Invite</Link>.
         </p>
       </div>
-      <main id="main">
-        <div className="wrap">
-          <section className="page-content-section experiences-published-first" aria-labelledby="published-h">
-            <p className="page-inline-eyebrow">From the ward</p>
-            <h2 id="published-h">Published experiences</h2>
-            <p className="experiences-published-first__intro panel-sites__note">
-              Stories appear here after ward leaders review them.
-            </p>
-            {listErr ? <p className="panel-sites panel-sites--warn">{listErr}</p> : null}
-            {list.length > 0 ? (
-              <div className="testimonial-stack">
-                {list.map((ex, i) => (
-                  <article className="testimonial-card testimonial-card--sites" key={i}>
-                    <p className="testimonial-body">{ex.body}</p>
-                    <p className="testimonial-meta">
-                      {ex.author}
-                      {ex.when ? ` · ${ex.when}` : ''}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              !listErr && (
-                <p className="lead">Nothing published yet—be the first after leader review.</p>
-              )
-            )}
-          </section>
+      <div className="wrap">
+        <section className="page-content-section experiences-published-first" aria-labelledby="published-h">
+          <p className="page-inline-eyebrow">From the ward</p>
+          <h2 id="published-h">Published experiences</h2>
+          <p className="experiences-published-first__intro panel-sites__note">
+            Stories appear here after ward leaders review them.
+          </p>
+          {listErr ? <p className="panel-sites panel-sites--warn">{listErr}</p> : null}
+          {list.length > 0 ? (
+            <div className="testimonial-stack">
+              {list.map((ex, i) => (
+                <article className="testimonial-card testimonial-card--sites" key={i}>
+                  <p className="testimonial-body">{ex.body}</p>
+                  <p className="testimonial-meta">
+                    {ex.author}
+                    {ex.when ? ` · ${ex.when}` : ''}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            !listErr && (
+              <p className="lead">Nothing published yet—be the first after leader review.</p>
+            )
+          )}
+        </section>
 
-          <section className="panel-sites experiences-share-after" aria-labelledby="share-h">
-            <p className="page-inline-eyebrow">Share yours</p>
-            <h2 id="share-h" className="panel-sites__title">
-              Tell us your experience
-            </h2>
-            <p className="panel-sites__p">
-              No account is needed. Leaders review each submission before it appears above. To protect
-              privacy, please <strong>do not include full names</strong> of friends, investigators, or ward
-              members. Use initials or roles instead.
-            </p>
-            {flash ? <p className="flash">{flash}</p> : null}
-            {formErr ? <p className="panel-sites panel-sites--warn">{formErr}</p> : null}
-            <form className="form-stack" onSubmit={(e) => void onSubmit(e)}>
-              <label className="hp-field" aria-hidden="true">
-                Leave blank
-                <input type="text" name="website" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
-              </label>
-              <label>
-                How you&apos;d like to be listed (optional)
-                <input
-                  type="text"
-                  name="author"
-                  maxLength={120}
-                  placeholder='First name or "Anonymous"'
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                />
-              </label>
-              <label>
-                Your experience
-                <textarea
-                  name="body"
-                  rows={8}
-                  required
-                  maxLength={8000}
-                  placeholder="What happened? How were you blessed as you ministered, invited, or lived the mission focus?"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                />
-              </label>
-              <button type="submit" className="btn btn-primary">
-                Submit for review
-              </button>
-            </form>
-          </section>
+        <section className="panel-sites experiences-share-after" aria-labelledby="share-h">
+          <p className="page-inline-eyebrow">Share yours</p>
+          <h2 id="share-h" className="panel-sites__title">
+            Tell us your experience
+          </h2>
+          <p className="panel-sites__p">
+            No account is needed. Leaders review each submission before it appears above. To protect
+            privacy, please <strong>do not include full names</strong> of friends, investigators, or ward
+            members. Use initials or roles instead.
+          </p>
+          {flash ? <p className="flash">{flash}</p> : null}
+          {formErr ? <p className="panel-sites panel-sites--warn">{formErr}</p> : null}
+          <form className="form-stack" onSubmit={(e) => void onSubmit(e)}>
+            <label className="hp-field" aria-hidden="true">
+              Leave blank
+              <input type="text" name="website" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
+            </label>
+            <label>
+              How you&apos;d like to be listed (optional)
+              <input
+                type="text"
+                name="author"
+                maxLength={120}
+                placeholder='First name or "Anonymous"'
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+              />
+            </label>
+            <label>
+              Your experience
+              <textarea
+                name="body"
+                rows={8}
+                required
+                maxLength={8000}
+                placeholder="What happened? How were you blessed as you ministered, invited, or lived the mission focus?"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="btn btn-primary">
+              Submit for review
+            </button>
+          </form>
+        </section>
 
-          <FeaturePhoto
-            src={STATIC_SITE_PHOTOS.experiencesFeature}
-            caption="“The greatest service we can provide is to help others come unto Christ.” — Elder Dieter F. Uchtdorf"
-          />
-        </div>
-      </main>
-    </>
+        <FeaturePhoto
+          src={STATIC_SITE_PHOTOS.experiencesFeature}
+          alt="Painting of Jesus Christ tenderly taking the hands of a woman among a gathered crowd"
+          caption="“The greatest service we can provide is to help others come unto Christ.” — Elder Dieter F. Uchtdorf"
+        />
+      </div>
+    </main>
   )
 }

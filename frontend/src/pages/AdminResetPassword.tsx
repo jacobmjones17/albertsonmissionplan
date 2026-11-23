@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiJson } from '../api'
 import { PageHero } from '../components/PageHero'
+import { PASSWORD_GUIDANCE, PASSWORD_MAX_LENGTH } from '../lib/passwordRules'
 
 export function AdminResetPassword() {
   const [params] = useSearchParams()
@@ -51,7 +52,7 @@ export function AdminResetPassword() {
       <PageHero
         titleId="reset-password-title"
         eyebrow="Leader"
-        title="Choose a new password"
+        title="Choose a New Password"
         lede="Paste the token from your email if it wasn’t filled in automatically."
         compact
       />
@@ -80,7 +81,7 @@ export function AdminResetPassword() {
               type="password"
               autoComplete="new-password"
               required
-              maxLength={72}
+              maxLength={PASSWORD_MAX_LENGTH}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -91,13 +92,13 @@ export function AdminResetPassword() {
               type="password"
               autoComplete="new-password"
               required
-              maxLength={72}
+              maxLength={PASSWORD_MAX_LENGTH}
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
             />
           </label>
           <p className="panel-sites__note" style={{ margin: 0 }}>
-            Passwords may be up to 72 characters (bcrypt limit).
+            {PASSWORD_GUIDANCE}
           </p>
           <p>
             <button type="submit" className="btn btn-primary" disabled={busy}>
