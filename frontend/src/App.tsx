@@ -56,7 +56,7 @@ function RequireLeader() {
   const { ready, user } = useBootstrap()
   if (!ready) {
     return (
-      <main className="wrap">
+      <main id="main" className="wrap">
         <p className="lead">Loading…</p>
       </main>
     )

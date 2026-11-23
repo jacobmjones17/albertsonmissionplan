@@ -4,6 +4,7 @@ import type { FormEvent } from 'react'
 import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
 import { PageHero } from '../components/PageHero'
+import { useLeaderCounts } from '../lib/leaderCounts'
 import { Toast, type ToastPayload } from '../components/Toast'
 
 type PendingAccount = {
@@ -61,6 +62,8 @@ export function AdminApprovals() {
     }
   }, [])
 
+  const { refresh: refreshCounts } = useLeaderCounts()
+
   useEffect(() => {
     void load()
     void refresh()
@@ -90,6 +93,7 @@ export function AdminApprovals() {
       })
       dialogRef.current?.close()
       await load()
+      void refreshCounts()
     } catch (ex) {
       setToast({
         message: ex instanceof Error ? ex.message : 'Could not approve.',
@@ -112,6 +116,7 @@ export function AdminApprovals() {
       })
       dialogRef.current?.close()
       await load()
+      void refreshCounts()
     } catch (ex) {
       setToast({
         message: ex instanceof Error ? ex.message : 'Could not deny.',
@@ -134,6 +139,7 @@ export function AdminApprovals() {
       })
       dialogRef.current?.close()
       await load()
+      void refreshCounts()
       await refresh()
     } catch (ex) {
       setToast({
@@ -147,24 +153,21 @@ export function AdminApprovals() {
   const canRemoveAnyApproved = approved.length > 1
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="approvals-title"
-        eyebrow="Approvals"
-        title="Leader accounts"
-        lede="Approve pending requests and remove leader access when someone should no longer sign in."
+        eyebrow="Leader Tools"
+        title="Leader Accounts"
+        lede="Approved leaders can review experiences and edit the ward plan."
         compact
       />
-      <main id="main" className="wrap">
-        <p className="privacy-hint-note">
-          Approving an account gives full leader tools (moderation + ward plan). You can remove an
-          approved leader below, but one leader must always remain — add another leader before
-          removing the last one.
-        </p>
+      <div className="wrap">
         <Toast toast={toast} onDismiss={() => setToast(null)} />
         {err ? <p className="panel-sites panel-sites--warn">{err}</p> : null}
 
-        <h2 className="moderate-section-title">Pending requests</h2>
+        <h2 className="moderate-section-title">
+          Waiting for Approval{pending.length ? ` (${pending.length})` : ''}
+        </h2>
         {pending.length === 0 ? (
           <div className="panel-sites">
             <p className="lead" style={{ margin: 0 }}>
@@ -192,10 +195,11 @@ export function AdminApprovals() {
           </ul>
         )}
 
-        <h2 className="moderate-section-title moderate-section-title--spaced">Approved leaders</h2>
+        <h2 className="moderate-section-title moderate-section-title--spaced">
+          Approved Leaders{approved.length ? ` (${approved.length})` : ''}
+        </h2>
         <p className="panel-sites__note" style={{ marginTop: 0 }}>
-          Removing access deletes their login — they can register again later if needed. You cannot
-          remove the only remaining leader.
+          Removing access deletes their login. They can ask for access again later.
         </p>
         {approved.length === 0 ? (
           <div className="panel-sites">
@@ -217,20 +221,22 @@ export function AdminApprovals() {
                   <p className="moderate-queue-preview">{displayLabelApproved(a)}</p>
                   <p className="moderate-queue-byline">{a.email}</p>
                 </div>
-                <div className="moderate-queue-actions">
+                <div className="moderate-queue-actions moderate-queue-actions--stack">
                   <button
                     type="button"
                     className="btn-danger"
                     disabled={!canRemoveAnyApproved}
-                    title={
-                      canRemoveAnyApproved ?
-                        'Remove leader access'
-                      : 'Approve another leader before removing this one'
-                    }
+                    aria-describedby={canRemoveAnyApproved ? undefined : 'last-leader-reason'}
                     onClick={() => setDialog({ kind: 'removeApproved', account: a })}
                   >
                     Remove access
                   </button>
+                  {canRemoveAnyApproved ? null : (
+                    <p id="last-leader-reason" className="moderate-disabled-reason">
+                      This is the only leader. Approve another leader first so someone can still
+                      sign in.
+                    </p>
+                  )}
                 </div>
               </li>
             ))}
@@ -269,8 +275,8 @@ export function AdminApprovals() {
           </dialog>,
           document.body,
         )}
-      </main>
-    </>
+      </div>
+    </main>
   )
 }
 

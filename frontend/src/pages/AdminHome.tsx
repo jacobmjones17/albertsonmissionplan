@@ -12,6 +12,7 @@ import { apiJson } from '../api'
 import { useBootstrap } from '../BootstrapContext'
 import { PageHero } from '../components/PageHero'
 import { Toast, type ToastPayload } from '../components/Toast'
+import { useLeaderCounts } from '../lib/leaderCounts'
 import { PASSWORD_GUIDANCE, PASSWORD_MAX_LENGTH } from '../lib/passwordRules'
 
 type AuthTab = 'login' | 'register'
@@ -128,17 +129,15 @@ type RegisterResponse = {
   message?: string
 }
 
-type PendingAccount = {
-  email: string
-  firstName: string
-  lastName: string
-  fullName: string
-  when: string
+function CountStatus({ count, waiting, clear }: { count: number | null; waiting: (n: number) => string; clear: string }) {
+  if (count === null) return null
+  return count > 0 ? (
+    <span className="admin-links__status admin-links__status--waiting">{waiting(count)}</span>
+  ) : (
+    <span className="admin-links__status admin-links__status--clear">{clear}</span>
+  )
 }
-type PendingAccountsResponse = { pending: PendingAccount[] | null }
 
-/** Same JSON shape as GET /api/admin/pending (mission experiences queue). */
-type PendingExperiencesResponse = { pending: unknown[] | null }
 
 export function AdminHome() {
   const { user, refresh } = useBootstrap()
@@ -156,11 +155,8 @@ export function AdminHome() {
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<ToastPayload | null>(null)
 
-  // Badge counters — flows live at /admin/moderate and /admin/approvals.
-  const [pendingAccountCount, setPendingAccountCount] = useState(0)
-  const [pendingExperienceCount, setPendingExperienceCount] = useState(0)
-  const [pendingAccountsErr, setPendingAccountsErr] = useState<string | null>(null)
-  const [pendingExperiencesErr, setPendingExperiencesErr] = useState<string | null>(null)
+  // At-a-glance counts shared with the leader nav (see lib/leaderCounts).
+  const { pendingExperiences, pendingAccounts, error: countsErr } = useLeaderCounts()
 
   useEffect(() => {
     void refresh()
@@ -183,49 +179,6 @@ export function AdminHome() {
     setPassword2('')
     setFormErr(null)
   }, [])
-
-  const loadPendingAccountCount = useCallback(async () => {
-    setPendingAccountsErr(null)
-    try {
-      const d = await apiJson<PendingAccountsResponse>('/api/admin/pending-accounts')
-      setPendingAccountCount(Array.isArray(d.pending) ? d.pending.length : 0)
-    } catch (e) {
-      setPendingAccountsErr(e instanceof Error ? e.message : 'Could not load pending accounts.')
-    }
-  }, [])
-
-  const loadPendingExperienceCount = useCallback(async () => {
-    setPendingExperiencesErr(null)
-    try {
-      const d = await apiJson<PendingExperiencesResponse>('/api/admin/pending')
-      setPendingExperienceCount(Array.isArray(d.pending) ? d.pending.length : 0)
-    } catch (e) {
-      setPendingExperiencesErr(e instanceof Error ? e.message : 'Could not load pending experiences.')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (user?.isLeader) {
-      void loadPendingAccountCount()
-      void loadPendingExperienceCount()
-    } else {
-      setPendingAccountCount(0)
-      setPendingExperienceCount(0)
-    }
-  }, [user?.isLeader, loadPendingAccountCount, loadPendingExperienceCount])
-
-  /** Refetch queue counts when returning from another tab or app (common on phones). */
-  useEffect(() => {
-    if (!user?.isLeader) return
-    const onVis = () => {
-      if (document.visibilityState === 'visible') {
-        void loadPendingAccountCount()
-        void loadPendingExperienceCount()
-      }
-    }
-    document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
-  }, [user?.isLeader, loadPendingAccountCount, loadPendingExperienceCount])
 
   async function submitLogin(ev: FormEvent) {
     ev.preventDefault()
@@ -294,15 +247,19 @@ export function AdminHome() {
   const displayName = (user?.displayName ?? '').trim()
 
   return (
-    <>
+    <main id="main">
       <PageHero
         titleId="admin-title"
-        eyebrow="Leader"
-        title="Leader tools"
-        lede="Review experiences, approve accounts, and edit ward goals"
+        eyebrow="Albertson Ward"
+        title={user?.isLeader ? 'Leader Tools' : 'Leader Sign-In'}
+        lede={
+          user?.isLeader
+            ? 'Review experiences, approve leaders, and edit the ward plan.'
+            : 'For ward leaders: sign in to review experiences and edit the ward plan.'
+        }
         compact
       />
-      <main id="main" className="wrap">
+      <div className="wrap">
         <Toast toast={toast} onDismiss={() => setToast(null)} durationMs={7000} />
         {msg ? <p className="flash">{msg}</p> : null}
         {user?.email && !user.isLeader ?
@@ -317,15 +274,17 @@ export function AdminHome() {
               <li>
                 <Link to="/admin/moderate">
                   <span className="admin-links__text">
-                    <span className="admin-links__label">Review mission experiences</span>
-                    <span className="admin-links__desc">Approve or edit member submissions</span>
+                    <span className="admin-links__label">Review Mission Experiences</span>
+                    <span className="admin-links__desc">Approve, edit, or remove member stories</span>
+                    <CountStatus
+                      count={pendingExperiences}
+                      waiting={(n) => `${n} waiting for review`}
+                      clear="Nothing waiting"
+                    />
                   </span>
-                  {pendingExperienceCount > 0 ?
-                    <span
-                      className="admin-link-badge"
-                      aria-label={`${pendingExperienceCount} mission ${pendingExperienceCount === 1 ? 'experience' : 'experiences'} awaiting review`}
-                    >
-                      {pendingExperienceCount}
+                  {pendingExperiences ?
+                    <span className="admin-link-badge" aria-hidden="true">
+                      {pendingExperiences}
                     </span>
                   : null}
                 </Link>
@@ -333,12 +292,17 @@ export function AdminHome() {
               <li>
                 <Link to="/admin/approvals">
                   <span className="admin-links__text">
-                    <span className="admin-links__label">Leader accounts</span>
+                    <span className="admin-links__label">Leader Accounts</span>
                     <span className="admin-links__desc">Approve new leaders and manage access</span>
+                    <CountStatus
+                      count={pendingAccounts}
+                      waiting={(n) => `${n} ${n === 1 ? 'request' : 'requests'} waiting`}
+                      clear="No requests waiting"
+                    />
                   </span>
-                  {pendingAccountCount > 0 ?
-                    <span className="admin-link-badge" aria-label={`${pendingAccountCount} pending`}>
-                      {pendingAccountCount}
+                  {pendingAccounts ?
+                    <span className="admin-link-badge" aria-hidden="true">
+                      {pendingAccounts}
                     </span>
                   : null}
                 </Link>
@@ -346,23 +310,15 @@ export function AdminHome() {
               <li>
                 <Link to="/admin/ward-plan">
                   <span className="admin-links__text">
-                    <span className="admin-links__label">Edit ward plan goals</span>
+                    <span className="admin-links__label">Edit Ward Plan Goals</span>
                     <span className="admin-links__desc">Ward-wide and organization goals</span>
                   </span>
                 </Link>
               </li>
             </ul>
-            {pendingAccountsErr ?
+            {countsErr ?
               <p className="panel-sites panel-sites--warn" style={{ marginTop: '1rem' }}>
-                {pendingAccountsErr}
-              </p>
-            : null}
-            {pendingExperiencesErr ?
-              <p
-                className="panel-sites panel-sites--warn"
-                style={{ marginTop: pendingAccountsErr ? '0.5rem' : '1rem' }}
-              >
-                {pendingExperiencesErr}
+                {countsErr}
               </p>
             : null}
           </>
@@ -508,7 +464,7 @@ export function AdminHome() {
             )}
           </>
         )}
-      </main>
-    </>
+      </div>
+    </main>
   )
 }

@@ -153,10 +153,13 @@ export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength,
       {computed.length > 0 ? (
         <div className="privacy-flag-panel" role="region" aria-label="Automatic privacy checks">
           <p className="privacy-flag-panel-intro">
-            <strong>Quick scan</strong> — same text is marked in yellow below. Heuristic only.
+            <strong>This story may include someone’s name.</strong> We marked the words in yellow
+            below. Before publishing, shorten a full name (for example “Brother Smith” → “a brother
+            in our ward”). If it isn’t a name, choose <strong>Not a name</strong>. This is only a
+            computer guess, so read the whole story too.
           </p>
           {!active.length ? (
-            <p className="privacy-flag-panel-note">All flags dismissed for this draft.</p>
+            <p className="privacy-flag-panel-note">You marked every flagged phrase as not a name.</p>
           ) : null}
           <ul className="privacy-flag-list">
             {computed.map((f) => {
@@ -169,10 +172,10 @@ export function PrivacyHighlightedBodyField({ label, value, onChange, maxLength,
                     <span className="privacy-flag-kind">{privacyFlagHint(f.kind)}</span>
                     {!dismissed.has(dk) ? (
                       <button type="button" className="privacy-flag-ignore" onClick={() => dismiss(dk)}>
-                        Ignore
+                        Not a name
                       </button>
                     ) : (
-                      <span className="privacy-flag-muted">Ignored</span>
+                      <span className="privacy-flag-muted">Marked not a name</span>
                     )}
                   </div>
                 </li>

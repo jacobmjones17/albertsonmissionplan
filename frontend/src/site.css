@@ -4646,3 +4646,405 @@ details.org .org-body {
 .not-found-page .wrap-wide {
   padding-top: 2rem;
 }
+
+/* ===== Leader tools: simplified rich-text toolbar ===== */
+.rich-goals-block .rich-toolbar.rich-toolbar--simple {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--toolbar-border);
+}
+.rich-toolbar--simple .rich-toolbar-btn {
+  width: 36px;
+  height: 36px;
+}
+.rich-toolbar--simple .rich-toolbar-btn--text {
+  width: auto;
+  gap: 0.35rem;
+  padding: 0 0.6rem;
+  line-height: 1;
+}
+.rich-toolbar-btn__text {
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.rich-toolbar--simple .rich-toolbar__sep {
+  margin: 0 4px;
+}
+.rich-toolbar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ===== Leader tools: ward plan tabs, status, preview ===== */
+.ward-plan-editor .ward-plan-tabs-select {
+  display: none;
+}
+.ward-plan-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.ward-plan-tabs__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #b45309;
+  box-shadow: 0 0 0 2px var(--bg-card);
+  flex-shrink: 0;
+}
+.ward-plan-tabs__tab.is-active .ward-plan-tabs__dot {
+  background: #fcd34d;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+@media (max-width: 720px) {
+  .ward-plan-tabs-desktop {
+    display: none;
+  }
+  .ward-plan-editor .ward-plan-tabs-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .ward-plan-editor .ward-plan-tabs-select select {
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--ink);
+  }
+}
+.ward-plan-form-actions {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+}
+.ward-plan-form-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.ward-plan-status {
+  font-weight: 600;
+}
+.ward-plan-status--saved {
+  color: #166534;
+}
+.ward-plan-status--dirty {
+  color: #92400e;
+}
+.ward-plan-status--error {
+  color: #b91c1c;
+}
+.ward-plan-form-actions__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+@media (max-width: 520px) {
+  .ward-plan-form-actions__buttons {
+    flex-direction: column-reverse;
+  }
+  .ward-plan-form-actions__buttons > * {
+    width: 100%;
+  }
+}
+.ward-plan-preview {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.15rem 1.15rem;
+  border: 1px dashed var(--accent-ring);
+  border-radius: var(--radius);
+  background: var(--bg-warm);
+}
+.ward-plan-preview__title {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.ward-plan-preview__title span {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 0.86rem;
+}
+.ward-plan-preview__empty {
+  margin: 0;
+  color: var(--ink-muted);
+}
+.ward-plan-preview .org-body {
+  padding: 0;
+}
+
+/* ===== Leader tools: persistent leader navigation ===== */
+.leader-nav {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+}
+.leader-nav__inner {
+  max-width: var(--max-wide, 72rem);
+  margin: 0 auto;
+  padding: 0.5rem clamp(1rem, 4vw, 2rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.leader-nav__list {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+.leader-nav__list li {
+  margin: 0;
+}
+.leader-nav a,
+.leader-nav__signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.leader-nav a:hover,
+.leader-nav__signout:hover {
+  background: var(--bg-warm);
+  color: var(--accent);
+}
+.leader-nav a.active {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: var(--text-on-hero);
+}
+.leader-nav a:focus-visible,
+.leader-nav__signout:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.leader-nav__list--end a,
+.leader-nav__signout {
+  border-color: var(--border);
+}
+.leader-nav__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--badge-alert-bg);
+  color: var(--text-on-hero);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+}
+@media (max-width: 768px) {
+  .leader-nav__inner {
+    justify-content: flex-start;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* At-a-glance status line on the /admin tool cards. */
+.admin-links__status {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.admin-links__status--waiting {
+  color: #9a3412;
+}
+.admin-links__status--clear {
+  color: #166534;
+}
+
+/* ===== Leader tools: moderation queue ===== */
+.moderate-queue-preview--full {
+  white-space: pre-wrap;
+}
+.moderate-expand-btn {
+  margin: 0.15rem 0 0.4rem;
+  padding: 0.2rem 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.moderate-expand-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.moderate-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin: 0.75rem 0 1rem;
+}
+.moderate-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.moderate-filters__search {
+  flex: 1 1 16rem;
+}
+.moderate-filters input,
+.moderate-filters select {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  min-height: 2.75rem;
+}
+.moderate-queue-actions--stack {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.moderate-disabled-reason {
+  margin: 0.35rem 0 0;
+  max-width: 17rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .moderate-queue-actions--stack {
+    align-items: stretch;
+  }
+  .moderate-disabled-reason {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+/* ===== Public header: Leader Sign-In button (top navbar, desktop + mobile menu) ===== */
+.site-nav li.site-nav__leader {
+  margin-left: 0.4rem;
+}
+.site-nav a.nav-leader-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  background: transparent;
+}
+.site-nav a.nav-leader-btn:hover,
+.site-nav a.nav-leader-btn[aria-current='page'] {
+  color: var(--text-on-hero);
+  background: var(--accent);
+}
+.site-nav a.nav-leader-btn::after {
+  display: none;
+}
+.nav-leader-btn__icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+/* Gold frosted header over the hero */
+.site-header.site-header--overlap-home .site-nav a.nav-leader-btn {
+  color: #1b140a;
+  background: linear-gradient(180deg, #f3e2b8 0%, #e0b868 100%);
+  border-color: #e0b868;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.site-header.site-header--overlap-home .site-nav a.nav-leader-btn:hover {
+  color: #1b140a;
+  background: #f3e2b8;
+}
+@media (max-width: 768px) {
+  .site-nav li.site-nav__leader {
+    margin: 0.6rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .site-nav a.nav-leader-btn,
+  .site-header.site-header--overlap-home .site-nav.is-open a.nav-leader-btn {
+    display: flex;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 1.02rem;
+    color: var(--text-on-hero);
+    background: var(--accent);
+    border-color: var(--accent-hover);
+    box-shadow: none;
+  }
+}
+/* Mid-width desktops / tablets: keep five links + Leader Sign-In on one row. */
+@media (min-width: 769px) and (max-width: 1180px) {
+  .site-nav a {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+  }
+  .site-nav a.nav-leader-btn {
+    padding: 0.45rem 0.8rem;
+  }
+  .site-nav li.site-nav__leader {
+    margin-left: 0.15rem;
+  }
+}
+@media (min-width: 940px) {
+  .site-nav ul {
+    flex-wrap: nowrap;
+  }
+  .site-nav a {
+    white-space: nowrap;
+  }
+}

@@ -1,11 +1,14 @@
-{{ .SiteLabel }} — New mission experience to review
+New missionary experience from {{ .AuthorLabel }}
 
-Submitted by: {{ .AuthorLabel }}
+A ward member shared a missionary experience. It is waiting for a leader to review it before it appears on the {{ .SiteLabel }} site.
 
-Preview:
+From:      {{ .AuthorLabel }}
+Submitted: {{ .SubmittedAt }}
+
+Their story:
 {{ .BodyPreview }}
 
 Review experiences:
 {{ .ModerateURL }}
 
-You are receiving this because you are an approved ward leader.
+You are receiving this because you are an approved {{ .SiteLabel }} leader.
