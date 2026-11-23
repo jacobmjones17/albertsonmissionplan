@@ -1,13 +1,27 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiJson } from '../api'
 import { FeaturePhoto } from '../components/FeaturePhoto'
 import { PageHero } from '../components/PageHero'
-import { DocumentDownloadButton } from '../components/DocumentDownloadButton'
-import { buildWardPlanHtml } from '../lib/printDocuments'
 import { WardGoalLine } from '../components/richtext/WardGoalLine'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 type Org = { slug: string; title: string; bullets: string[] }
+
+function PrintIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M7 13h10v7H7v-7Z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export function WardPlan() {
   const [wardGoals, setWardGoals] = useState<string[]>([])
@@ -73,16 +87,13 @@ export function WardPlan() {
               ))}
             </ul>
           )}
+          <div className="ward-plan-actions">
+            <Link to="/ward-plan/print" className="btn btn-secondary document-download__btn">
+              <PrintIcon />
+              <span>Print / Save as PDF</span>
+            </Link>
+          </div>
         </section>
-
-        <div className="ward-plan-actions">
-          <DocumentDownloadButton
-            label="Download Printable Goals"
-            filename="Albertson-Ward-Goals.html"
-            disabled={wardGoals.length === 0}
-            buildDocument={async () => buildWardPlanHtml(wardGoals)}
-          />
-        </div>
 
         <section className="ward-plan-org-section" aria-labelledby="org-goals">
           <header className="ward-plan-org-section__header">

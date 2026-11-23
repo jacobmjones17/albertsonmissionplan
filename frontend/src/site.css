@@ -1896,8 +1896,8 @@ ul.clean li::marker {
   border: 1px solid var(--border-strong);
   border-top: 6px solid var(--bar-accent);
   border-radius: var(--radius-sm);
-  padding: 2rem 1.75rem 2.25rem;
-  margin-bottom: 2.75rem;
+  padding: 2rem 1.75rem 1.75rem;
+  margin-bottom: 3.5rem;
   box-shadow:
     0 1px 0 var(--spotlight-inset) inset,
     var(--spotlight-shadow);
@@ -2003,22 +2003,23 @@ ul.clean li::marker {
   color: var(--ink-muted);
 }
 
+/* Print action lives inside the Ward Goals card, well above Auxiliary Goals. */
 .ward-plan-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
-  margin: 1.75rem 0 0.25rem;
+  margin: 1.5rem 0 0;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--spotlight-header-border);
 }
 .ward-plan-actions__label {
   margin: 0;
   font-size: 0.84rem;
   color: var(--ink-muted);
-  text-align: center;
 }
-.ward-plan-actions .document-download {
+.ward-plan-actions .document-download,
+.ward-plan-actions .document-download__btn {
   margin: 0;
 }
 
@@ -4608,10 +4609,7 @@ details.org .org-body {
   margin: 0;
 }
 
-/* —— Download buttons —— */
-.ward-plan-actions .document-download {
-  margin: 0.25rem 0 0;
-}
+/* —— Download / print buttons —— */
 
 /* —— 404 / page not found ——
    One dark brown "chapel" panel: framed painting of the Savior beside a gentle message,

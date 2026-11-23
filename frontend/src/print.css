@@ -99,6 +99,15 @@
   align-items: center;
 }
 
+/* Injected WARD_PLAN_STYLES also style `body`; keep the SPA toolbar flush to the edges. */
+body:has(.print-doc--ward-plan) {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  display: block !important;
+  background: #f5efe2 !important;
+}
+
 .print-doc__print-note {
   flex: 1 1 auto;
   margin: 0;
@@ -118,11 +127,20 @@
 
   .print-doc--ward-plan {
     background: #fff;
+    overflow: visible;
+    width: auto;
+    height: auto;
+    min-height: 0;
   }
 
   .print-doc--ward-plan .print-doc__body--ward-plan {
     max-width: none;
     padding: 0;
+  }
+
+  body:has(.print-doc--ward-plan) {
+    background: #fff !important;
+    padding: 0 !important;
   }
 
   .print-doc--ward-plan .sheet-print-hint {
@@ -319,7 +337,9 @@
   }
   /* The landscape print instructions don't apply on a phone screen. */
   .print-doc--challenges-sheet .sheet-print-hint,
-  .print-doc--challenges-sheet .print-doc__print-note {
+  .print-doc--challenges-sheet .print-doc__print-note,
+  .print-doc--ward-plan .sheet-print-hint,
+  .print-doc--ward-plan .print-doc__print-note {
     display: none;
   }
 }
