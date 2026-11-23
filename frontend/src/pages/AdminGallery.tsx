@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiJson, apiUpload } from '../api'
 import { PageHero } from '../components/PageHero'
 import { Toast, type ToastPayload } from '../components/Toast'
-import { AGE_GROUP_SUGGESTIONS, galleryCredit, type GalleryItem } from '../lib/gallery'
+import { type GalleryItem } from '../lib/gallery'
 import { useUnsavedChangesWarning } from '../lib/useUnsavedChangesWarning'
 
 const MAX_BYTES = 15 * 1024 * 1024
@@ -13,16 +13,10 @@ type Staged = {
   key: string
   file: File
   previewUrl: string
-  title: string
-  caption: string
-  artist: string
-  ageGroup: string
   status: 'ready' | 'uploading' | 'done' | 'error'
   progress: number
   error?: string
 }
-
-type Meta = Pick<GalleryItem, 'title' | 'caption' | 'artist' | 'ageGroup'>
 
 function isHeic(f: File): boolean {
   return /image\/hei[cf]/i.test(f.type) || /\.(heic|heif)$/i.test(f.name)
@@ -38,71 +32,6 @@ function precheck(f: File): string | undefined {
   return undefined
 }
 
-function titleFromFileName(name: string): string {
-  const base = name.replace(/\.[^.]+$/, '')
-  // Scanner/camera names like "IMG_2041" or "Scan 12" aren't useful titles.
-  if (/^(img|dsc|pxl|scan|image|photo)[\s_-]*\d*/i.test(base) || /^\d+$/.test(base)) return ''
-  return base.replace(/[_-]+/g, ' ').trim().slice(0, 120)
-}
-
-function MetaFields({
-  value,
-  onChange,
-  idPrefix,
-  disabled,
-}: {
-  value: Meta
-  onChange: (next: Meta) => void
-  idPrefix: string
-  disabled?: boolean
-}) {
-  const set = (k: keyof Meta) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value })
-  return (
-    <div className="gallery-meta-fields">
-      <label>
-        <span className="gallery-label">Title <span className="gallery-optional">(optional)</span></span>
-        <input type="text" maxLength={120} value={value.title} onChange={set('title')} disabled={disabled} placeholder="e.g. Jesus Loves the Little Children" />
-      </label>
-      <div className="form-row">
-        <label>
-          <span className="gallery-label">Artist first name <span className="gallery-optional">(optional)</span></span>
-          <input
-            type="text"
-            maxLength={40}
-            value={value.artist}
-            onChange={set('artist')}
-            disabled={disabled}
-            placeholder="e.g. Mia"
-            aria-describedby="gallery-privacy-note"
-            autoComplete="off"
-          />
-        </label>
-        <label>
-          <span className="gallery-label">Age or class <span className="gallery-optional">(optional)</span></span>
-          <input
-            type="text"
-            maxLength={40}
-            value={value.ageGroup}
-            onChange={set('ageGroup')}
-            disabled={disabled}
-            list={`${idPrefix}-ages`}
-            placeholder="e.g. Sunbeams"
-          />
-          <datalist id={`${idPrefix}-ages`}>
-            {AGE_GROUP_SUGGESTIONS.map((a) => (
-              <option key={a} value={a} />
-            ))}
-          </datalist>
-        </label>
-      </div>
-      <label>
-        <span className="gallery-label">Caption <span className="gallery-optional">(optional)</span></span>
-        <textarea rows={2} maxLength={600} value={value.caption} onChange={set('caption')} disabled={disabled} placeholder="A sentence about the picture" />
-      </label>
-    </div>
-  )
-}
-
 export function AdminGallery() {
   const [items, setItems] = useState<GalleryItem[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -110,13 +39,9 @@ export function AdminGallery() {
   const [staged, setStaged] = useState<Staged[]>([])
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [classForAll, setClassForAll] = useState('')
-  const [editing, setEditing] = useState<number | null>(null)
-  const [editDraft, setEditDraft] = useState<Meta>({ title: '', caption: '', artist: '', ageGroup: '' })
   const [busyId, setBusyId] = useState<number | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
-  const uid = useId()
 
   const load = useCallback(async () => {
     try {
@@ -153,10 +78,6 @@ export function AdminGallery() {
           key: `${Date.now()}-${i}-${file.name}`,
           file,
           previewUrl: URL.createObjectURL(file),
-          title: titleFromFileName(file.name),
-          caption: '',
-          artist: '',
-          ageGroup: classForAll,
           status: error ? ('error' as const) : ('ready' as const),
           progress: 0,
           error,
@@ -191,14 +112,9 @@ export function AdminGallery() {
     let ok = 0
     // One at a time: each file gets its own progress and error, and the server stays responsive.
     for (const s of queue) {
-      const cur = stagedRef.current.find((x) => x.key === s.key) ?? s
       updateStaged(s.key, { status: 'uploading', progress: 0, error: undefined })
       const form = new FormData()
-      form.append('image', cur.file)
-      form.append('title', cur.title)
-      form.append('caption', cur.caption)
-      form.append('artist', cur.artist)
-      form.append('ageGroup', cur.ageGroup)
+      form.append('image', s.file)
       try {
         const res = await apiUpload<{ item?: GalleryItem }>('/api/admin/gallery', form, (p) =>
           updateStaged(s.key, { progress: p }),
@@ -226,34 +142,21 @@ export function AdminGallery() {
     addFiles(e.dataTransfer.files)
   }
 
-  async function saveItem(it: GalleryItem, patch: Partial<GalleryItem>, message?: string) {
+  async function setHidden(it: GalleryItem, hidden: boolean) {
     setBusyId(it.id)
-    const next = { ...it, ...patch }
     try {
-      await apiJson(`/api/admin/gallery/${it.id}/edit`, {
-        method: 'POST',
-        json: {
-          title: next.title,
-          caption: next.caption,
-          artist: next.artist,
-          ageGroup: next.ageGroup,
-          hidden: Boolean(next.hidden),
-        },
-      })
+      await apiJson(`/api/admin/gallery/${it.id}/visibility`, { method: 'POST', json: { hidden } })
       await load()
-      if (message) setToast({ message, variant: 'success' })
-      return true
+      setToast({ message: hidden ? 'Hidden from the gallery.' : 'Shown on the gallery.', variant: 'success' })
     } catch (e) {
       setToast({ message: e instanceof Error ? e.message : 'Could not save.', variant: 'error' })
-      return false
     } finally {
       setBusyId(null)
     }
   }
 
   async function remove(it: GalleryItem) {
-    const name = it.title ? `“${it.title}”` : 'this drawing'
-    if (!window.confirm(`Delete ${name} permanently? This can’t be undone. (To take it off the site for now, use Hide instead.)`)) return
+    if (!window.confirm(`Delete this drawing permanently? This can’t be undone. (To take it off the site for now, use Hide instead.)`)) return
     setBusyId(it.id)
     try {
       await apiJson(`/api/admin/gallery/${it.id}/delete`, { method: 'POST' })
@@ -277,7 +180,7 @@ export function AdminGallery() {
         titleId="admin-gallery-title"
         eyebrow="Leader Tools"
         title="Ward Gallery"
-        lede="Scan or photograph drawings, add a title and first name, and share them with the ward."
+        lede="Scan or photograph drawings and share them with the ward."
         compact
       />
       <div className="wrap-wide admin-gallery-page">
@@ -338,8 +241,9 @@ export function AdminGallery() {
           </div>
 
           <p id="gallery-privacy-note" className="gallery-privacy-note">
-            <strong>Privacy:</strong> use first names only. For children, never add a last name, and
-            leave the name blank if a parent would rather not share it.
+            <strong>Privacy:</strong> the gallery shows only the pictures: no names, titles, or
+            captions. Before scanning, cover or crop out any name written on a drawing (many kids sign
+            their work).
           </p>
 
           {staged.length > 0 ? (
@@ -349,32 +253,6 @@ export function AdminGallery() {
                   {staged.length} selected
                   {doneCount ? ` · ${doneCount} uploaded` : ''}
                 </p>
-                <label className="gallery-staged__all">
-                  <span>Same class for all</span>
-                  <input
-                    type="text"
-                    maxLength={40}
-                    list={`${uid}-all-ages`}
-                    value={classForAll}
-                    placeholder="e.g. Sunbeams"
-                    onChange={(e) => setClassForAll(e.target.value)}
-                  />
-                  <datalist id={`${uid}-all-ages`}>
-                    {AGE_GROUP_SUGGESTIONS.map((a) => (
-                      <option key={a} value={a} />
-                    ))}
-                  </datalist>
-                </label>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={uploading}
-                  onClick={() =>
-                    setStaged((prev) => prev.map((s) => (s.status === 'done' ? s : { ...s, ageGroup: classForAll })))
-                  }
-                >
-                  Apply
-                </button>
               </div>
               <ul className="gallery-staged__list" role="list">
                 {staged.map((s) => (
@@ -382,14 +260,8 @@ export function AdminGallery() {
                     <img src={s.previewUrl} alt="" className="gallery-staged__thumb" />
                     <div className="gallery-staged__body">
                       <p className="gallery-staged__file">
-                        {s.file.name} <span>· {(s.file.size / 1024 / 1024).toFixed(1)} MB</span>
+                        {s.file.size < 100 * 1024 ? `${Math.max(1, Math.round(s.file.size / 1024))} KB` : `${(s.file.size / 1024 / 1024).toFixed(1)} MB`}
                       </p>
-                      <MetaFields
-                        idPrefix={`${uid}-${s.key}`}
-                        value={s}
-                        onChange={(m) => updateStaged(s.key, m)}
-                        disabled={s.status === 'uploading' || s.status === 'done'}
-                      />
                       {s.status === 'uploading' ? (
                         <div className="gallery-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(s.progress * 100)} aria-label={`Uploading ${s.file.name}`}>
                           <span style={{ width: `${Math.max(4, s.progress * 100)}%` }} />
@@ -456,70 +328,22 @@ export function AdminGallery() {
           ) : (
             <ul className="admin-gallery-list" role="list">
               {items.map((it) => {
-                const credit = galleryCredit(it)
                 const busy = busyId === it.id
                 return (
                   <li key={it.id} className={`admin-gallery-item${it.hidden ? ' is-hidden' : ''}`}>
-                    <a href={it.imageUrl} target="_blank" rel="noopener noreferrer" className="admin-gallery-item__thumb">
+                    <a href={it.imageUrl} target="_blank" rel="noopener noreferrer" className="admin-gallery-item__thumb" aria-label="Open full size">
                       <img src={it.thumbUrl} alt={it.alt} width={it.thumbWidth} height={it.thumbHeight} loading="lazy" />
+                      {it.hidden ? <span className="gallery-badge gallery-badge--hidden">Hidden</span> : null}
                     </a>
-                    <div className="admin-gallery-item__body">
-                      <p className="admin-gallery-item__badges">
-                        {it.hidden ? <span className="gallery-badge gallery-badge--hidden">Hidden</span> : null}
-                        <span className="admin-gallery-item__when">Added {it.when}</span>
-                      </p>
-                      {editing === it.id ? (
-                        <form
-                          className="form-stack"
-                          onSubmit={async (e) => {
-                            e.preventDefault()
-                            if (await saveItem(it, editDraft, 'Saved.')) setEditing(null)
-                          }}
-                        >
-                          <MetaFields idPrefix={`${uid}-edit-${it.id}`} value={editDraft} onChange={setEditDraft} disabled={busy} />
-                          <div className="admin-gallery-item__edit-actions">
-                            <button type="submit" className="btn-primary" disabled={busy}>
-                              Save
-                            </button>
-                            <button type="button" className="btn-secondary" onClick={() => setEditing(null)} disabled={busy}>
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <p className="admin-gallery-item__title">{it.title || <em>No title</em>}</p>
-                          {credit ? <p className="admin-gallery-item__credit">{credit}</p> : null}
-                          {it.caption ? <p className="admin-gallery-item__caption">{it.caption}</p> : null}
-                        </>
-                      )}
+                    <p className="admin-gallery-item__when">Added {it.when}</p>
+                    <div className="admin-gallery-item__actions" role="group" aria-label={`Actions for drawing added ${it.when}`}>
+                      <button type="button" className="btn-secondary" disabled={busy} onClick={() => void setHidden(it, !it.hidden)}>
+                        {it.hidden ? 'Show' : 'Hide'}
+                      </button>
+                      <button type="button" className="btn-danger" disabled={busy} onClick={() => void remove(it)}>
+                        Delete
+                      </button>
                     </div>
-                    {editing === it.id ? null : (
-                      <div className="admin-gallery-item__actions" role="group" aria-label={`Actions for ${it.title || 'drawing'}`}>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          disabled={busy}
-                          onClick={() => {
-                            setEditing(it.id)
-                            setEditDraft({ title: it.title, caption: it.caption, artist: it.artist, ageGroup: it.ageGroup })
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          disabled={busy}
-                          onClick={() => void saveItem(it, { hidden: !it.hidden }, it.hidden ? 'Shown on the gallery.' : 'Hidden from the gallery.')}
-                        >
-                          {it.hidden ? 'Show' : 'Hide'}
-                        </button>
-                        <button type="button" className="btn-danger" disabled={busy} onClick={() => void remove(it)}>
-                          Delete
-                        </button>
-                      </div>
-                    )}
                   </li>
                 )
               })}

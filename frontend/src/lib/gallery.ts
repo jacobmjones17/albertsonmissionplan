@@ -1,10 +1,9 @@
-/** One drawing as returned by GET /api/gallery and /api/admin/gallery. */
+/**
+ * One drawing as returned by GET /api/gallery and /api/admin/gallery. By design there are no
+ * names, titles, or captions: the gallery shows only the pictures, to protect the children.
+ */
 export type GalleryItem = {
   id: number
-  title: string
-  caption: string
-  artist: string
-  ageGroup: string
   width: number
   height: number
   thumbWidth: number
@@ -15,35 +14,6 @@ export type GalleryItem = {
   hidden?: boolean
   when: string
 }
-
-/** "by Mia · Sunbeams" style credit line, or '' when nothing was entered. */
-export function galleryCredit(item: Pick<GalleryItem, 'artist' | 'ageGroup'>): string {
-  const parts: string[] = []
-  if (item.artist) parts.push(`by ${item.artist}`)
-  if (item.ageGroup) parts.push(item.ageGroup)
-  return parts.join(' · ')
-}
-
-/** Suggestions for the age / class field (leaders can type anything). */
-export const AGE_GROUP_SUGGESTIONS = [
-  'Nursery',
-  'Sunbeams',
-  'CTR 4',
-  'CTR 5',
-  'CTR 6',
-  'CTR 7',
-  'Valiant 8',
-  'Valiant 9',
-  'Valiant 10',
-  'Valiant 11',
-  'Primary',
-  'Youth',
-  'Young Women',
-  'Aaronic Priesthood',
-  'Relief Society',
-  'Elders Quorum',
-  'Ward member',
-]
 
 /**
  * Fisher-Yates shuffle (returns a new array). The public gallery shows every visible drawing,

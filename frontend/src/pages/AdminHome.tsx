@@ -325,7 +325,7 @@ export function AdminHome() {
                 <Link to="/admin/gallery">
                   <span className="admin-links__text">
                     <span className="admin-links__label">Ward Gallery</span>
-                    <span className="admin-links__desc">Upload and arrange drawings from children and members</span>
+                    <span className="admin-links__desc">Upload, hide, or remove drawings from children and members</span>
                     {galleryCount !== null ? (
                       <span className="admin-links__status">
                         {galleryCount.total === 0

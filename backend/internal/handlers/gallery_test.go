@@ -102,8 +102,9 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 		t.Fatalf("empty gallery returned %d items", len(got))
 	}
 
+	// Any text fields a client sends are ignored: the gallery stores no names or labels.
 	rec := h.upload(sampleJPEG(t, 2400, 1800), map[string]string{
-		"title": "  Jesus   and the children ", "caption": "Drawn in Primary.", "artist": "Mia", "ageGroup": "Sunbeams",
+		"title": "Jesus and the children", "caption": "Drawn in Primary.", "artist": "Mia", "ageGroup": "Sunbeams",
 	}, true)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("upload: %d %s", rec.Code, rec.Body.String())
@@ -113,23 +114,25 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &up)
 	it := up.Item
-	if it.Title != "Jesus and the children" || it.Artist != "Mia" || it.AgeGroup != "Sunbeams" {
-		t.Errorf("fields not cleaned/saved: %+v", it)
+	for _, leak := range []string{"Mia", "Sunbeams", "Jesus and the children", "Drawn in Primary", "artist", "title", "caption"} {
+		if strings.Contains(rec.Body.String(), leak) {
+			t.Errorf("upload response contains %q: %s", leak, rec.Body.String())
+		}
 	}
 	if it.Width != 1600 || it.Height != 1200 || it.ThumbWidth != 640 {
 		t.Errorf("sizes: %dx%d thumb %d", it.Width, it.Height, it.ThumbWidth)
 	}
-	if !strings.Contains(it.Alt, "Jesus and the children") || !strings.Contains(it.Alt, "Mia (Sunbeams)") {
+	if it.Alt != "Drawing by a ward member" {
 		t.Errorf("alt = %q", it.Alt)
 	}
 
 	// The API lists newest first (the public page shuffles client-side).
-	rec = h.upload(sampleJPEG(t, 300, 400), map[string]string{"title": "Temple"}, true)
+	rec = h.upload(sampleJPEG(t, 300, 400), nil, true)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("upload 2: %d", rec.Code)
 	}
 	pub := h.list("/api/gallery", false)
-	if len(pub) != 2 || pub[0].Title != "Temple" {
+	if len(pub) != 2 || pub[1].ID != it.ID {
 		t.Fatalf("public order: %+v", pub)
 	}
 	templeID := pub[0].ID
@@ -153,8 +156,8 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 	}
 
 	// Hide: gone from the public list and its image is 404 for visitors, still there for leaders.
-	edit := map[string]any{"title": it.Title, "caption": it.Caption, "artist": it.Artist, "ageGroup": it.AgeGroup, "hidden": true}
-	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/edit", edit, true); rec.Code != http.StatusOK {
+	edit := map[string]any{"hidden": true}
+	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/visibility", edit, true); rec.Code != http.StatusOK {
 		t.Fatalf("hide: %d %s", rec.Code, rec.Body.String())
 	}
 	if pub := h.list("/api/gallery", false); len(pub) != 1 {
@@ -173,7 +176,7 @@ func TestGalleryUploadListServeEditDelete(t *testing.T) {
 
 	// Unhide: back on the public list, which returns every visible drawing (no paging).
 	edit["hidden"] = false
-	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/edit", edit, true); rec.Code != http.StatusOK {
+	if rec := h.postJSON("/api/admin/gallery/"+itoa(it.ID)+"/visibility", edit, true); rec.Code != http.StatusOK {
 		t.Fatalf("unhide: %d", rec.Code)
 	}
 	if pub := h.list("/api/gallery", false); len(pub) != 2 || pub[0].ID != templeID || pub[1].ID != it.ID {
@@ -200,7 +203,7 @@ func TestGalleryAdminEndpointsRequireLeader(t *testing.T) {
 	checks := []*httptest.ResponseRecorder{
 		h.do(httptest.NewRequest(http.MethodGet, "/api/admin/gallery", nil), false),
 		h.upload(sampleJPEG(t, 10, 10), nil, false),
-		h.postJSON("/api/admin/gallery/1/edit", map[string]any{}, false),
+		h.postJSON("/api/admin/gallery/1/visibility", map[string]any{"hidden": true}, false),
 		h.postJSON("/api/admin/gallery/1/delete", nil, false),
 	}
 	for i, rec := range checks {

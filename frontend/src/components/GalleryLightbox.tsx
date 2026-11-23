@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { galleryCredit, type GalleryItem } from '../lib/gallery'
+import { type GalleryItem } from '../lib/gallery'
 
 type Props = {
   items: GalleryItem[]
@@ -70,13 +70,11 @@ export function GalleryLightbox({ items, index, onIndexChange }: Props) {
     if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1)
   }
 
-  const credit = item ? galleryCredit(item) : ''
-
   return (
     <dialog
       ref={dialogRef}
       className="gallery-lightbox"
-      aria-label={item ? item.title || 'Drawing' : 'Drawing viewer'}
+      aria-label="Drawing viewer"
       onClose={() => onIndexChange(null)}
       onKeyDown={onKeyDown}
       onClick={(e) => {
@@ -119,7 +117,7 @@ export function GalleryLightbox({ items, index, onIndexChange }: Props) {
             <img
               key={item.id}
               src={item.imageUrl}
-              alt={item.alt}
+              alt={`Drawing ${index + 1} of ${count}, by a ward member`}
               width={item.width}
               height={item.height}
               className={`gallery-lightbox__img${loaded ? ' is-loaded' : ''}`}
@@ -138,13 +136,6 @@ export function GalleryLightbox({ items, index, onIndexChange }: Props) {
               </button>
             ) : null}
           </div>
-          {item.title || credit || item.caption ? (
-            <div className="gallery-lightbox__caption">
-              {item.title ? <h2 className="gallery-lightbox__title">{item.title}</h2> : null}
-              {credit ? <p className="gallery-lightbox__credit">{credit}</p> : null}
-              {item.caption ? <p className="gallery-lightbox__text">{item.caption}</p> : null}
-            </div>
-          ) : null}
           {count > 1 ? (
             <p className="gallery-lightbox__hint">Swipe or use the arrow keys to see more</p>
           ) : null}

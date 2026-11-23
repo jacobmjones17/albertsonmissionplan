@@ -17,12 +17,15 @@ func testGalleryStore(t *testing.T) {
 	_, _ = db.ExecContext(ctx, `DELETE FROM gallery_items`)
 
 	img := GalleryImages{Width: 4, Height: 3, ThumbWidth: 2, ThumbHeight: 1, Hash: "abc123", Image: []byte{0xFF, 0xD8, 1, 2, 0}, Thumb: []byte{9, 0, 8}}
-	a, err := InsertGalleryItem(ctx, db, GalleryItemInput{Title: "A", Artist: "Mia"}, img, "lead@example.org")
+	a, err := InsertGalleryItem(ctx, db, img, "lead@example.org")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := InsertGalleryItem(ctx, db, GalleryItemInput{Title: "B", Hidden: true}, img, "lead@example.org")
+	b, err := InsertGalleryItem(ctx, db, img, "lead@example.org")
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SetGalleryItemHidden(ctx, db, b, true); err != nil {
 		t.Fatal(err)
 	}
 	pub, err := ListGalleryItems(ctx, db, false)
@@ -45,11 +48,14 @@ func testGalleryStore(t *testing.T) {
 	if err != nil || total != 2 || nHidden != 1 {
 		t.Fatalf("counts %d %d %v", total, nHidden, err)
 	}
-	if err := UpdateGalleryItem(ctx, db, a, GalleryItemInput{Title: "A2", Artist: "Mia"}); err != nil {
+	if err := SetGalleryItemHidden(ctx, db, b, false); err != nil {
 		t.Fatal(err)
 	}
-	g, err := GetGalleryItem(ctx, db, a)
-	if err != nil || g.Title != "A2" || g.Artist != "Mia" || g.Hidden || g.CreatedAt.IsZero() {
+	if err := SetGalleryItemHidden(ctx, db, 999999, true); !errors.Is(err, ErrGalleryNotFound) {
+		t.Fatalf("hide missing err = %v", err)
+	}
+	g, err := GetGalleryItem(ctx, db, b)
+	if err != nil || g.Hidden || g.Width != 4 || g.ImageHash != "abc123" || g.CreatedAt.IsZero() {
 		t.Fatalf("get = %+v, %v", g, err)
 	}
 	if err := DeleteGalleryItem(ctx, db, a); err != nil {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiJson } from '../api'
 import { GalleryLightbox } from '../components/GalleryLightbox'
 import { PageHero } from '../components/PageHero'
-import { galleryCredit, shuffled, type GalleryItem } from '../lib/gallery'
+import { shuffled, type GalleryItem } from '../lib/gallery'
 
 export function Gallery() {
   const [items, setItems] = useState<GalleryItem[] | null>(null)
@@ -85,7 +85,6 @@ export function Gallery() {
             </p>
             <ul className="gallery-grid" role="list">
               {items.map((it, i) => {
-                const credit = galleryCredit(it)
                 return (
                   <li key={it.id} className="gallery-card">
                     <button
@@ -93,7 +92,7 @@ export function Gallery() {
                       className="gallery-card__button"
                       data-gallery-id={it.id}
                       onClick={() => openAt(i)}
-                      aria-label={`View larger: ${it.alt}`}
+                      aria-label={`View drawing ${i + 1} of ${items.length} larger`}
                     >
                       <img
                         src={it.thumbUrl}
@@ -104,15 +103,6 @@ export function Gallery() {
                         decoding="async"
                       />
                     </button>
-                    {/* Always rendered (same height on every tile) so rows line up; long text is
-                        clamped here and shown in full in the lightbox. */}
-                    <div className="gallery-card__caption">
-                      <p className="gallery-card__title" title={it.title || undefined}>
-                        {it.title || 'Untitled drawing'}
-                      </p>
-                      {credit ? <p className="gallery-card__credit" title={credit}>{credit}</p> : null}
-                      {it.caption ? <p className="gallery-card__text">{it.caption}</p> : null}
-                    </div>
                   </li>
                 )
               })}

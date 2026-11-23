@@ -114,10 +114,6 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 		// bytes live in the row; list queries never select the two BYTEA columns.
 		`CREATE TABLE IF NOT EXISTS gallery_items (
 			id BIGSERIAL PRIMARY KEY,
-			title TEXT NOT NULL DEFAULT '',
-			caption TEXT NOT NULL DEFAULT '',
-			artist TEXT NOT NULL DEFAULT '',
-			age_group TEXT NOT NULL DEFAULT '',
 			width INTEGER NOT NULL,
 			height INTEGER NOT NULL,
 			thumb_width INTEGER NOT NULL,
@@ -199,10 +195,6 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);`,
 		`CREATE TABLE IF NOT EXISTS gallery_items (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL DEFAULT '',
-			caption TEXT NOT NULL DEFAULT '',
-			artist TEXT NOT NULL DEFAULT '',
-			age_group TEXT NOT NULL DEFAULT '',
 			width INTEGER NOT NULL,
 			height INTEGER NOT NULL,
 			thumb_width INTEGER NOT NULL,

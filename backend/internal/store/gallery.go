@@ -7,13 +7,10 @@ import (
 	"time"
 )
 
-// GalleryItem is one drawing's metadata (image bytes are fetched separately).
+// GalleryItem is one drawing's metadata (image bytes are fetched separately). By design no
+// names, titles, or captions are stored, so nothing identifies the children who drew them.
 type GalleryItem struct {
 	ID          int64
-	Title       string
-	Caption     string
-	Artist      string
-	AgeGroup    string
 	Width       int
 	Height      int
 	ThumbWidth  int
@@ -21,15 +18,6 @@ type GalleryItem struct {
 	ImageHash   string
 	Hidden      bool
 	CreatedAt   time.Time
-}
-
-// GalleryItemInput is the editable text + hidden flag of a drawing.
-type GalleryItemInput struct {
-	Title    string
-	Caption  string
-	Artist   string
-	AgeGroup string
-	Hidden   bool
 }
 
 // GalleryImages holds the processed bytes for a new drawing.
@@ -42,8 +30,7 @@ type GalleryImages struct {
 
 var ErrGalleryNotFound = errors.New("gallery item not found")
 
-const galleryCols = `id, title, caption, artist, age_group, width, height, thumb_width, thumb_height,
-	image_hash, hidden, created_at`
+const galleryCols = `id, width, height, thumb_width, thumb_height, image_hash, hidden, created_at`
 
 // Newest first. The public page shuffles the list on every load, so this order is mainly for
 // the leader manager.
@@ -55,7 +42,7 @@ func scanGalleryItems(rows *sql.Rows) ([]GalleryItem, error) {
 	for rows.Next() {
 		var g GalleryItem
 		var created nullTime
-		if err := rows.Scan(&g.ID, &g.Title, &g.Caption, &g.Artist, &g.AgeGroup, &g.Width, &g.Height,
+		if err := rows.Scan(&g.ID, &g.Width, &g.Height,
 			&g.ThumbWidth, &g.ThumbHeight, &g.ImageHash, &g.Hidden, &created); err != nil {
 			return nil, err
 		}
@@ -102,13 +89,11 @@ func GetGalleryItem(ctx context.Context, db *sql.DB, id int64) (*GalleryItem, er
 }
 
 // InsertGalleryItem stores a new drawing.
-func InsertGalleryItem(ctx context.Context, db *sql.DB, in GalleryItemInput, img GalleryImages, createdBy string) (int64, error) {
-	args := []any{in.Title, in.Caption, in.Artist, in.AgeGroup, img.Width, img.Height, img.ThumbWidth,
-		img.ThumbHeight, img.Hash, img.Image, img.Thumb, in.Hidden, createdBy}
-	q := `INSERT INTO gallery_items (title, caption, artist, age_group, width, height, thumb_width,
-		thumb_height, image_hash, image_data, thumb_data, hidden, created_by,
-		created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+func InsertGalleryItem(ctx context.Context, db *sql.DB, img GalleryImages, createdBy string) (int64, error) {
+	args := []any{img.Width, img.Height, img.ThumbWidth, img.ThumbHeight, img.Hash, img.Image, img.Thumb, createdBy}
+	q := `INSERT INTO gallery_items (width, height, thumb_width, thumb_height, image_hash, image_data,
+		thumb_data, created_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 	if activeDriver == driverSQLite {
 		res, err := sxExec(db, ctx, q, args...)
 		if err != nil {
@@ -121,11 +106,10 @@ func InsertGalleryItem(ctx context.Context, db *sql.DB, in GalleryItemInput, img
 	return id, err
 }
 
-// UpdateGalleryItem changes a drawing's text and hidden flag.
-func UpdateGalleryItem(ctx context.Context, db *sql.DB, id int64, in GalleryItemInput) error {
-	res, err := sxExec(db, ctx, `UPDATE gallery_items SET title = $1, caption = $2, artist = $3,
-		age_group = $4, hidden = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
-		in.Title, in.Caption, in.Artist, in.AgeGroup, in.Hidden, id)
+// SetGalleryItemHidden hides a drawing from the public page (or shows it again).
+func SetGalleryItemHidden(ctx context.Context, db *sql.DB, id int64, hidden bool) error {
+	res, err := sxExec(db, ctx, `UPDATE gallery_items SET hidden = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+		hidden, id)
 	return affectedOrNotFound(res, err)
 }
 

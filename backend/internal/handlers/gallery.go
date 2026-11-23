@@ -9,17 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/albertson/albertsonmissionplan/internal/gallery"
 	"github.com/albertson/albertsonmissionplan/internal/store"
-)
-
-const (
-	galleryTitleMax    = 120
-	galleryCaptionMax  = 600
-	galleryArtistMax   = 40
-	galleryAgeGroupMax = 40
 )
 
 // Image processing allocates tens of MB for a big scan; run one at a time so a bulk upload
@@ -32,16 +24,12 @@ func (s *Server) RegisterGalleryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/gallery/{id}/{size}", s.APIGalleryImage)
 	mux.HandleFunc("GET /api/admin/gallery", s.APIAdminGallery)
 	mux.HandleFunc("POST /api/admin/gallery", s.APIAdminGalleryUpload)
-	mux.HandleFunc("POST /api/admin/gallery/{id}/edit", s.APIAdminGalleryEdit)
+	mux.HandleFunc("POST /api/admin/gallery/{id}/visibility", s.APIAdminGalleryVisibility)
 	mux.HandleFunc("POST /api/admin/gallery/{id}/delete", s.APIAdminGalleryDelete)
 }
 
 type galleryItemDTO struct {
 	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Caption     string `json:"caption"`
-	Artist      string `json:"artist"`
-	AgeGroup    string `json:"ageGroup"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 	ThumbWidth  int    `json:"thumbWidth"`
@@ -53,34 +41,17 @@ type galleryItemDTO struct {
 	When        string `json:"when"`
 }
 
-// galleryAlt builds descriptive alt text from what leaders typed.
-func galleryAlt(g store.GalleryItem) string {
-	var b strings.Builder
-	b.WriteString("Drawing")
-	if g.Title != "" {
-		fmt.Fprintf(&b, ": %s", g.Title)
-	}
-	if g.Artist != "" {
-		fmt.Fprintf(&b, ", by %s", g.Artist)
-		if g.AgeGroup != "" {
-			fmt.Fprintf(&b, " (%s)", g.AgeGroup)
-		}
-	} else if g.AgeGroup != "" {
-		fmt.Fprintf(&b, ", by a member of %s", g.AgeGroup)
-	}
-	if g.Caption != "" {
-		fmt.Fprintf(&b, ". %s", g.Caption)
-	}
-	return b.String()
-}
+// galleryAlt is deliberately generic: the gallery stores no names, titles, or captions so
+// nothing identifies the children who drew the pictures.
+const galleryAlt = "Drawing by a ward member"
 
 func toGalleryDTO(g store.GalleryItem) galleryItemDTO {
 	return galleryItemDTO{
-		ID: g.ID, Title: g.Title, Caption: g.Caption, Artist: g.Artist, AgeGroup: g.AgeGroup,
+		ID:    g.ID,
 		Width: g.Width, Height: g.Height, ThumbWidth: g.ThumbWidth, ThumbHeight: g.ThumbHeight,
 		ImageURL: fmt.Sprintf("/api/gallery/%d/image?v=%s", g.ID, g.ImageHash),
 		ThumbURL: fmt.Sprintf("/api/gallery/%d/thumb?v=%s", g.ID, g.ImageHash),
-		Alt:      galleryAlt(g),
+		Alt:      galleryAlt,
 		Hidden:   g.Hidden,
 		When:     formatWhen(g.CreatedAt),
 	}
@@ -176,39 +147,15 @@ func (s *Server) APIAdminGallery(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"items": galleryDTOs(items)})
 }
 
-func cleanField(s string, max int) string {
-	s = strings.Join(strings.Fields(s), " ")
-	if utf8.RuneCountInString(s) > max {
-		s = string([]rune(s)[:max])
-	}
-	return strings.TrimSpace(s)
-}
-
-func cleanCaption(s string) string {
-	s = strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n"))
-	if utf8.RuneCountInString(s) > galleryCaptionMax {
-		s = strings.TrimSpace(string([]rune(s)[:galleryCaptionMax]))
-	}
-	return s
-}
-
-func cleanGalleryInput(in store.GalleryItemInput) store.GalleryItemInput {
-	in.Title = cleanField(in.Title, galleryTitleMax)
-	in.Caption = cleanCaption(in.Caption)
-	in.Artist = cleanField(in.Artist, galleryArtistMax)
-	in.AgeGroup = cleanField(in.AgeGroup, galleryAgeGroupMax)
-	return in
-}
-
-// APIAdminGalleryUpload accepts one drawing per request (multipart field "image" plus optional
-// title, caption, artist, ageGroup). The manager page uploads a batch one file at a time so each
+// APIAdminGalleryUpload accepts one drawing per request (multipart field "image"; no names or
+// other text are stored). The manager page uploads a batch one file at a time so each
 // file gets its own progress and error.
 func (s *Server) APIAdminGalleryUpload(w http.ResponseWriter, r *http.Request) {
 	email, ok := s.requireAdmin(w, r)
 	if !ok {
 		return
 	}
-	// Allow the 15 MB image plus form fields and multipart overhead.
+	// Allow the 15 MB image plus multipart overhead.
 	r.Body = http.MaxBytesReader(w, r.Body, gallery.MaxUploadBytes+(1<<20))
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		var mbe *http.MaxBytesError
@@ -257,13 +204,7 @@ func (s *Server) APIAdminGalleryUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	in := cleanGalleryInput(store.GalleryItemInput{
-		Title:    r.FormValue("title"),
-		Caption:  r.FormValue("caption"),
-		Artist:   r.FormValue("artist"),
-		AgeGroup: r.FormValue("ageGroup"),
-	})
-	id, err := store.InsertGalleryItem(r.Context(), s.DB, in, store.GalleryImages{
+	id, err := store.InsertGalleryItem(r.Context(), s.DB, store.GalleryImages{
 		Width: res.DisplayWidth, Height: res.DisplayHeight,
 		ThumbWidth: res.ThumbWidth, ThumbHeight: res.ThumbHeight,
 		Hash: res.Hash, Image: res.Display, Thumb: res.Thumb,
@@ -284,12 +225,8 @@ func (s *Server) APIAdminGalleryUpload(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "item": toGalleryDTO(*item)})
 }
 
-type galleryEditRequest struct {
-	Title    string `json:"title"`
-	Caption  string `json:"caption"`
-	Artist   string `json:"artist"`
-	AgeGroup string `json:"ageGroup"`
-	Hidden   bool   `json:"hidden"`
+type galleryVisibilityRequest struct {
+	Hidden bool `json:"hidden"`
 }
 
 func galleryIDFromPath(w http.ResponseWriter, r *http.Request) (int64, bool) {
@@ -301,8 +238,8 @@ func galleryIDFromPath(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	return id, true
 }
 
-// APIAdminGalleryEdit updates a drawing's text and hidden flag.
-func (s *Server) APIAdminGalleryEdit(w http.ResponseWriter, r *http.Request) {
+// APIAdminGalleryVisibility hides a drawing from (or shows it on) the public page: {"hidden": true}.
+func (s *Server) APIAdminGalleryVisibility(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.requireAdmin(w, r); !ok {
 		return
 	}
@@ -310,18 +247,17 @@ func (s *Server) APIAdminGalleryEdit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var req galleryEditRequest
+	var req galleryVisibilityRequest
 	if err := readJSON(r, &req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request."})
 		return
 	}
-	in := cleanGalleryInput(store.GalleryItemInput(req))
-	if err := store.UpdateGalleryItem(r.Context(), s.DB, id, in); err != nil {
+	if err := store.SetGalleryItemHidden(r.Context(), s.DB, id, req.Hidden); err != nil {
 		if errors.Is(err, store.ErrGalleryNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "Drawing not found."})
 			return
 		}
-		log.Printf("gallery edit %d: %v", id, err)
+		log.Printf("gallery visibility %d: %v", id, err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not save."})
 		return
 	}
