@@ -143,6 +143,22 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_ward_events_date ON ward_events(event_date);`,
+		// Monthly Challenges: one row per month, editable by leaders. Seeded from the original
+		// static content and artwork on first run.
+		`CREATE TABLE IF NOT EXISTS monthly_challenges (
+			month SMALLINT PRIMARY KEY CHECK (month BETWEEN 1 AND 12),
+			heading TEXT NOT NULL,
+			goal TEXT NOT NULL,
+			bullets TEXT NOT NULL,
+			hidden BOOLEAN NOT NULL DEFAULT FALSE,
+			image_type TEXT NOT NULL,
+			image_hash TEXT NOT NULL,
+			image_data BYTEA NOT NULL,
+			thumb_data BYTEA NOT NULL,
+			image_custom BOOLEAN NOT NULL DEFAULT FALSE,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_by TEXT NOT NULL DEFAULT ''
+		);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {
@@ -155,7 +171,10 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 	if err := migrateOrgSectionTitles(ctx, db); err != nil {
 		return err
 	}
-	return seedIfEmpty(ctx, db)
+	if err := seedIfEmpty(ctx, db); err != nil {
+		return err
+	}
+	return seedMonthlyChallenges(ctx, db)
 }
 
 func migrateSQLite(ctx context.Context, db *sql.DB) error {
@@ -239,6 +258,20 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_ward_events_date ON ward_events(event_date);`,
+		`CREATE TABLE IF NOT EXISTS monthly_challenges (
+			month INTEGER PRIMARY KEY CHECK (month BETWEEN 1 AND 12),
+			heading TEXT NOT NULL,
+			goal TEXT NOT NULL,
+			bullets TEXT NOT NULL,
+			hidden INTEGER NOT NULL DEFAULT 0 CHECK (hidden IN (0, 1)),
+			image_type TEXT NOT NULL,
+			image_hash TEXT NOT NULL,
+			image_data BLOB NOT NULL,
+			thumb_data BLOB NOT NULL,
+			image_custom INTEGER NOT NULL DEFAULT 0 CHECK (image_custom IN (0, 1)),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_by TEXT NOT NULL DEFAULT ''
+		);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.ExecContext(ctx, s); err != nil {
@@ -251,7 +284,10 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 	if err := seedIfEmptySQLiteAddons(ctx, db); err != nil {
 		return err
 	}
-	return migrateOrgSectionTitles(ctx, db)
+	if err := migrateOrgSectionTitles(ctx, db); err != nil {
+		return err
+	}
+	return seedMonthlyChallenges(ctx, db)
 }
 
 // normalizePostgresURL tunes the DSN for managed Postgres (e.g. Render): require TLS and

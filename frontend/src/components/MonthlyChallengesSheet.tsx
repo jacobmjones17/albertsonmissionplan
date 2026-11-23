@@ -1,13 +1,15 @@
-import { CHALLENGE_CARD_HEADING, MONTHLY_GOALS, MONTHS_SHORT, type Goal } from '../monthlyData'
+import { MONTHS_SHORT } from '../monthlyData'
 import { renderChallengeBullet } from '../lib/challengeBullets'
-import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
+import type { MonthlyChallenge } from '../lib/monthlyChallenges'
 
 /** Shared one-page monthly challenges grid (print + download). */
 export function MonthlyChallengesSheet({
   year,
+  challenges,
   className = '',
 }: {
   year: number
+  challenges: MonthlyChallenge[]
   className?: string
 }) {
   return (
@@ -19,24 +21,20 @@ export function MonthlyChallengesSheet({
       </header>
 
       <div className="challenges-sheet__grid">
-        {MONTHLY_GOALS.map((goal, index) => (
-          <article className="challenges-sheet__cell" key={goal.id}>
+        {challenges.map((c) => (
+          <article className="challenges-sheet__cell" key={c.month}>
             <div className="challenges-sheet__card">
               <div className="challenges-sheet__art">
-                <img
-                  src={monthlyChallengeImageSrc(goal.id)}
-                  alt={CHALLENGE_CARD_HEADING[goal.id as Goal['id']]}
-                  className="challenges-sheet__img"
-                />
-                <span className="challenges-sheet__month">{MONTHS_SHORT[index]}</span>
+                <img src={c.imageSrc} alt={c.heading} className="challenges-sheet__img" />
+                <span className="challenges-sheet__month">{MONTHS_SHORT[c.month - 1]}</span>
               </div>
 
               <div className="challenges-sheet__body">
                 <p className="challenges-sheet__goal">
-                  <strong>Goal:</strong> {goal.title}
+                  <strong>Goal:</strong> {c.goal}
                 </p>
                 <ul className="challenges-sheet__list">
-                  {goal.bullets.map((b, i) => renderChallengeBullet(goal, b.who, b.text, i))}
+                  {c.bullets.map((b, i) => renderChallengeBullet(b.who, b.text, i))}
                 </ul>
               </div>
             </div>

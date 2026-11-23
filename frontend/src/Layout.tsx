@@ -338,6 +338,9 @@ function LeaderNav({ onSignOut }: { onSignOut: () => void }) {
             <NavLink to="/admin/events">Events</NavLink>
           </li>
           <li>
+            <NavLink to="/admin/challenges">Challenges</NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/gallery">Gallery</NavLink>
           </li>
         </ul>

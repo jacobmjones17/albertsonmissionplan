@@ -1,20 +1,18 @@
-import type { Goal } from '../monthlyData'
-import { MONTHLY_GOALS } from '../monthlyData'
-import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
 import { fetchImageAsDataUrl } from './fetchImageAsDataUrl'
+import { loadMonthlyChallenges, FALLBACK_CHALLENGES, type MonthlyChallenge } from './monthlyChallenges'
 import { buildMonthlyChallengesHtml } from './printDocuments'
 
 /** Build a self-contained HTML document with embedded challenge artwork. */
-export async function buildOfflineMonthlyChallengesHtml(year: number): Promise<string> {
-  const imageSrcByGoalId: Partial<Record<Goal['id'], string>> = {}
-
+export async function buildOfflineMonthlyChallengesHtml(
+  year: number,
+  challenges?: MonthlyChallenge[],
+): Promise<string> {
+  const list = challenges ?? (await loadMonthlyChallenges().catch(() => FALLBACK_CHALLENGES))
+  const imageSrcByMonth: Record<number, string> = {}
   await Promise.all(
-    MONTHLY_GOALS.map(async (goal) => {
-      const id = goal.id as Goal['id']
-      const path = monthlyChallengeImageSrc(id)
-      imageSrcByGoalId[id] = await fetchImageAsDataUrl(path)
+    list.map(async (c) => {
+      imageSrcByMonth[c.month] = await fetchImageAsDataUrl(c.imageSrc)
     }),
   )
-
-  return buildMonthlyChallengesHtml(year, imageSrcByGoalId)
+  return buildMonthlyChallengesHtml(year, list, imageSrcByMonth)
 }

@@ -1,10 +1,5 @@
-import {
-  CHALLENGE_CARD_HEADING,
-  MONTHLY_GOALS,
-  MONTHS_SHORT,
-  type Goal,
-} from '../monthlyData'
-import { monthlyChallengeImageSrc } from '../monthlyChallengeImages'
+import { MONTHS_SHORT } from '../monthlyData'
+import type { MonthlyChallenge } from './monthlyChallenges'
 import { CHALLENGES_PRINT_HINT, CHALLENGES_SHEET_STYLES } from './challengesSheetStyles'
 import { challengeBulletHtml } from './challengeBullets'
 import { escapeHtml, wrapPrintHtml } from './downloadDocument'
@@ -15,15 +10,14 @@ export { CHALLENGES_SHEET_STYLES }
 
 export function buildMonthlyChallengesHtml(
   year: number,
-  imageSrcByGoalId: Partial<Record<Goal['id'], string>> = {},
+  challenges: MonthlyChallenge[],
+  imageSrcByMonth: Record<number, string> = {},
 ): string {
-  const cells = MONTHLY_GOALS.map((goal, index) => {
-    const bullets = goal.bullets.map((b) => challengeBulletHtml(goal, b.who, b.text)).join('\n')
-    const id = goal.id as Goal['id']
-    const imgSrc = imageSrcByGoalId[id] ?? monthlyChallengeImageSrc(id)
-    const img = escapeHtml(imgSrc)
-    const month = escapeHtml(MONTHS_SHORT[index]!)
-    const name = escapeHtml(CHALLENGE_CARD_HEADING[goal.id as Goal['id']])
+  const cells = challenges.map((c) => {
+    const bullets = c.bullets.map((b) => challengeBulletHtml(b.who, b.text)).join('\n')
+    const img = escapeHtml(imageSrcByMonth[c.month] ?? c.imageSrc)
+    const month = escapeHtml(MONTHS_SHORT[c.month - 1] ?? '')
+    const name = escapeHtml(c.heading)
     return `<article class="challenges-sheet__cell">
   <div class="challenges-sheet__card">
     <div class="challenges-sheet__art">
@@ -31,7 +25,7 @@ export function buildMonthlyChallengesHtml(
       <span class="challenges-sheet__month">${month}</span>
     </div>
     <div class="challenges-sheet__body">
-      <p class="challenges-sheet__goal"><strong>Goal:</strong> ${escapeHtml(goal.title)}</p>
+      <p class="challenges-sheet__goal"><strong>Goal:</strong> ${escapeHtml(c.goal)}</p>
       <ul class="challenges-sheet__list">${bullets}</ul>
     </div>
   </div>

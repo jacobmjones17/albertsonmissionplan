@@ -214,3 +214,35 @@ func TestProcessRejectsHugeDimensions(t *testing.T) {
 		t.Errorf("err = %v, want ErrTooManyPx", err)
 	}
 }
+
+func TestProcessCoverCropsToShape(t *testing.T) {
+	for _, size := range [][2]int{{300, 600}, {1200, 300}, {900, 600}} {
+		res, err := ProcessCover(sampleJPEGForCover(size[0], size[1]), 960, 640, 480, 320)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d := decode(t, res.Display)
+		th := decode(t, res.Thumb)
+		if d.Bounds().Dx() != 960 || d.Bounds().Dy() != 640 || th.Bounds().Dx() != 480 || th.Bounds().Dy() != 320 {
+			t.Fatalf("%v → display %v thumb %v", size, d.Bounds(), th.Bounds())
+		}
+		if res.Hash == "" {
+			t.Fatal("missing hash")
+		}
+	}
+	if _, err := ProcessCover([]byte("nope"), 960, 640, 480, 320); err != ErrUnsupported {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func sampleJPEGForCover(w, h int) []byte {
+	im := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			im.Set(x, y, color.RGBA{uint8(x), uint8(y), 90, 255})
+		}
+	}
+	var b bytes.Buffer
+	_ = jpeg.Encode(&b, im, nil)
+	return b.Bytes()
+}

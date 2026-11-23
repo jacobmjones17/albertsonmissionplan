@@ -4,6 +4,7 @@ import { MonthlyChallengesSheet } from '../components/MonthlyChallengesSheet'
 import { CHALLENGES_PRINT_HINT, CHALLENGES_SHEET_STYLES } from '../lib/challengesSheetStyles'
 import { downloadTextFile } from '../lib/downloadDocument'
 import { buildOfflineMonthlyChallengesHtml } from '../lib/downloadMonthlyChallenges'
+import { useMonthlyChallenges } from '../lib/monthlyChallenges'
 
 const SHEET_STYLE_ID = 'challenges-sheet-styles'
 
@@ -11,6 +12,8 @@ export function PrintMonthlyChallenges() {
   const year = useMemo(() => new Date().getFullYear(), [])
   const filename = `Albertson-Ward-Monthly-Challenges-${year}.html`
   const [downloading, setDownloading] = useState(false)
+  const state = useMonthlyChallenges()
+  const challenges = state.status === 'loading' ? null : state.challenges
 
   useEffect(() => {
     if (document.getElementById(SHEET_STYLE_ID)) return
@@ -26,7 +29,7 @@ export function PrintMonthlyChallenges() {
   async function handleDownload() {
     setDownloading(true)
     try {
-      const html = await buildOfflineMonthlyChallengesHtml(year)
+      const html = await buildOfflineMonthlyChallengesHtml(year, challenges ?? undefined)
       downloadTextFile(html, filename)
     } finally {
       setDownloading(false)
@@ -44,13 +47,18 @@ export function PrintMonthlyChallenges() {
           <strong>100%</strong>.
         </p>
         <div className="print-doc__actions">
-          <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!challenges}
+            onClick={() => window.print()}
+          >
             Print
           </button>
           <button
             type="button"
             className="btn btn-secondary"
-            disabled={downloading}
+            disabled={downloading || !challenges}
             onClick={() => void handleDownload()}
           >
             {downloading ? 'Preparing…' : 'Download'}
@@ -66,7 +74,14 @@ export function PrintMonthlyChallenges() {
 
       <article className="print-doc__body print-doc__body--sheet">
         <p className="sheet-print-hint" dangerouslySetInnerHTML={{ __html: CHALLENGES_PRINT_HINT }} />
-        <MonthlyChallengesSheet year={year} />
+        {challenges ? (
+          <MonthlyChallengesSheet year={year} challenges={challenges} />
+        ) : (
+          <p className="loading-note" role="status">
+            <span className="loading-note__spinner" aria-hidden="true" />
+            Loading the challenges…
+          </p>
+        )}
       </article>
     </div>
   )

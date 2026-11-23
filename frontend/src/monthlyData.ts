@@ -1,4 +1,11 @@
-/** Twelve monthly challenge goals (static copy for the SPA). */
+/**
+ * The original twelve monthly challenges. Leaders now edit the live content in Leader Tools
+ * (/admin/challenges, stored in the database); this copy is only the offline fallback when the
+ * API can't be reached. It must match backend/internal/challenges/defaults.go (the database
+ * seed), which TestDefaultsMatchFrontend checks.
+ *
+ * Idea text may use simple inline markup: **bold** and [label](https://link).
+ */
 export type Goal = {
   id: string
   title: string
@@ -81,7 +88,10 @@ export const MONTHLY_GOALS: Goal[] = [
     id: 'g3',
     title: 'Foster connection with ancestors and temple work',
     bullets: [
-      { who: 'Individuals', text: '' },
+      {
+        who: 'Individuals',
+        text: 'Spend time each week on [FamilySearch.org](https://www.familysearch.org/en/).',
+      },
       { who: 'Families', text: 'Share family stories and work on a family tree together.' },
       { who: 'Ward', text: 'Host a family history workshop or temple trip.' },
     ],
