@@ -1,53 +1,53 @@
 import { Link } from 'react-router-dom'
-import { PageHero } from '../components/PageHero'
 import { STATIC_SITE_PHOTOS } from '../staticSitePhotos'
 
 /** Friendly "page not found" view for mistyped or outdated links (catch-all route). */
 export function NotFound() {
   return (
     <main id="main" className="not-found-page">
-      <PageHero
-        titleId="page-title"
-        eyebrow="Page Not Found"
-        title="We Couldn’t Find That Page"
-        lede="The link may be mistyped or the page may have moved."
-      />
-      <div className="wrap-wide">
-        <section className="not-found" aria-labelledby="not-found-message">
-          <figure className="not-found__art">
+      <section className="nf" aria-labelledby="page-title">
+        <div className="nf__inner">
+          <figure className="nf__art">
             <img
               src={STATIC_SITE_PHOTOS.notFound}
               alt="Painting of Jesus Christ holding a young child close in His arms"
               width={1066}
               height={1599}
               decoding="async"
+              fetchPriority="high"
             />
           </figure>
-          <div className="not-found__body">
-            <h2 id="not-found-message" className="not-found__title">
-              Even when we lose our way, the Savior knows where to find us.
-            </h2>
-            <blockquote className="not-found__quote">
-              <p>&ldquo;For the Son of man is come to seek and to save that which was lost.&rdquo;</p>
-              <cite>Luke 19:10</cite>
+          <div className="nf__body">
+            <p className="nf__eyebrow">
+              <span>404</span>
+              <span aria-hidden="true" className="nf__dot">
+                ·
+              </span>
+              <span>Page not found</span>
+            </p>
+            <h1 id="page-title" className="nf__title">
+              Even the lost are found.
+            </h1>
+            <span className="nf__rule" aria-hidden="true" />
+            <blockquote className="nf__quote">
+              <p>&ldquo;Rejoice with me; for I have found my sheep which was lost.&rdquo;</p>
+              <cite>Luke 15:6</cite>
             </blockquote>
-            <p className="not-found__lead">
-              Let&apos;s get you back on the path. Head home, or jump to one of these pages:
+            <p className="nf__lead">
+              The page you were looking for isn&apos;t here. The link may be mistyped, or the
+              page may have moved. Let&apos;s get you back on the path.
             </p>
-            <p className="not-found__actions">
-              <Link className="btn btn-primary" to="/">
-                Go to Home
+            <div className="nf__actions">
+              <Link className="btn btn-primary nf__btn" to="/">
+                Back to Home
               </Link>
-              <Link className="btn btn-secondary" to="/ward-plan">
-                Ward Plan
+              <Link className="nf__link" to="/events">
+                See ward events <span aria-hidden="true">→</span>
               </Link>
-              <Link className="btn btn-secondary" to="/monthly-challenges">
-                Monthly Challenges
-              </Link>
-            </p>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   )
 }
