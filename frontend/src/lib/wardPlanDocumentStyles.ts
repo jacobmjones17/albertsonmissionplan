@@ -23,7 +23,7 @@ export const WARD_PLAN_STYLES = `
     text-align: center;
     font-size: 9.5pt;
     line-height: 1.35;
-    color: #1f3c63;
+    color: #5c3d17;
     background: #fffdf6;
     border: 1px solid #e2dac6;
     border-radius: 4px;
@@ -42,7 +42,7 @@ export const WARD_PLAN_STYLES = `
   .ward-goals-sheet__header {
     margin: 0 0 0.28in;
     padding-bottom: 0.22in;
-    border-bottom: 1px solid rgba(31, 60, 99, 0.12);
+    border-bottom: 1px solid rgba(92, 61, 23, 0.12);
   }
   .ward-goals-sheet__eyebrow {
     margin: 0 0 0.1in;
@@ -123,7 +123,7 @@ export const WARD_PLAN_STYLES = `
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  a { color: #1f3c63; }
+  a { color: #5c3d17; }
   @media print {
     @page {
       size: letter;
@@ -152,7 +152,7 @@ export const WARD_PLAN_STYLES = `
       -webkit-print-color-adjust: exact;
     }
     .ward-goals-sheet__header {
-      border-bottom-color: rgba(31, 60, 99, 0.12);
+      border-bottom-color: rgba(92, 61, 23, 0.12);
     }
     .ward-goals-sheet__list li::before {
       print-color-adjust: exact;
