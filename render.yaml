@@ -1,7 +1,8 @@
-# Render Blueprint — free Web Service + free Postgres (SQLite replaced by PostgreSQL).
+# Render Blueprint — free Web Service + paid Basic-256mb Postgres (SQLite replaced by PostgreSQL).
 # https://render.com/docs/infrastructure-as-code
 #
-# Limitations: Free Postgres expires after 30 days unless upgraded (Render docs).
+# The database is on the paid Basic-256mb plan (0.1 CPU / 256 MB), so it does not expire like
+# Free Postgres. Ward Gallery drawings and Monthly Challenges pictures are stored in it.
 # Free Web Services spin down after idle (~15 min). Outbound SMTP ports are blocked on Free, so
 # for email (leader-request alerts, new experiences, password resets) set these in the dashboard
 # (Environment tab) rather than here, so a Blueprint sync never overwrites them:
@@ -13,7 +14,10 @@ databases:
     databaseName: wardmission
     user: wardmission
     region: oregon
-    plan: free
+    # Render's dashboard name for this plan; same specs as plan ID `0.1c-256mb`
+    # (https://render.com/docs/compute-plans). Don't set this back to `free`: a Blueprint sync
+    # would try to downgrade the live database.
+    plan: basic-256mb
 
 services:
   - type: web
