@@ -17,7 +17,7 @@ func newEventsHarness(t *testing.T) *galleryHarness {
 	t.Helper()
 	t.Setenv("MAIL_TIME_ZONE", "")
 	prev := eventsNow
-	// 9 AM on Nov 23, 2026 in Denver.
+	// 11 AM on Nov 23, 2026 in America/New_York.
 	eventsNow = func() time.Time { return time.Date(2026, 11, 23, 16, 0, 0, 0, time.UTC) }
 	t.Cleanup(func() { eventsNow = prev })
 	s := newTestServer(t, nil)
@@ -86,9 +86,9 @@ func TestEventsCRUDAndPublicViews(t *testing.T) {
 	}
 	baptism := create(map[string]any{"title": "Baptism", "date": "2026-12-05", "startTime": "10:00", "endTime": "11:00",
 		"location": "Albertson Ward Building", "description": "Everyone is welcome."})
-	if baptism.ID == 0 || baptism.TimeLabel != "10:00 – 11:00 AM" || baptism.Zone != "MST" || !baptism.Upcoming ||
+	if baptism.ID == 0 || baptism.TimeLabel != "10:00 – 11:00 AM" || baptism.Zone != "EST" || !baptism.Upcoming ||
 		baptism.MonthLabel != "December 2026" || !strings.HasPrefix(baptism.MapURL, "https://www.google.com/maps/") ||
-		!strings.Contains(baptism.GoogleURL, "20261205T170000Z") {
+		!strings.Contains(baptism.GoogleURL, "20261205T150000Z") || !strings.Contains(baptism.GoogleURL, "America%2FNew_York") {
 		t.Fatalf("created dto %+v", baptism)
 	}
 	today := create(map[string]any{"title": "Today's open house", "date": "2026-11-23", "allDay": true})
@@ -102,7 +102,7 @@ func TestEventsCRUDAndPublicViews(t *testing.T) {
 	}
 
 	up := decodeEvents(t, h.do(httptest.NewRequest(http.MethodGet, "/api/events", nil), false))
-	if up.Today != "2026-11-23" || up.Zone != "America/Denver" || len(up.Events) != 2 ||
+	if up.Today != "2026-11-23" || up.Zone != "America/New_York" || len(up.Events) != 2 ||
 		up.Events[0].ID != today.ID || up.Events[1].ID != baptism.ID {
 		t.Fatalf("upcoming %+v", up)
 	}
@@ -131,7 +131,8 @@ func TestEventsCRUDAndPublicViews(t *testing.T) {
 	if ics.Code != http.StatusOK || !strings.HasPrefix(ics.Header().Get("Content-Type"), "text/calendar") ||
 		!strings.Contains(ics.Header().Get("Content-Disposition"), "attachment") ||
 		!strings.Contains(ics.Body.String(), "SUMMARY:Baptism of a new member") ||
-		!strings.Contains(ics.Body.String(), "DTSTART:20261212T170000Z") ||
+		!strings.Contains(ics.Body.String(), "DTSTART;TZID=America/New_York:20261212T100000") ||
+		!strings.Contains(ics.Body.String(), "BEGIN:VTIMEZONE") ||
 		!strings.Contains(ics.Body.String(), "UID:ward-event-") || !strings.Contains(ics.Body.String(), "@ward.example.org") {
 		t.Fatalf("ics: %d %v\n%s", ics.Code, ics.Header(), ics.Body.String())
 	}
@@ -379,5 +380,73 @@ func TestEventSharePageOpenGraph(t *testing.T) {
 	}
 	if rec := h.do(httptest.NewRequest(http.MethodGet, "/events/abc", nil), false); rec.Code != http.StatusNotFound {
 		t.Fatalf("non-numeric: %d", rec.Code)
+	}
+}
+
+func TestCanonicalPublicBaseURL(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"", DefaultPublicBaseURL},
+		{"  https://albertsonwardplan.onrender.com/ ", DefaultPublicBaseURL},
+		{"https://albertsonwardplan.onrender.com", DefaultPublicBaseURL},
+		{"https://pr-14.onrender.com", DefaultPublicBaseURL},
+		{"https://albertsonwardplan.com", "https://albertsonwardplan.com"},
+		{"https://albertsonwardplan.com/", "https://albertsonwardplan.com"},
+		{"https://ward.example.org/", "https://ward.example.org"},
+		{"http://127.0.0.1:8100", "http://127.0.0.1:8100"},
+	}
+	for _, c := range cases {
+		if got := CanonicalPublicBaseURL(c.in); got != c.want {
+			t.Errorf("CanonicalPublicBaseURL(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestEventSharePageOpenGraphUsesCanonicalHost(t *testing.T) {
+	h := newEventsHarness(t)
+	h.server.PublicBaseURL = "https://albertsonwardplan.onrender.com"
+
+	rec := h.postJSON("/api/admin/events", map[string]any{
+		"title": "Christmas Brunch", "date": "2026-12-05", "startTime": "10:00", "endTime": "12:00",
+	}, true)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	var created struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &created)
+	id := created.Event.ID
+
+	up := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", id), sampleJPEG(t, 800, 1000), true)
+	if up.Code != http.StatusOK {
+		t.Fatalf("upload: %d %s", up.Code, up.Body.String())
+	}
+	var saved struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(up.Body.Bytes(), &saved)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/events/%d", id), nil)
+	req.Host = "albertsonwardplan.onrender.com"
+	page := h.do(req, false)
+	body := page.Body.String()
+	absFlyer := "https://albertsonwardplan.com" + saved.Event.FlyerURL
+	for _, w := range []string{
+		fmt.Sprintf(`content="https://albertsonwardplan.com/events/%d"`, id),
+		`content="` + absFlyer + `"`,
+	} {
+		if !strings.Contains(body, w) {
+			t.Errorf("missing %q in:\n%s", w, body)
+		}
+	}
+	if strings.Contains(body, "onrender.com") {
+		t.Errorf("og still has onrender host:\n%s", body)
+	}
+
+	ics := h.do(httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/events/%d/calendar.ics", id), nil), false)
+	if !strings.Contains(ics.Body.String(), "Albertson Ward events: https://albertsonwardplan.com/events") ||
+		strings.Contains(ics.Body.String(), "onrender.com") ||
+		!strings.Contains(ics.Body.String(), "DTSTART;TZID=America/New_York:20261205T100000") {
+		t.Fatalf("ics:\n%s", ics.Body.String())
 	}
 }

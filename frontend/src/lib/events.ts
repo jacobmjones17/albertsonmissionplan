@@ -23,7 +23,7 @@ export type WardEvent = {
   dateLabel: string
   /** "6:30 – 8:00 PM" or "All day" */
   timeLabel: string
-  /** "MST" / "MDT" */
+  /** "EST" / "EDT" */
   zone: string
   /** "2026-12" */
   monthKey: string
@@ -39,7 +39,7 @@ export type EventsResponse = {
   events: WardEvent[] | null
   /** Today's date in the ward's time zone. */
   today: string
-  /** IANA zone, e.g. "America/Denver". */
+  /** IANA zone, e.g. "America/New_York". */
   timeZone: string
 }
 
@@ -48,7 +48,7 @@ export async function loadEvents(view: 'upcoming' | 'past' = 'upcoming'): Promis
   return { ...d, events: Array.isArray(d.events) ? d.events : [] }
 }
 
-/** "Mountain Time" for America/Denver (falls back to the zone name). */
+/** "Eastern Time" for America/New_York (falls back to the zone name). */
 export function zoneDisplayName(timeZone: string): string {
   try {
     const part = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' })

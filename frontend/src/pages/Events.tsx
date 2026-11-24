@@ -275,7 +275,7 @@ export function Events() {
   const [upcoming, setUpcoming] = useState<WardEvent[] | null>(null)
   const [past, setPast] = useState<WardEvent[] | null>(null)
   const [today, setToday] = useState('')
-  const [timeZone, setTimeZone] = useState('America/Denver')
+  const [timeZone, setTimeZone] = useState('America/New_York')
   const [err, setErr] = useState<string | null>(null)
   const [showPast, setShowPast] = useState(false)
   const [view, setView] = useState<View>('list')
@@ -288,7 +288,7 @@ export function Events() {
       .then((d) => {
         setUpcoming(d.events ?? [])
         setToday(d.today)
-        setTimeZone(d.timeZone || 'America/Denver')
+        setTimeZone(d.timeZone || 'America/New_York')
         setMonth(d.events?.[0]?.monthKey ?? d.today.slice(0, 7))
       })
       .catch((e) => {

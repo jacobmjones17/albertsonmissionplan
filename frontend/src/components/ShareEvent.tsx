@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import type { WardEvent } from '../lib/events'
 import { eventShareText, eventShareUrl } from '../lib/events'
 
@@ -35,23 +34,6 @@ function isAbort(e: unknown): boolean {
   return e instanceof DOMException ? e.name === 'AbortError' : e instanceof Error && e.name === 'AbortError'
 }
 
-function canShareFiles(file: File): boolean {
-  try {
-    return typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
-  } catch {
-    return false
-  }
-}
-
-function flyerFileName(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-  return `${slug || 'event-flyer'}.jpg`
-}
-
 async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text)
@@ -75,53 +57,15 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 /**
- * Opens the device share sheet (Web Share API) with the event title, a short date/time/location
- * blurb, and a link to /events/{id}. If a flyer was uploaded and the device can attach files,
- * the flyer image is included — it is prefetched so iOS doesn't drop the user-activation
- * gesture. When navigator.share isn't available, the link is copied and onCopied is called.
+ * Opens the device share sheet (Web Share API) with the event title, a short
+ * date/time/location blurb, and a link to /events/{id}. The flyer is not attached
+ * as a file — iMessage and other apps show it once via the link's Open Graph preview.
+ * When navigator.share isn't available, the link is copied and onCopied is called.
  */
 export function ShareEvent({ event, onCopied }: { event: WardEvent; onCopied: () => void }) {
-  const [flyerFile, setFlyerFile] = useState<File | null>(null)
-
-  useEffect(() => {
-    if (!event.hasFlyer || !event.flyerUrl) {
-      setFlyerFile(null)
-      return
-    }
-    const url = event.flyerUrl
-    const ac = new AbortController()
-    let cancelled = false
-    fetch(url, { signal: ac.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error('flyer')
-        return r.blob()
-      })
-      .then((blob) => {
-        if (cancelled) return
-        setFlyerFile(new File([blob], flyerFileName(event.title), { type: blob.type || 'image/jpeg' }))
-      })
-      .catch(() => {
-        if (!cancelled) setFlyerFile(null)
-      })
-    return () => {
-      cancelled = true
-      ac.abort()
-    }
-  }, [event.hasFlyer, event.flyerUrl, event.title])
-
   async function share() {
     const url = eventShareUrl(event.id)
     const data: ShareData = { title: event.title, text: eventShareText(event), url }
-
-    // Only attach a prefetched flyer — never await a fetch here, or iOS rejects the share.
-    if (flyerFile && canShareFiles(flyerFile) && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ ...data, files: [flyerFile] })
-        return
-      } catch (e) {
-        if (isAbort(e)) return
-      }
-    }
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share(data)

@@ -412,7 +412,7 @@ function AdminEventRow({
 
 export function AdminEvents() {
   const [events, setEvents] = useState<WardEvent[] | null>(null)
-  const [timeZone, setTimeZone] = useState('America/Denver')
+  const [timeZone, setTimeZone] = useState('America/New_York')
   const [err, setErr] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastPayload | null>(null)
   // null = closed, 'new' = add form, number = editing that event

@@ -19,6 +19,15 @@ func denver(t *testing.T) *time.Location {
 	return loc
 }
 
+func newYork(t *testing.T) *time.Location {
+	t.Helper()
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return loc
+}
+
 func TestNormalizeCleansInput(t *testing.T) {
 	e, err := Normalize(Input{
 		Title: "  Ward   Christmas\nParty ", Date: "2026-12-12", StartTime: "18:00", EndTime: "20:00",
@@ -156,7 +165,8 @@ func TestICS(t *testing.T) {
 	out := string(ICS(e, loc, "albertsonwardplan.com", "https://albertsonwardplan.com/events", now))
 	for _, want := range []string{
 		"BEGIN:VCALENDAR\r\n", "VERSION:2.0\r\n", "UID:ward-event-7@albertsonwardplan.com\r\n",
-		"DTSTAMP:20261123T080000Z\r\n", "DTSTART:20261207T020000Z\r\n", "DTEND:20261207T030000Z\r\n",
+		"DTSTAMP:20261123T080000Z\r\n", "BEGIN:VTIMEZONE\r\n", "TZID:America/Denver\r\n",
+		"DTSTART;TZID=America/Denver:20261206T190000\r\n", "DTEND;TZID=America/Denver:20261206T200000\r\n",
 		`SUMMARY:Fireside\; music\, and testimony` + "\r\n", `LOCATION:Stake Center\, Room 4` + "\r\n",
 		"URL:https://example.org/fireside\r\n", "END:VCALENDAR\r\n",
 	} {
@@ -175,6 +185,68 @@ func TestICS(t *testing.T) {
 	allDay := string(ICS(store.WardEvent{ID: 8, Title: "Open House", Date: "2026-12-31", AllDay: true}, loc, "", "", now))
 	if !strings.Contains(allDay, "DTSTART;VALUE=DATE:20261231\r\n") || !strings.Contains(allDay, "DTEND;VALUE=DATE:20270101\r\n") {
 		t.Fatalf("all-day ics:\n%s", allDay)
+	}
+}
+
+func TestCalendarExportsEasternTime(t *testing.T) {
+	loc := newYork(t)
+	now := time.Date(2026, 11, 23, 8, 0, 0, 0, time.UTC)
+	page := "https://albertsonwardplan.com/events"
+
+	winter := store.WardEvent{ID: 12, Title: "Christmas Brunch", Date: "2026-12-05", StartTime: "10:00", EndTime: "12:00",
+		Location: "3554 NC-903, Albertson, NC 28508"}
+	s, e := Bounds(winter, loc)
+	if s.UTC().Format(utcStamp) != "20261205T150000Z" || e.UTC().Format(utcStamp) != "20261205T170000Z" {
+		t.Fatalf("winter (EST) bounds %s %s", s.UTC(), e.UTC())
+	}
+	if ZoneAbbrev(winter, loc) != "EST" {
+		t.Fatalf("winter zone %s", ZoneAbbrev(winter, loc))
+	}
+	ics := string(ICS(winter, loc, "albertsonwardplan.com", page, now))
+	for _, want := range []string{
+		"BEGIN:VTIMEZONE\r\n",
+		"TZID:America/New_York\r\n",
+		"DTSTART;TZID=America/New_York:20261205T100000\r\n",
+		"DTEND;TZID=America/New_York:20261205T120000\r\n",
+		"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\n",
+		"RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\n",
+		"Albertson Ward events: https://albertsonwardplan.com/events",
+	} {
+		if !strings.Contains(ics, want) {
+			t.Errorf("winter ics missing %q in:\n%s", want, ics)
+		}
+	}
+	if strings.Contains(ics, "T170000Z") || strings.Contains(ics, "DTSTART:20261205T") {
+		t.Errorf("winter ics should use TZID local times, not UTC Z stamps:\n%s", ics)
+	}
+	u, err := url.Parse(GoogleCalendarURL(winter, loc, page))
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := u.Query()
+	if q.Get("dates") != "20261205T150000Z/20261205T170000Z" || q.Get("ctz") != "America/New_York" {
+		t.Fatalf("winter google dates %s ctz %s", q.Get("dates"), q.Get("ctz"))
+	}
+	if !strings.Contains(q.Get("details"), "https://albertsonwardplan.com/events") {
+		t.Fatalf("winter google details %s", q.Get("details"))
+	}
+
+	summer := store.WardEvent{ID: 13, Title: "Ward Picnic", Date: "2026-07-11", StartTime: "10:00", EndTime: "12:00"}
+	s, e = Bounds(summer, loc)
+	if s.UTC().Format(utcStamp) != "20260711T140000Z" || e.UTC().Format(utcStamp) != "20260711T160000Z" {
+		t.Fatalf("summer (EDT) bounds %s %s", s.UTC(), e.UTC())
+	}
+	if ZoneAbbrev(summer, loc) != "EDT" {
+		t.Fatalf("summer zone %s", ZoneAbbrev(summer, loc))
+	}
+	ics = string(ICS(summer, loc, "albertsonwardplan.com", page, now))
+	if !strings.Contains(ics, "DTSTART;TZID=America/New_York:20260711T100000\r\n") ||
+		!strings.Contains(ics, "DTEND;TZID=America/New_York:20260711T120000\r\n") {
+		t.Fatalf("summer ics:\n%s", ics)
+	}
+	u, _ = url.Parse(GoogleCalendarURL(summer, loc, page))
+	if u.Query().Get("dates") != "20260711T140000Z/20260711T160000Z" || u.Query().Get("ctz") != "America/New_York" {
+		t.Fatalf("summer google %s", u)
 	}
 }
 

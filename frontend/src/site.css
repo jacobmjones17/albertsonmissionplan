@@ -6110,6 +6110,9 @@ details.org .org-body {
   padding: 0.72rem 0.85rem;
   font-size: 0.98rem;
 }
+.event-card__actions .event-share {
+  align-self: start;
+}
 .event-card__actions .add-cal__summary svg,
 .event-card__actions .event-share svg {
   flex: 0 0 18px;
@@ -6219,6 +6222,41 @@ details.org .org-body {
   content: "▾";
   font-size: 0.8em;
   opacity: 0.8;
+}
+.add-cal__summary--direct::after {
+  content: none;
+}
+.add-cal--direct {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+.add-cal__more {
+  position: relative;
+}
+.add-cal__more-toggle {
+  cursor: pointer;
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  user-select: none;
+}
+.add-cal__more-toggle::-webkit-details-marker,
+.add-cal__more-toggle::marker {
+  display: none;
+  content: none;
+}
+.add-cal__more .add-cal__menu {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
 }
 .add-cal__summary:focus-visible {
   outline: none;
