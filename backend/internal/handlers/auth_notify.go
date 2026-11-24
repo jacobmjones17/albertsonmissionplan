@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Server) trimmedPublicBaseURL() string {
-	return strings.TrimRight(strings.TrimSpace(s.PublicBaseURL), "/")
+	return CanonicalPublicBaseURL(s.PublicBaseURL)
 }
 
 // notifyPendingLeaderSignup emails approved leaders (best-effort). Does not block the HTTP handler.

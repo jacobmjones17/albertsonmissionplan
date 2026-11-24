@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// 2026-11-23 07:20 UTC = 12:20 AM MST in America/Denver.
+// 2026-11-23 07:20 UTC = 2:20 AM EST in America/New_York.
 var sampleTime = time.Date(2026, 11, 23, 7, 20, 0, 0, time.UTC)
 
 func TestPendingSignupEmail(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPendingSignupEmail(t *testing.T) {
 	if subject != "New leader request: Jacob Test" {
 		t.Errorf("subject = %q", subject)
 	}
-	const when = "Monday, November 23, 2026 at 12:20 AM MST"
+	const when = "Monday, November 23, 2026 at 2:20 AM EST"
 	for _, want := range []string{"Jacob Test", "jacob@example.org", when, "https://ward.example.org/admin/approvals"} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("plain text missing %q:\n%s", want, plain)
@@ -44,7 +44,7 @@ func TestPendingExperienceEmail(t *testing.T) {
 	if subject != "New missionary experience from Sarah" {
 		t.Errorf("subject = %q", subject)
 	}
-	for _, want := range []string{"Sarah", "Monday, November 23, 2026 at 12:20 AM MST", "https://ward.example.org/admin/moderate"} {
+	for _, want := range []string{"Sarah", "Monday, November 23, 2026 at 2:20 AM EST", "https://ward.example.org/admin/moderate"} {
 		if !strings.Contains(plain, want) || !strings.Contains(html, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -80,8 +80,8 @@ func TestWardTimeZoneOverride(t *testing.T) {
 		t.Errorf("LA: %q", got)
 	}
 	t.Setenv("MAIL_TIME_ZONE", "Not/AZone")
-	if got := FormatWardTime(sampleTime); !strings.HasSuffix(got, "MST") {
-		t.Errorf("bad zone should fall back to Denver: %q", got)
+	if got := FormatWardTime(sampleTime); !strings.HasSuffix(got, "EST") {
+		t.Errorf("bad zone should fall back to America/New_York: %q", got)
 	}
 }
 

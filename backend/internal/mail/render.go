@@ -12,10 +12,10 @@ import (
 	_ "time/tzdata" // MAIL_TIME_ZONE works even where the OS has no zoneinfo
 )
 
-// DefaultTimeZone is used for "received at" times in leader emails when MAIL_TIME_ZONE is unset.
-const DefaultTimeZone = "America/Denver"
+// DefaultTimeZone is the Albertson Ward zone (Albertson, NC) when MAIL_TIME_ZONE is unset.
+const DefaultTimeZone = "America/New_York"
 
-// wardLocation returns MAIL_TIME_ZONE (IANA name) or America/Denver.
+// wardLocation returns MAIL_TIME_ZONE (IANA name) or America/New_York.
 func wardLocation() *time.Location {
 	name := strings.TrimSpace(os.Getenv("MAIL_TIME_ZONE"))
 	if name == "" {
@@ -28,7 +28,7 @@ func wardLocation() *time.Location {
 	return loc
 }
 
-// WardLocation is the ward's local time zone (MAIL_TIME_ZONE, default America/Denver). Events
+// WardLocation is the ward's local time zone (MAIL_TIME_ZONE, default America/New_York). Events
 // on the public calendar are entered and shown in this zone too.
 func WardLocation() *time.Location { return wardLocation() }
 

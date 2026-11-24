@@ -67,10 +67,7 @@ type eventDTO struct {
 }
 
 func (s *Server) eventsPageURL() string {
-	if s.PublicBaseURL == "" {
-		return ""
-	}
-	return s.PublicBaseURL + "/events"
+	return s.trimmedPublicBaseURL() + "/events"
 }
 
 func (s *Server) toEventDTO(e store.WardEvent, loc *time.Location, today string) eventDTO {
@@ -156,9 +153,9 @@ func (s *Server) APIEventICS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load the event", http.StatusInternalServerError)
 		return
 	}
-	host := r.Host
-	if u, perr := url.Parse(s.PublicBaseURL); perr == nil && u.Host != "" {
-		host = u.Host
+	host := "albertsonwardplan.com"
+	if u, perr := url.Parse(s.trimmedPublicBaseURL()); perr == nil && u.Hostname() != "" {
+		host = u.Hostname()
 	}
 	body := events.ICS(*e, mail.WardLocation(), host, s.eventsPageURL(), eventsNow())
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
@@ -474,18 +471,18 @@ func (s *Server) ServeEventPage(w http.ResponseWriter, r *http.Request) {
 		loc := mail.WardLocation()
 		today := events.Today(loc, eventsNow())
 		d := s.toEventDTO(*e, loc, today)
-		pageURL := s.absoluteURL(r, fmt.Sprintf("/events/%d", id))
+		pageURL := s.absoluteURL(fmt.Sprintf("/events/%d", id))
 		og := spa.OpenGraph{
 			Title:       d.Title + " | Albertson Ward",
 			Description: eventShareText(*e),
 			URL:         pageURL,
-			Image:       s.absoluteURL(r, "/site/og-share.jpg"),
+			Image:       s.absoluteURL("/site/og-share.jpg"),
 			ImageAlt:    d.Title,
 			ImageWidth:  1200,
 			ImageHeight: 1600,
 		}
 		if d.HasFlyer && d.FlyerURL != "" {
-			og.Image = s.absoluteURL(r, d.FlyerURL)
+			og.Image = s.absoluteURL(d.FlyerURL)
 			og.ImageAlt = "Flyer for " + d.Title
 			if d.FlyerWidth > 0 {
 				og.ImageWidth = d.FlyerWidth
@@ -511,19 +508,8 @@ func eventShareText(e store.WardEvent) string {
 	return strings.Join(parts, " · ")
 }
 
-func (s *Server) absoluteURL(r *http.Request, p string) string {
-	base := strings.TrimRight(s.PublicBaseURL, "/")
-	if base == "" {
-		scheme := "http"
-		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
-			scheme = "https"
-		}
-		host := r.Host
-		if host == "" {
-			host = "localhost"
-		}
-		base = scheme + "://" + host
-	}
+func (s *Server) absoluteURL(p string) string {
+	base := s.trimmedPublicBaseURL()
 	if !strings.HasPrefix(p, "/") {
 		p = "/" + p
 	}

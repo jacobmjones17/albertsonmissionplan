@@ -78,10 +78,10 @@ func main() {
 	} else {
 		log.Printf("mail enabled via %s", mail.ProviderName(mc))
 	}
-	if mc != nil && strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")) == "" {
-		log.Printf("warning: MAIL_ENABLED=true but PUBLIC_BASE_URL is empty — outbound emails will omit usable links")
+	pubURL := handlers.CanonicalPublicBaseURL(os.Getenv("PUBLIC_BASE_URL"))
+	if strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")) == "" {
+		log.Printf("PUBLIC_BASE_URL is empty; using %s for calendar, share, and email links", pubURL)
 	}
-	pubURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
 
 	srv := &handlers.Server{DB: db, Auth: ac, Mail: mc, PublicBaseURL: pubURL}
 

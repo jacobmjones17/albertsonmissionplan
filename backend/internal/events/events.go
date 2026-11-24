@@ -198,7 +198,7 @@ func TimeLabel(e store.WardEvent) string {
 	return sc + " " + sp + " – " + ec + " " + ep
 }
 
-// ZoneAbbrev is the ward zone's abbreviation on the event's date, e.g. "MST" or "MDT".
+// ZoneAbbrev is the ward zone's abbreviation on the event's date, e.g. "EST" or "EDT".
 func ZoneAbbrev(e store.WardEvent, loc *time.Location) string {
 	start, _ := Bounds(e, loc)
 	if e.AllDay {
@@ -268,6 +268,9 @@ func ICS(e store.WardEvent, loc *time.Location, host, pageURL string, now time.T
 	line("PRODID:-//Albertson Ward//Ward Events//EN")
 	line("CALSCALE:GREGORIAN")
 	line("METHOD:PUBLISH")
+	if !(e.AllDay || e.StartTime == "") {
+		writeVTimeZone(line, loc, start.In(loc).Year(), end.In(loc).Year())
+	}
 	line("BEGIN:VEVENT")
 	line(fmt.Sprintf("UID:ward-event-%d@%s", e.ID, host))
 	line("DTSTAMP:" + now.UTC().Format(utcStamp))
@@ -275,8 +278,9 @@ func ICS(e store.WardEvent, loc *time.Location, host, pageURL string, now time.T
 		line("DTSTART;VALUE=DATE:" + start.Format("20060102"))
 		line("DTEND;VALUE=DATE:" + end.Format("20060102"))
 	} else {
-		line("DTSTART:" + start.UTC().Format(utcStamp))
-		line("DTEND:" + end.UTC().Format(utcStamp))
+		tzid := loc.String()
+		line("DTSTART;TZID=" + tzid + ":" + start.In(loc).Format(localStamp))
+		line("DTEND;TZID=" + tzid + ":" + end.In(loc).Format(localStamp))
 	}
 	line("SUMMARY:" + escapeICS(e.Title))
 	if e.Location != "" {
@@ -296,6 +300,123 @@ func ICS(e store.WardEvent, loc *time.Location, host, pageURL string, now time.T
 var icsEscaper = strings.NewReplacer(`\`, `\\`, ";", `\;`, ",", `\,`, "\r\n", `\n`, "\n", `\n`, "\r", `\n`)
 
 func escapeICS(s string) string { return icsEscaper.Replace(s) }
+
+const localStamp = "20060102T150405"
+
+// writeVTimeZone emits a VTIMEZONE block for loc covering the given years, so calendar
+// apps can interpret TZID local times (including EST/EDT).
+func writeVTimeZone(line func(string), loc *time.Location, years ...int) {
+	if loc == nil {
+		return
+	}
+	minY, maxY := years[0], years[0]
+	for _, y := range years[1:] {
+		if y < minY {
+			minY = y
+		}
+		if y > maxY {
+			maxY = y
+		}
+	}
+	line("BEGIN:VTIMEZONE")
+	line("TZID:" + loc.String())
+
+	type trans struct {
+		at      time.Time
+		name    string
+		off     int
+		prevOff int
+	}
+	start := time.Date(minY-1, 1, 1, 0, 0, 0, 0, loc)
+	end := time.Date(maxY+2, 1, 1, 0, 0, 0, 0, loc)
+	prevName, prevOff := start.Zone()
+	var changes []trans
+	for t := start.Add(time.Hour); t.Before(end); t = t.Add(time.Hour) {
+		name, off := t.Zone()
+		if off != prevOff || name != prevName {
+			changes = append(changes, trans{at: t, name: name, off: off, prevOff: prevOff})
+			prevName, prevOff = name, off
+		}
+	}
+
+	if len(changes) == 0 {
+		name, off := start.Zone()
+		line("BEGIN:STANDARD")
+		line("TZOFFSETFROM:" + icsOffset(off))
+		line("TZOFFSETTO:" + icsOffset(off))
+		line("TZNAME:" + name)
+		line("DTSTART:19700101T000000")
+		line("END:STANDARD")
+		line("END:VTIMEZONE")
+		return
+	}
+
+	// Prefer a single STANDARD + DAYLIGHT pair with US DST RRULEs when they match.
+	var standard, daylight *trans
+	for i := range changes {
+		c := &changes[i]
+		if c.off > c.prevOff {
+			if daylight == nil {
+				daylight = c
+			}
+		} else if standard == nil {
+			standard = c
+		}
+	}
+	emit := func(kind string, c *trans) {
+		toDaylight := c.off > c.prevOff
+		line("BEGIN:" + kind)
+		line("TZOFFSETFROM:" + icsOffset(c.prevOff))
+		line("TZOFFSETTO:" + icsOffset(c.off))
+		line("TZNAME:" + c.name)
+		if rule := usDSTRule(c.at, toDaylight); rule != "" {
+			// Conventional 2:00 wall-clock DTSTART used with the US DST RRULEs.
+			if toDaylight {
+				line("DTSTART:19700308T020000")
+			} else {
+				line("DTSTART:19701101T020000")
+			}
+			line("RRULE:" + rule)
+		} else {
+			line("DTSTART:" + c.at.Format(localStamp))
+		}
+		line("END:" + kind)
+	}
+	// RFC 5545: DAYLIGHT then STANDARD is the usual order for US zones.
+	if daylight != nil {
+		emit("DAYLIGHT", daylight)
+	}
+	if standard != nil {
+		emit("STANDARD", standard)
+	}
+	line("END:VTIMEZONE")
+}
+
+// usDSTRule returns a YEARLY RRULE for US rules since 2007 (2nd Sunday in March / 1st Sunday
+// in November at 2:00 local), or "" if the transition doesn't match.
+func usDSTRule(at time.Time, toDaylight bool) string {
+	// at is the first instant already in the new offset (3:00 AM in spring, 1:00 AM in fall).
+	if at.Weekday() != time.Sunday {
+		return ""
+	}
+	dom := at.Day()
+	if toDaylight && at.Month() == time.March && dom >= 8 && dom <= 14 {
+		return "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
+	}
+	if !toDaylight && at.Month() == time.November && dom >= 1 && dom <= 7 {
+		return "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
+	}
+	return ""
+}
+
+func icsOffset(seconds int) string {
+	sign := "+"
+	if seconds < 0 {
+		sign = "-"
+		seconds = -seconds
+	}
+	return fmt.Sprintf("%s%02d%02d", sign, seconds/3600, (seconds%3600)/60)
+}
 
 // foldICS ends the content line with CRLF, folding at 75 octets without splitting a UTF-8
 // character (RFC 5545 §3.1).
