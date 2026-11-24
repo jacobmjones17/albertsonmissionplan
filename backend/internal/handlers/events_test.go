@@ -21,6 +21,7 @@ func newEventsHarness(t *testing.T) *galleryHarness {
 	eventsNow = func() time.Time { return time.Date(2026, 11, 23, 16, 0, 0, 0, time.UTC) }
 	t.Cleanup(func() { eventsNow = prev })
 	s := newTestServer(t, nil)
+	s.IndexHTML = eventShareShell
 	mux := http.NewServeMux()
 	s.RegisterEventRoutes(mux)
 	// First registration is auto-approved and signed in; keep its session cookie.
@@ -30,7 +31,7 @@ func newEventsHarness(t *testing.T) *galleryHarness {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("register: %d %s", rec.Code, rec.Body.String())
 	}
-	return &galleryHarness{t: t, mux: mux, leader: rec.Result().Cookies()}
+	return &galleryHarness{t: t, mux: mux, leader: rec.Result().Cookies(), server: s}
 }
 
 type eventsResp struct {
@@ -302,5 +303,81 @@ func TestEventFlyerUploadServeDelete(t *testing.T) {
 	}
 	if rec := h.postJSON("/api/admin/events/999999/flyer/delete", map[string]any{}, true); rec.Code != http.StatusNotFound {
 		t.Fatalf("delete missing: %d", rec.Code)
+	}
+}
+
+var eventShareShell = []byte(`<!doctype html><html><head>
+<title>Albertson Ward Plan</title>
+<meta name="description" content="Albertson Ward mission plan and resources." />
+<meta property="og:title" content="Albertson Ward" />
+<meta property="og:description" content="Albertson Ward mission plan and resources." />
+<meta property="og:url" content="https://albertsonwardplan.com/" />
+<meta property="og:image" content="https://albertsonwardplan.com/site/og-share.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="1600" />
+<meta property="og:image:alt" content="Albertson Ward mission plan" />
+<meta name="twitter:title" content="Albertson Ward" />
+<meta name="twitter:description" content="Albertson Ward mission plan and resources." />
+<meta name="twitter:image" content="https://albertsonwardplan.com/site/og-share.jpg" />
+</head><body>app</body></html>`)
+
+func TestEventSharePageOpenGraph(t *testing.T) {
+	h := newEventsHarness(t)
+	h.server.PublicBaseURL = "https://albertsonwardplan.com"
+
+	rec := h.postJSON("/api/admin/events", map[string]any{
+		"title": "Ward Christmas Party", "date": "2026-12-12", "startTime": "18:00", "endTime": "20:30",
+		"location": "Albertson Ward Building, Cultural Hall",
+	}, true)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	var created struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &created)
+	id := created.Event.ID
+
+	page := h.do(httptest.NewRequest(http.MethodGet, fmt.Sprintf("/events/%d", id), nil), false)
+	if page.Code != http.StatusOK || !strings.Contains(page.Header().Get("Content-Type"), "text/html") {
+		t.Fatalf("page: %d %q", page.Code, page.Header().Get("Content-Type"))
+	}
+	body := page.Body.String()
+	for _, w := range []string{
+		"<title>Ward Christmas Party | Albertson Ward</title>",
+		`content="Ward Christmas Party | Albertson Ward"`,
+		`content="Saturday, December 12, 2026 · 6:00 – 8:30 PM · Albertson Ward Building, Cultural Hall"`,
+		fmt.Sprintf(`content="https://albertsonwardplan.com/events/%d"`, id),
+		`content="https://albertsonwardplan.com/site/og-share.jpg"`,
+	} {
+		if !strings.Contains(body, w) {
+			t.Errorf("missing %q in:\n%s", w, body)
+		}
+	}
+
+	// After a flyer is uploaded, the preview image should be the flyer.
+	up := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", id), sampleJPEG(t, 800, 1000), true)
+	if up.Code != http.StatusOK {
+		t.Fatalf("upload: %d %s", up.Code, up.Body.String())
+	}
+	var saved struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(up.Body.Bytes(), &saved)
+	page = h.do(httptest.NewRequest(http.MethodGet, fmt.Sprintf("/events/%d", id), nil), false)
+	body = page.Body.String()
+	absFlyer := "https://albertsonwardplan.com" + saved.Event.FlyerURL
+	if page.Code != http.StatusOK || !strings.Contains(body, `content="`+absFlyer+`"`) ||
+		!strings.Contains(body, `content="Flyer for Ward Christmas Party"`) ||
+		!strings.Contains(body, `content="800"`) || strings.Contains(body, "og-share.jpg") {
+		t.Fatalf("flyer og:\n%s", body)
+	}
+
+	missing := h.do(httptest.NewRequest(http.MethodGet, "/events/999999", nil), false)
+	if missing.Code != http.StatusNotFound || !strings.Contains(missing.Body.String(), "<title>Albertson Ward Plan</title>") {
+		t.Fatalf("missing event: %d %s", missing.Code, missing.Body.String())
+	}
+	if rec := h.do(httptest.NewRequest(http.MethodGet, "/events/abc", nil), false); rec.Code != http.StatusNotFound {
+		t.Fatalf("non-numeric: %d", rec.Code)
 	}
 }

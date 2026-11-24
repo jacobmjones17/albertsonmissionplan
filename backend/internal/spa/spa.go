@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -36,7 +37,32 @@ var clientRoutes = map[string]bool{
 // IsClientRoute reports whether the cleaned request path is a known SPA route. Matching is
 // case-insensitive because React Router matches routes case-insensitively by default.
 func IsClientRoute(cleanPath string) bool {
-	return clientRoutes[strings.ToLower(cleanPath)]
+	p := strings.ToLower(cleanPath)
+	if clientRoutes[p] {
+		return true
+	}
+	_, ok := EventSharePath(p)
+	return ok
+}
+
+// EventSharePath reports whether cleanPath is a per-event share URL (/events/{id}, digits only).
+// These are client routes too, but they are not listed in clientRoutes/PAGE_TITLES because the
+// id is dynamic. TestEventSharePath and TestFileServerStatuses cover them.
+func EventSharePath(cleanPath string) (id int64, ok bool) {
+	p := strings.ToLower(strings.TrimSuffix(cleanPath, "/"))
+	const prefix = "/events/"
+	if !strings.HasPrefix(p, prefix) {
+		return 0, false
+	}
+	rest := p[len(prefix):]
+	if rest == "" || strings.Contains(rest, "/") {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(rest, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, false
+	}
+	return id, true
 }
 
 // FileServer serves Vite static assets and falls back to index.html for client routing.
@@ -49,12 +75,12 @@ func FileServer(dist fs.FS, indexHTML []byte) http.Handler {
 		}
 		upath := path.Clean("/" + r.URL.Path)
 		if upath == "/" || upath == "/." {
-			serveIndexHTML(w, indexHTML, http.StatusOK)
+			ServeIndexHTML(w, indexHTML, http.StatusOK)
 			return
 		}
 		rel := strings.TrimPrefix(upath, "/")
 		if rel == "" || rel == "." {
-			serveIndexHTML(w, indexHTML, http.StatusOK)
+			ServeIndexHTML(w, indexHTML, http.StatusOK)
 			return
 		}
 		if fi, err := fs.Stat(dist, rel); err == nil && !fi.IsDir() {
@@ -73,7 +99,7 @@ func FileServer(dist fs.FS, indexHTML []byte) http.Handler {
 		if !IsClientRoute(upath) {
 			status = http.StatusNotFound
 		}
-		serveIndexHTML(w, indexHTML, status)
+		ServeIndexHTML(w, indexHTML, status)
 	})
 }
 
@@ -83,7 +109,8 @@ func isAPIPath(p string) bool {
 		lower == "/auth" || strings.HasPrefix(lower, "/auth/")
 }
 
-func serveIndexHTML(w http.ResponseWriter, indexHTML []byte, status int) {
+// ServeIndexHTML writes the SPA shell with the given status.
+func ServeIndexHTML(w http.ResponseWriter, indexHTML []byte, status int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Always revalidate so clients pick up new hashed JS/CSS after `npm run build` + Go rebuild.
 	w.Header().Set("Cache-Control", "no-cache, must-revalidate")

@@ -5944,6 +5944,7 @@ details.org .org-body {
 /* Event card */
 .event-card {
   display: flex;
+  flex-wrap: wrap;
   gap: 1.1rem;
   align-items: flex-start;
   padding: 1.15rem 1.25rem 1.2rem;
@@ -6036,8 +6037,9 @@ details.org .org-body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem 1.1rem;
-  margin-top: 0.95rem;
+  gap: 0.5rem 0.65rem;
+  flex: 1 0 100%;
+  margin-top: 0.15rem;
 }
 .event-card__link {
   font-weight: 600;
@@ -6082,6 +6084,34 @@ details.org .org-body {
   color: #5c3d17;
 }
 
+.event-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.05rem;
+  border-radius: 999px;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: var(--shadow-xs);
+  white-space: nowrap;
+}
+.event-share:hover {
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--gold-deep);
+  color: var(--btn-secondary-text);
+}
+.event-share:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent);
+}
+
 /* Add to calendar menu */
 .add-cal {
   position: relative;
@@ -6092,6 +6122,7 @@ details.org .org-body {
   gap: 0.45rem;
   padding: 0.5rem 1.05rem;
   border-radius: 999px;
+  white-space: nowrap;
   background: var(--btn-primary-gradient);
   color: var(--btn-primary-text);
   border: 1px solid var(--btn-primary-border);
@@ -6331,6 +6362,10 @@ details.org .org-body {
     left: auto;
     right: auto;
     min-width: 13.5rem;
+  }
+  .add-cal__summary,
+  .event-share {
+    padding: 0.5rem 0.9rem;
   }
 }
 

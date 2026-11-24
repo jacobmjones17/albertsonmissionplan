@@ -40,7 +40,7 @@ export function UpcomingEventsTeaser() {
           const rel = relativeDay(today, e.date)
           return (
             <li key={e.id}>
-              <Link to={`/events#event-${e.id}`} className="home-events__item">
+              <Link to={`/events/${e.id}`} className="home-events__item">
                 <EventDateBadge date={e.date} />
                 <span className="home-events__text">
                   <span className="home-events__title">

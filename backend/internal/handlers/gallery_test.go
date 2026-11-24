@@ -17,6 +17,7 @@ type galleryHarness struct {
 	t      *testing.T
 	mux    *http.ServeMux
 	leader []*http.Cookie
+	server *Server
 }
 
 func newGalleryHarness(t *testing.T) *galleryHarness {
@@ -32,7 +33,7 @@ func newGalleryHarness(t *testing.T) *galleryHarness {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("register: %d %s", rec.Code, rec.Body.String())
 	}
-	return &galleryHarness{t: t, mux: mux, leader: rec.Result().Cookies()}
+	return &galleryHarness{t: t, mux: mux, leader: rec.Result().Cookies(), server: s}
 }
 
 func (h *galleryHarness) do(req *http.Request, asLeader bool) *httptest.ResponseRecorder {
