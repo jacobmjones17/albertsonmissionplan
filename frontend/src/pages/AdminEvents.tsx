@@ -279,11 +279,15 @@ function EventForm({
           value={d.description}
           maxLength={MAX_DESCRIPTION}
           rows={4}
-          placeholder="What to expect, what to bring, who's invited…"
+          placeholder={"Breakfast\nMusic\nShort shadow nativity"}
           onChange={(e) => set('description', e.target.value)}
           aria-invalid={invalid('description')}
-          aria-describedby={`${idp}-privacy`}
+          aria-describedby={`${idp}-desc-hint ${idp}-privacy`}
         />
+        <span id={`${idp}-desc-hint`} className="event-form__hint">
+          Put each item on its own line and it will show as a gold bullet on the events page. A single
+          paragraph stays a paragraph.
+        </span>
       </label>
       <p id={`${idp}-privacy`} className="gallery-privacy-note event-form__privacy">
         <strong>Privacy:</strong> this page is public. Please don&apos;t put children&apos;s full

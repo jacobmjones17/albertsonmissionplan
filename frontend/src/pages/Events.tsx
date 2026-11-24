@@ -16,6 +16,7 @@ import {
   relativeDay,
   shortTime,
   zoneDisplayName,
+  descriptionItems,
   type WardEvent,
 } from '../lib/events'
 
@@ -56,72 +57,88 @@ function EventCard({
   const titleId = `event-${event.id}-title`
   const [flyerOpen, setFlyerOpen] = useState(false)
   const flyerSrc = event.hasFlyer ? event.flyerUrl || event.flyerThumbUrl : undefined
+  const bullets = event.description ? descriptionItems(event.description) : null
   return (
     <article className={`event-card${past ? ' event-card--past' : ''}`} id={`event-${event.id}`} aria-labelledby={titleId}>
-      <EventDateBadge date={event.date} muted={past} />
-      <div className="event-card__body">
-        {rel ? <p className="event-card__soon">{rel}</p> : null}
-        <h3 id={titleId} className="event-card__title">
-          {event.title}
-        </h3>
-        <p className="event-card__meta">
-          <span className="event-card__when">
-            <ClockIcon />
-            <span className="event-card__when-text">
-              <span>{event.dateLabel}</span>
-              <span className="event-card__sep" aria-hidden="true">
-                {' · '}
-              </span>
-              <span className="event-card__time">{event.timeLabel}</span>
-            </span>
-          </span>
-          {event.location ? (
-            <span className="event-card__where">
-              <PinIcon />
-              <span>
-                {event.location}
-                {event.mapUrl ? (
-                  <>
-                    <span aria-hidden="true"> · </span>
-                    <a href={event.mapUrl} target="_blank" rel="noopener noreferrer" className="event-card__map">
-                      Map<span className="sr-only"> for {event.location} (opens in a new tab)</span>
-                    </a>
-                  </>
-                ) : null}
+      <div className="event-card__header">
+        <EventDateBadge date={event.date} muted={past} />
+        <div className="event-card__heading">
+          {rel ? <p className="event-card__soon">{rel}</p> : null}
+          <h3 id={titleId} className="event-card__title">
+            {event.title}
+          </h3>
+          <p className="event-card__meta">
+            <span className="event-card__when">
+              <ClockIcon />
+              <span className="event-card__when-text">
+                {event.dateLabel}
+                <span className="event-card__sep" aria-hidden="true">
+                  {' · '}
+                </span>
+                <span className="event-card__time">{event.timeLabel.replace(/\s+[–—-]\s+/, '–')}</span>
               </span>
             </span>
-          ) : null}
-        </p>
-        {event.description ? <p className="event-card__desc">{event.description}</p> : null}
-        {flyerSrc ? (
-          <>
-            <button
-              type="button"
-              className="event-card__flyer"
-              onClick={() => setFlyerOpen(true)}
-              aria-label={`View flyer for ${event.title}`}
-            >
-              <img
-                src={event.flyerThumbUrl || flyerSrc}
-                alt=""
-                width={event.flyerWidth || undefined}
-                height={event.flyerHeight || undefined}
-              />
-              <span className="event-card__flyer-label">View flyer</span>
-            </button>
-            <ImageLightbox
-              open={flyerOpen}
-              src={flyerSrc}
-              thumbSrc={event.flyerThumbUrl}
-              alt={`Flyer for ${event.title}`}
-              width={event.flyerWidth}
-              height={event.flyerHeight}
-              title={event.title}
-              onClose={() => setFlyerOpen(false)}
-            />
-          </>
-        ) : null}
+            {event.location ? (
+              <span className="event-card__where">
+                <PinIcon />
+                <span>
+                  {event.location}
+                  {event.mapUrl ? (
+                    <>
+                      <span aria-hidden="true"> · </span>
+                      <a href={event.mapUrl} target="_blank" rel="noopener noreferrer" className="event-card__map">
+                        Map<span className="sr-only"> for {event.location} (opens in a new tab)</span>
+                      </a>
+                    </>
+                  ) : null}
+                </span>
+              </span>
+            ) : null}
+          </p>
+        </div>
       </div>
+      <hr className="event-card__rule" />
+      {bullets || event.description || flyerSrc ? (
+        <div className="event-card__body">
+          {bullets ? (
+            <ul className="event-card__bullets">
+              {bullets.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          ) : event.description ? (
+            <p className="event-card__desc">{event.description}</p>
+          ) : null}
+          {flyerSrc ? (
+            <>
+              <button
+                type="button"
+                className="event-card__flyer"
+                onClick={() => setFlyerOpen(true)}
+                aria-label={`View flyer for ${event.title}`}
+              >
+                <img
+                  src={event.flyerThumbUrl || flyerSrc}
+                  alt=""
+                  width={event.flyerWidth || undefined}
+                  height={event.flyerHeight || undefined}
+                />
+                <span className="event-card__flyer-label">View flyer</span>
+              </button>
+              <ImageLightbox
+                open={flyerOpen}
+                src={flyerSrc}
+                thumbSrc={event.flyerThumbUrl}
+                alt={`Flyer for ${event.title}`}
+                width={event.flyerWidth}
+                height={event.flyerHeight}
+                title={event.title}
+                onClose={() => setFlyerOpen(false)}
+              />
+            </>
+          ) : null}
+        </div>
+      ) : null}
       <div className="event-card__actions">
         {!past ? <AddToCalendar event={event} /> : null}
         <ShareEvent event={event} onCopied={onLinkCopied} />

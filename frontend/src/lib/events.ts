@@ -163,3 +163,16 @@ export function eventShareUrl(id: number): string {
 export function eventShareText(e: Pick<WardEvent, 'dateLabel' | 'timeLabel' | 'location'>): string {
   return [e.dateLabel, e.timeLabel, e.location].filter((s) => Boolean(s && s.trim())).join(' · ')
 }
+
+/** Split an event description into bullet items, or null to keep it as a paragraph.
+ *  Multiple non-empty lines, or any line starting with -, *, or •, become a list. */
+export function descriptionItems(text: string): string[] | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (lines.length === 0) return null
+  const marked = lines.some((l) => /^[-*•]\s+/.test(l))
+  if (lines.length < 2 && !marked) return null
+  return lines.map((l) => l.replace(/^[-*•]\s+/, '').trim()).filter(Boolean)
+}
