@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { AddToCalendar } from '../components/AddToCalendar'
+import { ShareEvent } from '../components/ShareEvent'
+import { Toast, type ToastPayload } from '../components/Toast'
 import { ImageLightbox } from '../components/ImageLightbox'
 import { EventDateBadge } from '../components/EventDateBadge'
 import { PageHero } from '../components/PageHero'
@@ -39,7 +41,17 @@ function ClockIcon() {
   )
 }
 
-function EventCard({ event, today, past = false }: { event: WardEvent; today: string; past?: boolean }) {
+function EventCard({
+  event,
+  today,
+  past = false,
+  onLinkCopied,
+}: {
+  event: WardEvent
+  today: string
+  past?: boolean
+  onLinkCopied: () => void
+}) {
   const rel = past ? '' : relativeDay(today, event.date)
   const titleId = `event-${event.id}-title`
   const [flyerOpen, setFlyerOpen] = useState(false)
@@ -109,15 +121,14 @@ function EventCard({ event, today, past = false }: { event: WardEvent; today: st
             />
           </>
         ) : null}
-        {!past || event.link ? (
-          <div className="event-card__actions">
-            {!past ? <AddToCalendar event={event} /> : null}
-            {event.link ? (
-              <a className="event-card__link" href={event.link} target="_blank" rel="noopener noreferrer">
-                More Info<span className="sr-only"> about {event.title} (opens in a new tab)</span>
-              </a>
-            ) : null}
-          </div>
+      </div>
+      <div className="event-card__actions">
+        {!past ? <AddToCalendar event={event} /> : null}
+        <ShareEvent event={event} onCopied={onLinkCopied} />
+        {event.link ? (
+          <a className="event-card__link" href={event.link} target="_blank" rel="noopener noreferrer">
+            More Info<span className="sr-only"> about {event.title} (opens in a new tab)</span>
+          </a>
         ) : null}
       </div>
     </article>
@@ -252,6 +263,8 @@ export function Events() {
   const [showPast, setShowPast] = useState(false)
   const [view, setView] = useState<View>('list')
   const [month, setMonth] = useState('')
+  const [toast, setToast] = useState<ToastPayload | null>(null)
+  const onLinkCopied = () => setToast({ message: 'Link copied', variant: 'success' })
 
   useEffect(() => {
     loadEvents('upcoming')
@@ -276,17 +289,28 @@ export function Events() {
       .catch(() => setPast([]))
   }, [needPast, past])
 
-  // Links like /events#event-12 (from the home page) scroll to that event once it loads.
+  // /events/12 (share links) and /events#event-12 (older home-page links) scroll to and highlight that event.
   const { hash } = useLocation()
+  const { eventId: eventIdParam } = useParams()
+  const focusId = eventIdParam && /^\d+$/.test(eventIdParam) ? Number(eventIdParam) : null
+
   useEffect(() => {
-    if (!upcoming || !hash.startsWith('#event-')) return
-    const el = document.getElementById(hash.slice(1))
+    if (focusId == null || !upcoming) return
+    if (!upcoming.some((e) => e.id === focusId)) setShowPast(true)
+  }, [focusId, upcoming])
+
+  useEffect(() => {
+    const domId = focusId != null ? `event-${focusId}` : hash.startsWith('#event-') ? hash.slice(1) : ''
+    if (!domId) return
+    const el = document.getElementById(domId)
     if (!el) return
     window.requestAnimationFrame(() => {
       el.scrollIntoView({ block: 'center' })
+      el.classList.remove('is-flash')
+      void el.offsetWidth
       el.classList.add('is-flash')
     })
-  }, [upcoming, hash])
+  }, [focusId, hash, upcoming, past, showPast])
 
   const groups = useMemo(() => groupByMonth(upcoming ?? []), [upcoming])
   const zoneName = useMemo(() => zoneDisplayName(timeZone), [timeZone])
@@ -315,11 +339,13 @@ export function Events() {
       <div className="home-mission-strip home-mission-strip--tight">
         <p>
           Invite a friend! These gatherings are a great way to share the gospel and to get to know
-          your ward family. Tap <strong>Add to Calendar</strong> on any event to save it to your phone.
+          your ward family. Tap <strong>Add to Calendar</strong> to save an event, or <strong>Share</strong> to
+          send it by text or social media.
         </p>
       </div>
 
       <div className="wrap events-page">
+        <Toast toast={toast} onDismiss={() => setToast(null)} />
         {err ? <p className="panel-sites panel-sites--warn">{err}</p> : null}
 
         {upcoming === null ? (
@@ -358,7 +384,7 @@ export function Events() {
                 </h2>
                 <div className="events-month__list">
                   {monthEvents.map((e) => (
-                    <EventCard key={e.id} event={e} today={today} past={!e.upcoming} />
+                    <EventCard key={e.id} event={e} today={today} past={!e.upcoming} onLinkCopied={onLinkCopied} />
                   ))}
                 </div>
               </section>
@@ -388,7 +414,7 @@ export function Events() {
                     </h2>
                     <div className="events-month__list">
                       {g.events.map((e) => (
-                        <EventCard key={e.id} event={e} today={today} />
+                        <EventCard key={e.id} event={e} today={today} onLinkCopied={onLinkCopied} />
                       ))}
                     </div>
                   </section>
@@ -420,7 +446,7 @@ export function Events() {
                     ) : (
                       <div className="events-month__list">
                         {past.map((e) => (
-                          <EventCard key={e.id} event={e} today={today} past />
+                          <EventCard key={e.id} event={e} today={today} past onLinkCopied={onLinkCopied} />
                         ))}
                       </div>
                     )}

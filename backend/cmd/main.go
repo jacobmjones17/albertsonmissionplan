@@ -120,6 +120,7 @@ func main() {
 	if err != nil {
 		log.Fatal(`web UI missing: run "cd frontend && npm install && npm run build" (outputs to backend/web/dist), then retry`)
 	}
+	srv.IndexHTML = indexHTML
 	distFS, err := fs.Sub(web.Dist, "dist")
 	if err != nil {
 		log.Fatal(err)

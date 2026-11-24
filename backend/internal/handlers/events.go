@@ -8,16 +8,19 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/albertson/albertsonmissionplan/internal/events"
 	"github.com/albertson/albertsonmissionplan/internal/gallery"
 	"github.com/albertson/albertsonmissionplan/internal/mail"
+	"github.com/albertson/albertsonmissionplan/internal/spa"
 	"github.com/albertson/albertsonmissionplan/internal/store"
 )
 
 // RegisterEventRoutes adds the public events calendar and the leader event manager endpoints.
 func (s *Server) RegisterEventRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /events/{id}", s.ServeEventPage)
 	mux.HandleFunc("GET /api/events", s.APIEvents)
 	mux.HandleFunc("GET /api/events/{id}/calendar.ics", s.APIEventICS)
 	mux.HandleFunc("GET /api/events/{id}/flyer/{size}", s.APIEventFlyer)
@@ -444,4 +447,85 @@ func (s *Server) APIAdminEventFlyerDelete(w http.ResponseWriter, r *http.Request
 	}
 	log.Printf("event %d flyer removed by %s", id, email)
 	s.writeSavedEvent(w, r, id)
+}
+
+// ServeEventPage serves the events SPA for a per-event share URL (/events/{id}) and
+// rewrites Open Graph tags so iMessage and social previews show this event.
+func (s *Server) ServeEventPage(w http.ResponseWriter, r *http.Request) {
+	id, ok := spa.EventSharePath(r.URL.Path)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	html := s.IndexHTML
+	if len(html) == 0 {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	status := http.StatusOK
+	e, err := store.GetEvent(r.Context(), s.DB, id)
+	switch {
+	case errors.Is(err, store.ErrEventNotFound):
+		status = http.StatusNotFound
+	case err != nil:
+		log.Printf("event page %d: %v", id, err)
+		// Still serve the app shell so a visitor can use the calendar.
+	default:
+		loc := mail.WardLocation()
+		today := events.Today(loc, eventsNow())
+		d := s.toEventDTO(*e, loc, today)
+		pageURL := s.absoluteURL(r, fmt.Sprintf("/events/%d", id))
+		og := spa.OpenGraph{
+			Title:       d.Title + " | Albertson Ward",
+			Description: eventShareText(*e),
+			URL:         pageURL,
+			Image:       s.absoluteURL(r, "/site/og-share.jpg"),
+			ImageAlt:    d.Title,
+			ImageWidth:  1200,
+			ImageHeight: 1600,
+		}
+		if d.HasFlyer && d.FlyerURL != "" {
+			og.Image = s.absoluteURL(r, d.FlyerURL)
+			og.ImageAlt = "Flyer for " + d.Title
+			if d.FlyerWidth > 0 {
+				og.ImageWidth = d.FlyerWidth
+			}
+			if d.FlyerHeight > 0 {
+				og.ImageHeight = d.FlyerHeight
+			}
+		}
+		html = spa.ApplyOpenGraph(html, og)
+	}
+	spa.ServeIndexHTML(w, html, status)
+}
+
+// eventShareText is the short blurb used in the Web Share sheet and Open Graph description.
+func eventShareText(e store.WardEvent) string {
+	parts := []string{events.DateLabel(e)}
+	if t := events.TimeLabel(e); t != "" {
+		parts = append(parts, t)
+	}
+	if loc := strings.TrimSpace(e.Location); loc != "" {
+		parts = append(parts, loc)
+	}
+	return strings.Join(parts, " · ")
+}
+
+func (s *Server) absoluteURL(r *http.Request, p string) string {
+	base := strings.TrimRight(s.PublicBaseURL, "/")
+	if base == "" {
+		scheme := "http"
+		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+			scheme = "https"
+		}
+		host := r.Host
+		if host == "" {
+			host = "localhost"
+		}
+		base = scheme + "://" + host
+	}
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	return base + p
 }

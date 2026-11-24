@@ -16,6 +16,9 @@ type Server struct {
 	Auth          *auth.Config
 	Mail          mail.Sender // nil when MAIL_ENABLED is not true
 	PublicBaseURL string      // Canonical site URL with scheme, no trailing slash — used in outbound emails.
+	// IndexHTML is the built SPA shell (index.html). Used to serve per-event share
+	// pages with Open Graph tags so link previews show the event's title and flyer.
+	IndexHTML []byte
 }
 
 func formatWhen(t time.Time) string {

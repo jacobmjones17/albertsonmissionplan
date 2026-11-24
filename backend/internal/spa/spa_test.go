@@ -46,6 +46,13 @@ func TestFileServerStatuses(t *testing.T) {
 		{"/site/", 404, true},
 		{"/assets", 404, true},
 		{"/SITE", 404, true},
+		// Per-event share URLs are client routes with a dynamic id.
+		{"/events/12", 200, true},
+		{"/events/12/", 200, true},
+		{"/Events/12", 200, true},
+		{"/events/abc", 404, true},
+		{"/events/0", 404, true},
+		{"/events/12/extra", 404, true},
 	}
 	for _, c := range cases {
 		rec := httptest.NewRecorder()
@@ -84,5 +91,66 @@ func TestClientRoutesMatchApp(t *testing.T) {
 	sort.Strings(fromGo)
 	if strings.Join(fromApp, ",") != strings.Join(fromGo, ",") {
 		t.Fatalf("route lists differ\nApp.tsx PAGE_TITLES: %v\nspa.clientRoutes:     %v", fromApp, fromGo)
+	}
+}
+
+func TestEventSharePath(t *testing.T) {
+	if id, ok := EventSharePath("/events/42"); !ok || id != 42 {
+		t.Fatalf("got %d %v", id, ok)
+	}
+	if id, ok := EventSharePath("/Events/42/"); !ok || id != 42 {
+		t.Fatalf("slash/case: %d %v", id, ok)
+	}
+	for _, p := range []string{"/events", "/events/", "/events/0", "/events/-3", "/events/abc", "/events/12/extra", "/ward-plan/12"} {
+		if id, ok := EventSharePath(p); ok {
+			t.Errorf("%s: unexpected id %d", p, id)
+		}
+	}
+	if !IsClientRoute("/events/42") || IsClientRoute("/events/abc") {
+		t.Fatal("IsClientRoute share path")
+	}
+}
+
+func TestApplyOpenGraph(t *testing.T) {
+	in := []byte(`<!doctype html><html><head>
+<title>Albertson Ward Plan</title>
+<meta name="description" content="Albertson Ward mission plan and resources." />
+<meta property="og:title" content="Albertson Ward" />
+<meta property="og:description" content="Albertson Ward mission plan and resources." />
+<meta property="og:url" content="https://albertsonwardplan.com/" />
+<meta property="og:image" content="https://albertsonwardplan.com/site/og-share.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="1600" />
+<meta property="og:image:alt" content="Albertson Ward mission plan" />
+<meta name="twitter:title" content="Albertson Ward" />
+<meta name="twitter:description" content="Albertson Ward mission plan and resources." />
+<meta name="twitter:image" content="https://albertsonwardplan.com/site/og-share.jpg" />
+</head></html>`)
+	out := string(ApplyOpenGraph(in, OpenGraph{
+		Title:       `Ward Christmas Party | Albertson Ward`,
+		Description: `Saturday, December 12, 2026 · 6:00 – 8:30 PM · Cultural Hall`,
+		URL:         `https://albertsonwardplan.com/events/9`,
+		Image:       `https://albertsonwardplan.com/api/events/9/flyer/image?v=abc`,
+		ImageAlt:    `Flyer for Ward Christmas Party`,
+		ImageWidth:  800,
+		ImageHeight: 1000,
+	}))
+	wants := []string{
+		`<title>Ward Christmas Party | Albertson Ward</title>`,
+		`content="Ward Christmas Party | Albertson Ward"`,
+		`content="Saturday, December 12, 2026 · 6:00 – 8:30 PM · Cultural Hall"`,
+		`content="https://albertsonwardplan.com/events/9"`,
+		`content="https://albertsonwardplan.com/api/events/9/flyer/image?v=abc"`,
+		`content="Flyer for Ward Christmas Party"`,
+		`content="800"`,
+		`content="1000"`,
+	}
+	for _, w := range wants {
+		if !strings.Contains(out, w) {
+			t.Errorf("missing %q in:\n%s", w, out)
+		}
+	}
+	if strings.Contains(out, "Albertson Ward mission plan and resources.") || strings.Contains(out, "og-share.jpg") {
+		t.Errorf("stale default tags remain:\n%s", out)
 	}
 }

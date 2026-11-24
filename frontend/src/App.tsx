@@ -27,7 +27,8 @@ const SITE_TITLE = 'Albertson Ward Plan'
 /**
  * Browser-tab title per route ("Monthly Challenges | Albertson Ward Plan"). Keep in sync with
  * the routes below and with `clientRoutes` in backend/internal/spa/spa.go (unknown paths get a
- * 404 status from the server and the NotFound page here).
+ * 404 status from the server and the NotFound page here). `/events/:id` share URLs are handled
+ * as a pattern in spa.EventSharePath and pageTitleFor, not as a fixed PAGE_TITLES key.
  */
 const PAGE_TITLES: Record<string, string> = {
   '/': '',
@@ -52,7 +53,8 @@ const PAGE_TITLES: Record<string, string> = {
 
 function pageTitleFor(pathname: string): string {
   const key = pathname.toLowerCase().replace(/\/+$/, '') || '/'
-  const page = key in PAGE_TITLES ? PAGE_TITLES[key] : 'Page Not Found'
+  const page =
+    key in PAGE_TITLES ? PAGE_TITLES[key] : /^\/events\/\d+$/.test(key) ? 'Ward Events' : 'Page Not Found'
   return page ? `${page} | ${SITE_TITLE}` : SITE_TITLE
 }
 
@@ -94,6 +96,7 @@ export function App() {
         <Route path="/love-share-invite" element={<LoveShareInvite />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/events/:eventId" element={<Events />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>

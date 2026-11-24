@@ -153,3 +153,13 @@ export function shortTime(hhmm: string): string {
   const h12 = h % 12 === 0 ? 12 : h % 12
   return m ? `${h12}:${String(m).padStart(2, '0')} ${suffix}` : `${h12} ${suffix}`
 }
+
+/** Absolute URL for this event, used by the Share button and link previews. */
+export function eventShareUrl(id: number): string {
+  return `${window.location.origin}/events/${id}`
+}
+
+/** Short blurb: "Saturday, December 12, 2026 · 6:00 – 8:30 PM · Cultural Hall". */
+export function eventShareText(e: Pick<WardEvent, 'dateLabel' | 'timeLabel' | 'location'>): string {
+  return [e.dateLabel, e.timeLabel, e.location].filter((s) => Boolean(s && s.trim())).join(' · ')
+}
