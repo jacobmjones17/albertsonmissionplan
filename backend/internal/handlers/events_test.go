@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image/jpeg"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -57,6 +59,8 @@ func TestEventsRequireLeader(t *testing.T) {
 		h.postJSON("/api/admin/events", body, false),
 		h.postJSON("/api/admin/events/1", body, false),
 		h.postJSON("/api/admin/events/1/delete", map[string]any{}, false),
+		h.uploadFlyer("/api/admin/events/1/flyer", sampleJPEG(t, 20, 20), false),
+		h.postJSON("/api/admin/events/1/flyer/delete", map[string]any{}, false),
 	} {
 		if rec.Code != http.StatusForbidden {
 			t.Fatalf("anonymous got %d: %s", rec.Code, rec.Body.String())
@@ -144,5 +148,159 @@ func TestEventsCRUDAndPublicViews(t *testing.T) {
 	up = decodeEvents(t, h.do(httptest.NewRequest(http.MethodGet, "/api/events", nil), false))
 	if len(up.Events) != 1 {
 		t.Fatalf("after delete %+v", up.Events)
+	}
+}
+
+func (h *galleryHarness) uploadFlyer(path string, data []byte, asLeader bool) *httptest.ResponseRecorder {
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, _ := mw.CreateFormFile("image", "flyer.jpg")
+	_, _ = fw.Write(data)
+	_ = mw.Close()
+	req := httptest.NewRequest(http.MethodPost, path, &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	return h.do(req, asLeader)
+}
+
+func TestEventFlyerUploadServeDelete(t *testing.T) {
+	h := newEventsHarness(t)
+
+	// Create an event that only has a link — that link must keep working after flyer operations.
+	rec := h.postJSON("/api/admin/events", map[string]any{
+		"title": "Ward Christmas Party", "date": "2026-12-12", "startTime": "18:00",
+		"link": "https://example.org/signup",
+	}, true)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	var created struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &created)
+	ev := created.Event
+	if ev.HasFlyer || ev.FlyerURL != "" || ev.Link != "https://example.org/signup" {
+		t.Fatalf("new event should have a link and no flyer: %+v", ev)
+	}
+
+	if rec := h.do(httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/events/%d/flyer/image", ev.ID), nil), false); rec.Code != http.StatusNotFound {
+		t.Fatalf("no flyer yet: %d", rec.Code)
+	}
+	if rec := h.do(httptest.NewRequest(http.MethodGet, "/api/events/999999/flyer/image", nil), false); rec.Code != http.StatusNotFound {
+		t.Fatalf("missing event flyer: %d", rec.Code)
+	}
+
+	up := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", ev.ID), sampleJPEG(t, 1200, 1600), true)
+	if up.Code != http.StatusOK {
+		t.Fatalf("upload: %d %s", up.Code, up.Body.String())
+	}
+	var saved struct {
+		Event eventDTO `json:"event"`
+	}
+	_ = json.Unmarshal(up.Body.Bytes(), &saved)
+	if !saved.Event.HasFlyer || saved.Event.FlyerURL == "" || saved.Event.FlyerThumbURL == "" ||
+		saved.Event.FlyerWidth != 1200 || saved.Event.FlyerHeight != 1600 ||
+		saved.Event.Link != "https://example.org/signup" {
+		t.Fatalf("uploaded dto %+v", saved.Event)
+	}
+
+	pub := decodeEvents(t, h.do(httptest.NewRequest(http.MethodGet, "/api/events", nil), false))
+	var found *eventDTO
+	for i := range pub.Events {
+		if pub.Events[i].ID == ev.ID {
+			found = &pub.Events[i]
+			break
+		}
+	}
+	if found == nil || !found.HasFlyer || found.FlyerURL != saved.Event.FlyerURL || found.Link != "https://example.org/signup" {
+		t.Fatalf("public list flyer %+v", found)
+	}
+
+	img := h.do(httptest.NewRequest(http.MethodGet, found.FlyerURL, nil), false)
+	if img.Code != http.StatusOK || img.Header().Get("Content-Type") != "image/jpeg" {
+		t.Fatalf("image: %d %q", img.Code, img.Header().Get("Content-Type"))
+	}
+	if cc := img.Header().Get("Cache-Control"); !strings.Contains(cc, "immutable") {
+		t.Errorf("cache-control = %q", cc)
+	}
+	if _, err := jpeg.Decode(bytes.NewReader(img.Body.Bytes())); err != nil {
+		t.Errorf("served image isn't a JPEG: %v", err)
+	}
+	thumb := h.do(httptest.NewRequest(http.MethodGet, found.FlyerThumbURL, nil), false)
+	if thumb.Code != http.StatusOK {
+		t.Fatalf("thumb: %d", thumb.Code)
+	}
+	cond := httptest.NewRequest(http.MethodGet, found.FlyerThumbURL, nil)
+	cond.Header.Set("If-None-Match", thumb.Header().Get("ETag"))
+	if rec := h.do(cond, false); rec.Code != http.StatusNotModified {
+		t.Errorf("conditional thumb: %d", rec.Code)
+	}
+
+	// Replace the flyer: new hash/URL, same event and link.
+	up2 := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", ev.ID), sampleJPEG(t, 800, 600), true)
+	if up2.Code != http.StatusOK {
+		t.Fatalf("replace: %d %s", up2.Code, up2.Body.String())
+	}
+	_ = json.Unmarshal(up2.Body.Bytes(), &saved)
+	if !saved.Event.HasFlyer || saved.Event.FlyerWidth != 800 || saved.Event.FlyerHeight != 600 ||
+		saved.Event.FlyerURL == found.FlyerURL || saved.Event.Link != "https://example.org/signup" {
+		t.Fatalf("replaced dto %+v (old url %s)", saved.Event, found.FlyerURL)
+	}
+
+	// A text-only update must keep the flyer.
+	rec = h.postJSON(fmt.Sprintf("/api/admin/events/%d", ev.ID), map[string]any{
+		"title": "Ward Christmas Party", "date": "2026-12-12", "startTime": "18:00",
+		"link": "https://example.org/signup",
+	}, true)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"hasFlyer":true`) {
+		t.Fatalf("text update dropped flyer: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Reject a non-image; the existing flyer stays.
+	bad := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", ev.ID), []byte("not an image at all"), true)
+	if bad.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("bad file: %d %s", bad.Code, bad.Body.String())
+	}
+	heic := append([]byte{0, 0, 0, 0x18}, []byte("ftypheic")...)
+	heic = append(heic, make([]byte, 8)...)
+	if rec := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", ev.ID), heic, true); rec.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("heic: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := h.uploadFlyer(fmt.Sprintf("/api/admin/events/%d/flyer", ev.ID), append([]byte{0xFF, 0xD8, 0xFF}, make([]byte, 16<<20)...), true); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("too big: %d %s", rec.Code, rec.Body.String())
+	}
+	still := decodeEvents(t, h.do(httptest.NewRequest(http.MethodGet, "/api/events", nil), false))
+	ok := false
+	for _, e := range still.Events {
+		if e.ID == ev.ID && e.HasFlyer && e.FlyerURL == saved.Event.FlyerURL {
+			ok = true
+		}
+	}
+	if !ok {
+		t.Fatalf("rejected uploads must not replace the flyer: %+v", still.Events)
+	}
+
+	// Upload to a missing event is 404.
+	if rec := h.uploadFlyer("/api/admin/events/999999/flyer", sampleJPEG(t, 20, 20), true); rec.Code != http.StatusNotFound {
+		t.Fatalf("upload missing: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Delete the flyer; the link remains.
+	del := h.postJSON(fmt.Sprintf("/api/admin/events/%d/flyer/delete", ev.ID), map[string]any{}, true)
+	if del.Code != http.StatusOK || strings.Contains(del.Body.String(), `"hasFlyer":true`) {
+		t.Fatalf("delete flyer: %d %s", del.Code, del.Body.String())
+	}
+	if rec := h.do(httptest.NewRequest(http.MethodGet, saved.Event.FlyerURL, nil), false); rec.Code != http.StatusNotFound {
+		t.Fatalf("deleted flyer still served: %d", rec.Code)
+	}
+	after := decodeEvents(t, h.do(httptest.NewRequest(http.MethodGet, "/api/events", nil), false))
+	for _, e := range after.Events {
+		if e.ID == ev.ID {
+			if e.HasFlyer || e.FlyerURL != "" || e.Link != "https://example.org/signup" {
+				t.Fatalf("after delete %+v", e)
+			}
+		}
+	}
+	if rec := h.postJSON("/api/admin/events/999999/flyer/delete", map[string]any{}, true); rec.Code != http.StatusNotFound {
+		t.Fatalf("delete missing: %d", rec.Code)
 	}
 }

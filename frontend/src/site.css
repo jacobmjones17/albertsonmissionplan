@@ -6043,6 +6043,44 @@ details.org .org-body {
   font-weight: 600;
   color: var(--accent);
 }
+.event-card__flyer {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+}
+.event-card__flyer img {
+  display: block;
+  width: auto;
+  max-width: min(11.5rem, 100%);
+  max-height: 15rem;
+  height: auto;
+  object-fit: contain;
+  background: #fbf6ea;
+  border: 2px solid #c9a227;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(44, 30, 16, 0.12);
+}
+.event-card__flyer:hover img,
+.event-card__flyer:focus-visible img {
+  border-color: #5c3d17;
+  box-shadow: 0 4px 16px rgba(44, 30, 16, 0.2);
+}
+.event-card__flyer:focus-visible {
+  outline: none;
+}
+.event-card__flyer-label {
+  color: #5c3d17;
+}
 
 /* Add to calendar menu */
 .add-cal {
@@ -6549,6 +6587,61 @@ label .event-form__hint {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
+}
+.event-form__flyer {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.event-form__flyer legend {
+  padding: 0;
+  font-weight: 650;
+  color: var(--ink);
+}
+.event-form__flyer-preview {
+  margin: 0.65rem 0 0.85rem;
+}
+.event-form__flyer-preview img {
+  display: block;
+  width: auto;
+  max-width: min(14rem, 100%);
+  max-height: 16rem;
+  height: auto;
+  object-fit: contain;
+  background: #fbf6ea;
+  border: 2px solid #c9a227;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(44, 30, 16, 0.12);
+}
+.event-form__flyer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0.35rem 0 0.35rem;
+}
+.event-form__flyer .event-form__hint {
+  margin: 0.35rem 0 0;
+}
+.event-form__text-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #5c3d17;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.event-form__text-btn:hover,
+.event-form__text-btn:focus-visible {
+  color: #3d280e;
+}
+.event-form__text-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .admin-events-past__toggle {
   font: inherit;

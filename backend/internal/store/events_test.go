@@ -87,6 +87,65 @@ func testEventsStore(t *testing.T) {
 	if _, err := GetEvent(ctx, db, past); !errors.Is(err, ErrEventNotFound) {
 		t.Fatalf("get deleted err = %v", err)
 	}
+
+	// Flyer upload: store, replace, survive a text-only UpdateEvent, then clear.
+	img := GalleryImages{Width: 800, Height: 1000, ThumbWidth: 400, ThumbHeight: 500, Hash: "abc123",
+		Image: []byte("JPEG-DISPLAY"), Thumb: []byte("JPEG-THUMB")}
+	if err := SetEventFlyer(ctx, db, evening, img); err != nil {
+		t.Fatal(err)
+	}
+	gotEv, err := GetEvent(ctx, db, evening)
+	if err != nil || !gotEv.HasFlyer() || gotEv.FlyerHash != "abc123" || gotEv.FlyerWidth != 800 || gotEv.FlyerHeight != 1000 {
+		t.Fatalf("flyer metadata %+v, %v", gotEv, err)
+	}
+	data, hash, err := EventFlyerImage(ctx, db, evening, false)
+	if err != nil || hash != "abc123" || string(data) != "JPEG-DISPLAY" {
+		t.Fatalf("flyer image %q %q %v", data, hash, err)
+	}
+	thumb, _, err := EventFlyerImage(ctx, db, evening, true)
+	if err != nil || string(thumb) != "JPEG-THUMB" {
+		t.Fatalf("flyer thumb %q %v", thumb, err)
+	}
+	// A text-only update must not wipe the flyer.
+	gotEv.Title = "Evening baptism (updated)"
+	gotEv.LinkURL = "https://example.org/signup"
+	if err := UpdateEvent(ctx, db, *gotEv); err != nil {
+		t.Fatal(err)
+	}
+	gotEv, _ = GetEvent(ctx, db, evening)
+	if gotEv.Title != "Evening baptism (updated)" || gotEv.LinkURL != "https://example.org/signup" || !gotEv.HasFlyer() {
+		t.Fatalf("update wiped flyer or link: %+v", gotEv)
+	}
+	data, _, err = EventFlyerImage(ctx, db, evening, false)
+	if err != nil || string(data) != "JPEG-DISPLAY" {
+		t.Fatalf("flyer bytes after text update: %q %v", data, err)
+	}
+	// Replace the flyer.
+	img2 := GalleryImages{Width: 600, Height: 800, ThumbWidth: 300, ThumbHeight: 400, Hash: "def456",
+		Image: []byte("JPEG-2"), Thumb: []byte("THUMB-2")}
+	if err := SetEventFlyer(ctx, db, evening, img2); err != nil {
+		t.Fatal(err)
+	}
+	data, hash, err = EventFlyerImage(ctx, db, evening, false)
+	if err != nil || hash != "def456" || string(data) != "JPEG-2" {
+		t.Fatalf("replaced flyer %q %q %v", data, hash, err)
+	}
+	if _, _, err := EventFlyerImage(ctx, db, morning, false); !errors.Is(err, ErrEventFlyerNotFound) {
+		t.Fatalf("missing flyer err = %v", err)
+	}
+	if err := ClearEventFlyer(ctx, db, evening); err != nil {
+		t.Fatal(err)
+	}
+	cleared, _ := GetEvent(ctx, db, evening)
+	if cleared.HasFlyer() || cleared.LinkURL != "https://example.org/signup" {
+		t.Fatalf("clear should drop flyer and keep link: %+v", cleared)
+	}
+	if _, _, err := EventFlyerImage(ctx, db, evening, false); !errors.Is(err, ErrEventFlyerNotFound) {
+		t.Fatalf("cleared flyer err = %v", err)
+	}
+	if err := SetEventFlyer(ctx, db, 999999, img); !errors.Is(err, ErrEventNotFound) {
+		t.Fatalf("set missing err = %v", err)
+	}
 }
 
 func TestEventsStoreSQLite(t *testing.T) {
