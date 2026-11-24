@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/albertson/albertsonmissionplan/internal/events"
+	"github.com/albertson/albertsonmissionplan/internal/gallery"
 	"github.com/albertson/albertsonmissionplan/internal/mail"
 	"github.com/albertson/albertsonmissionplan/internal/store"
 )
@@ -18,10 +20,13 @@ import (
 func (s *Server) RegisterEventRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/events", s.APIEvents)
 	mux.HandleFunc("GET /api/events/{id}/calendar.ics", s.APIEventICS)
+	mux.HandleFunc("GET /api/events/{id}/flyer/{size}", s.APIEventFlyer)
 	mux.HandleFunc("GET /api/admin/events", s.APIAdminEvents)
 	mux.HandleFunc("POST /api/admin/events", s.APIAdminEventCreate)
 	mux.HandleFunc("POST /api/admin/events/{id}", s.APIAdminEventUpdate)
 	mux.HandleFunc("POST /api/admin/events/{id}/delete", s.APIAdminEventDelete)
+	mux.HandleFunc("POST /api/admin/events/{id}/flyer", s.APIAdminEventFlyerUpload)
+	mux.HandleFunc("POST /api/admin/events/{id}/flyer/delete", s.APIAdminEventFlyerDelete)
 }
 
 // eventsNow is swapped in tests.
@@ -40,6 +45,12 @@ type eventDTO struct {
 	Location    string `json:"location"`
 	Description string `json:"description"`
 	Link        string `json:"link"`
+
+	HasFlyer      bool   `json:"hasFlyer"`
+	FlyerURL      string `json:"flyerUrl,omitempty"`
+	FlyerThumbURL string `json:"flyerThumbUrl,omitempty"`
+	FlyerWidth    int    `json:"flyerWidth,omitempty"`
+	FlyerHeight   int    `json:"flyerHeight,omitempty"`
 
 	DateLabel  string `json:"dateLabel"`
 	TimeLabel  string `json:"timeLabel"`
@@ -60,7 +71,7 @@ func (s *Server) eventsPageURL() string {
 }
 
 func (s *Server) toEventDTO(e store.WardEvent, loc *time.Location, today string) eventDTO {
-	return eventDTO{
+	d := eventDTO{
 		ID: e.ID, Title: e.Title, Date: e.Date, AllDay: e.AllDay, StartTime: e.StartTime, EndTime: e.EndTime,
 		Location: e.Location, Description: e.Description, Link: e.LinkURL,
 		DateLabel:  events.DateLabel(e),
@@ -73,6 +84,14 @@ func (s *Server) toEventDTO(e store.WardEvent, loc *time.Location, today string)
 		GoogleURL:  events.GoogleCalendarURL(e, loc, s.eventsPageURL()),
 		MapURL:     events.MapURL(e.Location),
 	}
+	if e.HasFlyer() {
+		d.HasFlyer = true
+		d.FlyerURL = fmt.Sprintf("/api/events/%d/flyer/image?v=%s", e.ID, e.FlyerHash)
+		d.FlyerThumbURL = fmt.Sprintf("/api/events/%d/flyer/thumb?v=%s", e.ID, e.FlyerHash)
+		d.FlyerWidth = e.FlyerWidth
+		d.FlyerHeight = e.FlyerHeight
+	}
+	return d
 }
 
 func (s *Server) eventDTOs(list []store.WardEvent, loc *time.Location, today string) []eventDTO {
@@ -268,4 +287,161 @@ func (s *Server) APIAdminEventDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("event %d deleted by %s", id, email)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// APIEventFlyer serves an event's uploaded flyer (display image or thumbnail) from the database.
+// URLs carry the content hash (?v=), so matching requests are cached for a year.
+func (s *Server) APIEventFlyer(w http.ResponseWriter, r *http.Request) {
+	id, ok := eventIDFromPath(r)
+	size := r.PathValue("size")
+	if !ok || (size != "image" && size != "thumb") {
+		http.NotFound(w, r)
+		return
+	}
+	data, hash, err := store.EventFlyerImage(r.Context(), s.DB, id, size == "thumb")
+	if errors.Is(err, store.ErrEventNotFound) || errors.Is(err, store.ErrEventFlyerNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		log.Printf("event flyer %d: %v", id, err)
+		http.Error(w, "Could not load the flyer", http.StatusInternalServerError)
+		return
+	}
+	etag := `"` + hash + "-" + size + `"`
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("ETag", etag)
+	if r.URL.Query().Get("v") == hash {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+	}
+	if match := r.Header.Get("If-None-Match"); match != "" && match == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(data)
+	}
+}
+
+func writeGalleryProcessError(w http.ResponseWriter, err error) bool {
+	status := http.StatusUnsupportedMediaType
+	switch {
+	case errors.Is(err, gallery.ErrTooLarge):
+		status = http.StatusRequestEntityTooLarge
+	case errors.Is(err, gallery.ErrTooManyPx), errors.Is(err, gallery.ErrCorrupt):
+		status = http.StatusUnprocessableEntity
+	case errors.Is(err, gallery.ErrHEIC), errors.Is(err, gallery.ErrUnsupported):
+	default:
+		return false
+	}
+	writeJSON(w, status, map[string]string{"error": err.Error()})
+	return true
+}
+
+func readMultipartImage(w http.ResponseWriter, r *http.Request) (data []byte, ok bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, gallery.MaxUploadBytes+(1<<20))
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": gallery.ErrTooLarge.Error()})
+			return nil, false
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Could not read the upload."})
+		return nil, false
+	}
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
+	f, _, err := r.FormFile("image")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Choose a picture to upload."})
+		return nil, false
+	}
+	defer f.Close()
+	data, err = io.ReadAll(io.LimitReader(f, gallery.MaxUploadBytes+1))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Could not read the upload."})
+		return nil, false
+	}
+	return data, true
+}
+
+// APIAdminEventFlyerUpload stores a flyer photo on an event (multipart field "image").
+// The file is validated and processed the same way as Ward Gallery drawings (15 MB max,
+// JPEG/PNG/WebP, EXIF/GPS dropped, display + thumbnail JPEGs).
+func (s *Server) APIAdminEventFlyerUpload(w http.ResponseWriter, r *http.Request) {
+	email, ok := s.requireAdmin(w, r)
+	if !ok {
+		return
+	}
+	id, ok := eventIDFromPath(r)
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Event not found."})
+		return
+	}
+	data, ok := readMultipartImage(w, r)
+	if !ok {
+		return
+	}
+
+	galleryProcessSlot <- struct{}{}
+	start := time.Now()
+	res, err := gallery.Process(data)
+	<-galleryProcessSlot
+	if err != nil {
+		if writeGalleryProcessError(w, err) {
+			return
+		}
+		log.Printf("event flyer process %d: %v", id, err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not process the flyer."})
+		return
+	}
+	if err := store.SetEventFlyer(r.Context(), s.DB, id, store.GalleryImages{
+		Width: res.DisplayWidth, Height: res.DisplayHeight,
+		ThumbWidth: res.ThumbWidth, ThumbHeight: res.ThumbHeight,
+		Hash: res.Hash, Image: res.Display, Thumb: res.Thumb,
+	}); err != nil {
+		if errors.Is(err, store.ErrEventNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "Event not found. It may have been deleted."})
+			return
+		}
+		log.Printf("event flyer save %d: %v", id, err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not save the flyer."})
+		return
+	}
+	log.Printf("event %d flyer uploaded by %s: %d KB in → %dx%d (%d KB) + thumb (%d KB) in %s", id, email,
+		len(data)>>10, res.DisplayWidth, res.DisplayHeight, len(res.Display)>>10, len(res.Thumb)>>10,
+		time.Since(start).Round(time.Millisecond))
+	s.writeSavedEvent(w, r, id)
+}
+
+// APIAdminEventFlyerDelete removes an uploaded flyer from an event. The optional link is left alone.
+func (s *Server) APIAdminEventFlyerDelete(w http.ResponseWriter, r *http.Request) {
+	email, ok := s.requireAdmin(w, r)
+	if !ok {
+		return
+	}
+	id, ok := eventIDFromPath(r)
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Event not found."})
+		return
+	}
+	if err := store.ClearEventFlyer(r.Context(), s.DB, id); err != nil {
+		if errors.Is(err, store.ErrEventNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "Event not found."})
+			return
+		}
+		log.Printf("event flyer delete %d: %v", id, err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not remove the flyer."})
+		return
+	}
+	log.Printf("event %d flyer removed by %s", id, email)
+	s.writeSavedEvent(w, r, id)
 }

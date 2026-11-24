@@ -13,6 +13,12 @@ export type WardEvent = {
   location: string
   description: string
   link: string
+  /** True when a flyer photo has been uploaded (takes display priority over link). */
+  hasFlyer?: boolean
+  flyerUrl?: string
+  flyerThumbUrl?: string
+  flyerWidth?: number
+  flyerHeight?: number
   /** "Saturday, December 5, 2026" */
   dateLabel: string
   /** "6:30 – 8:00 PM" or "All day" */

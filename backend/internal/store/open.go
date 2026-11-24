@@ -138,6 +138,13 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 			location TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT '',
 			link_url TEXT NOT NULL DEFAULT '',
+			flyer_hash TEXT NOT NULL DEFAULT '',
+			flyer_width INTEGER NOT NULL DEFAULT 0,
+			flyer_height INTEGER NOT NULL DEFAULT 0,
+			flyer_thumb_width INTEGER NOT NULL DEFAULT 0,
+			flyer_thumb_height INTEGER NOT NULL DEFAULT 0,
+			flyer_image BYTEA,
+			flyer_thumb BYTEA,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			created_by TEXT NOT NULL DEFAULT '',
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -166,6 +173,9 @@ func migratePostgres(ctx context.Context, db *sql.DB) error {
 		}
 	}
 	if err := migrateSchemaFixes(ctx, db); err != nil {
+		return err
+	}
+	if err := migrateEventFlyerColumns(ctx, db); err != nil {
 		return err
 	}
 	if err := migrateOrgSectionTitles(ctx, db); err != nil {
@@ -253,6 +263,13 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 			location TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT '',
 			link_url TEXT NOT NULL DEFAULT '',
+			flyer_hash TEXT NOT NULL DEFAULT '',
+			flyer_width INTEGER NOT NULL DEFAULT 0,
+			flyer_height INTEGER NOT NULL DEFAULT 0,
+			flyer_thumb_width INTEGER NOT NULL DEFAULT 0,
+			flyer_thumb_height INTEGER NOT NULL DEFAULT 0,
+			flyer_image BLOB,
+			flyer_thumb BLOB,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			created_by TEXT NOT NULL DEFAULT '',
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -279,6 +296,9 @@ func migrateSQLite(ctx context.Context, db *sql.DB) error {
 		}
 	}
 	if err := migrateSchemaFixes(ctx, db); err != nil {
+		return err
+	}
+	if err := migrateEventFlyerColumns(ctx, db); err != nil {
 		return err
 	}
 	if err := seedIfEmptySQLiteAddons(ctx, db); err != nil {
@@ -309,6 +329,42 @@ func normalizePostgresURL(raw string) string {
 		raw += sep + "default_query_exec_mode=simple_protocol"
 	}
 	return raw
+}
+
+// migrateEventFlyerColumns adds optional flyer image columns to existing ward_events tables.
+// New databases already have these columns from CREATE TABLE.
+func migrateEventFlyerColumns(ctx context.Context, db *sql.DB) error {
+	var stmts []string
+	if activeDriver == driverPostgreSQL {
+		stmts = []string{
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_hash TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_width INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_height INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_thumb_width INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_thumb_height INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_image BYTEA`,
+			`ALTER TABLE ward_events ADD COLUMN IF NOT EXISTS flyer_thumb BYTEA`,
+		}
+	} else {
+		stmts = []string{
+			`ALTER TABLE ward_events ADD COLUMN flyer_hash TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_width INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_height INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_thumb_width INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_thumb_height INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_image BLOB`,
+			`ALTER TABLE ward_events ADD COLUMN flyer_thumb BLOB`,
+		}
+	}
+	for _, s := range stmts {
+		if _, err := db.ExecContext(ctx, s); err != nil {
+			if activeDriver == driverSQLite && strings.Contains(strings.ToLower(err.Error()), "duplicate column name") {
+				continue
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func migrateSchemaFixes(ctx context.Context, db *sql.DB) error {

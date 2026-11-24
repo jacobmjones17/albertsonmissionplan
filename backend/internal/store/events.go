@@ -19,13 +19,24 @@ type WardEvent struct {
 	Location    string
 	Description string
 	LinkURL     string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// Flyer metadata. Image bytes are fetched separately with EventFlyerImage.
+	FlyerHash        string
+	FlyerWidth       int
+	FlyerHeight      int
+	FlyerThumbWidth  int
+	FlyerThumbHeight int
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
+
+func (e WardEvent) HasFlyer() bool { return e.FlyerHash != "" }
 
 var ErrEventNotFound = errors.New("event not found")
 
-const eventCols = `id, title, event_date, all_day, start_time, end_time, location, description, link_url, created_at, updated_at`
+// ErrEventFlyerNotFound is returned when the event exists but has no uploaded flyer.
+var ErrEventFlyerNotFound = errors.New("event flyer not found")
+
+const eventCols = `id, title, event_date, all_day, start_time, end_time, location, description, link_url, flyer_hash, flyer_width, flyer_height, flyer_thumb_width, flyer_thumb_height, created_at, updated_at`
 
 // Chronological: by date, all-day events first that day, then by start time.
 const eventOrderAsc = ` ORDER BY event_date ASC, all_day DESC, start_time ASC, id ASC`
@@ -38,7 +49,8 @@ func scanEvents(rows *sql.Rows) ([]WardEvent, error) {
 		var e WardEvent
 		var created, updated nullTime
 		if err := rows.Scan(&e.ID, &e.Title, &e.Date, &e.AllDay, &e.StartTime, &e.EndTime,
-			&e.Location, &e.Description, &e.LinkURL, &created, &updated); err != nil {
+			&e.Location, &e.Description, &e.LinkURL, &e.FlyerHash, &e.FlyerWidth, &e.FlyerHeight,
+			&e.FlyerThumbWidth, &e.FlyerThumbHeight, &created, &updated); err != nil {
 			return nil, err
 		}
 		if created.Valid {
@@ -140,4 +152,40 @@ func eventAffected(res sql.Result, err error) error {
 		return ErrEventNotFound
 	}
 	return nil
+}
+
+// SetEventFlyer stores a processed flyer on an existing event, replacing any previous upload.
+func SetEventFlyer(ctx context.Context, db *sql.DB, id int64, img GalleryImages) error {
+	res, err := sxExec(db, ctx, `UPDATE ward_events SET flyer_hash = $1, flyer_width = $2, flyer_height = $3,
+		flyer_thumb_width = $4, flyer_thumb_height = $5, flyer_image = $6, flyer_thumb = $7,
+		updated_at = CURRENT_TIMESTAMP WHERE id = $8`,
+		img.Hash, img.Width, img.Height, img.ThumbWidth, img.ThumbHeight, img.Image, img.Thumb, id)
+	return eventAffected(res, err)
+}
+
+// ClearEventFlyer removes an uploaded flyer from an event. The optional flyer link is left alone.
+func ClearEventFlyer(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := sxExec(db, ctx, `UPDATE ward_events SET flyer_hash = '', flyer_width = 0, flyer_height = 0,
+		flyer_thumb_width = 0, flyer_thumb_height = 0, flyer_image = NULL, flyer_thumb = NULL,
+		updated_at = CURRENT_TIMESTAMP WHERE id = $1`, id)
+	return eventAffected(res, err)
+}
+
+// EventFlyerImage returns the stored flyer display image (thumb=false) or thumbnail, plus its content hash.
+func EventFlyerImage(ctx context.Context, db *sql.DB, id int64, thumb bool) (data []byte, hash string, err error) {
+	col := "flyer_image"
+	if thumb {
+		col = "flyer_thumb"
+	}
+	err = sxQueryRow(db, ctx, `SELECT `+col+`, flyer_hash FROM ward_events WHERE id = $1`, id).Scan(&data, &hash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, "", ErrEventNotFound
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	if hash == "" || len(data) == 0 {
+		return nil, "", ErrEventFlyerNotFound
+	}
+	return data, hash, nil
 }

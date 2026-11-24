@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiJson } from '../api'
+import { apiJson, apiUpload } from '../api'
 import { EventDateBadge } from '../components/EventDateBadge'
 import { PageHero } from '../components/PageHero'
 import { Toast, type ToastPayload } from '../components/Toast'
@@ -21,6 +21,17 @@ type Draft = {
 const EMPTY: Draft = { title: '', date: '', allDay: false, startTime: '', endTime: '', location: '', description: '', link: '' }
 
 const MAX_DESCRIPTION = 2000
+const MAX_FLYER_BYTES = 15 * 1024 * 1024
+
+function precheckFlyer(f: File): string | undefined {
+  if (/image\/hei[cf]/i.test(f.type) || /\.(heic|heif)$/i.test(f.name)) {
+    return 'HEIC photos can’t be read yet. On iPhone choose the photo from the Photos picker (it converts to JPEG) or set Camera → Formats → Most Compatible.'
+  }
+  if (f.type && !/^image\/(jpeg|png|webp)$/i.test(f.type)) return 'Please use a JPEG, PNG, or WebP picture.'
+  if (f.size > MAX_FLYER_BYTES) return 'This picture is larger than 15 MB. Try a smaller photo.'
+  return undefined
+}
+
 
 function draftFrom(e: WardEvent): Draft {
   return {
@@ -60,19 +71,27 @@ function EventForm({
   initial: Draft
   editing: WardEvent | null
   zoneName: string
-  onSaved: (e: WardEvent, created: boolean) => void
+  onSaved: (e: WardEvent, created: boolean, warning?: string) => void
   onCancel: () => void
   onDirtyChange: (dirty: boolean) => void
 }) {
   const [d, setD] = useState<Draft>(initial)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ field?: keyof Draft; message: string } | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null)
+  const [removeFlyer, setRemoveFlyer] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pendingUrlRef = useRef<string | null>(null)
   const idp = editing ? `ev-${editing.id}` : 'ev-new'
 
-  const dirty = !sameDraft(d, initial)
+  const dirty = !sameDraft(d, initial) || pendingFile !== null || removeFlyer
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
+  useEffect(() => () => {
+    if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current)
+  }, [])
 
   useEffect(() => {
     formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
@@ -86,6 +105,32 @@ function EventForm({
   function focusField(field?: keyof Draft) {
     if (!field) return
     window.requestAnimationFrame(() => document.getElementById(`${idp}-${field}`)?.focus())
+  }
+
+  function setPendingPreview(url: string | null) {
+    if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current)
+    pendingUrlRef.current = url
+    setPendingUrl(url)
+  }
+
+  function chooseFlyer(f?: File) {
+    if (!f) return
+    const problem = precheckFlyer(f)
+    if (problem) {
+      setError({ message: problem })
+      return
+    }
+    setPendingPreview(URL.createObjectURL(f))
+    setPendingFile(f)
+    setRemoveFlyer(false)
+    setError(null)
+  }
+
+  function clearFlyer() {
+    setPendingPreview(null)
+    setPendingFile(null)
+    if (editing?.hasFlyer) setRemoveFlyer(true)
+    setError(null)
   }
 
   async function submit(ev: FormEvent) {
@@ -104,14 +149,39 @@ function EventForm({
         editing ? `/api/admin/events/${editing.id}` : '/api/admin/events',
         { method: 'POST', json: payload },
       )
+      let saved = res.event
+      const id = saved?.id ?? editing?.id
+      let warning: string | undefined
+      if (pendingFile && id) {
+        try {
+          const form = new FormData()
+          form.append('image', pendingFile)
+          const up = await apiUpload<{ event?: WardEvent }>(`/api/admin/events/${id}/flyer`, form)
+          if (up.event) saved = up.event
+        } catch (fe) {
+          warning = fe instanceof Error ? fe.message : 'Could not upload the flyer.'
+        }
+      } else if (removeFlyer && id) {
+        try {
+          const del = await apiJson<{ event?: WardEvent }>(`/api/admin/events/${id}/flyer/delete`, {
+            method: 'POST',
+            json: {},
+          })
+          if (del.event) saved = del.event
+        } catch (fe) {
+          warning = fe instanceof Error ? fe.message : 'Could not remove the flyer.'
+        }
+      }
       onDirtyChange(false)
-      if (res.event) onSaved(res.event, !editing)
+      if (saved) onSaved(saved, !editing, warning)
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : 'Could not save the event.' })
     } finally {
       setBusy(false)
     }
   }
+
+  const flyerPreview = pendingUrl ?? (!removeFlyer && editing?.hasFlyer ? editing.flyerThumbUrl || editing.flyerUrl : undefined)
 
   const invalid = (f: keyof Draft) => (error?.field === f ? true : undefined)
   const errId = `${idp}-error`
@@ -221,9 +291,44 @@ function EventForm({
         home addresses and phone numbers too.
       </p>
 
+      <fieldset className="event-form__flyer">
+        <legend>
+          Flyer <span className="event-form__optional">(optional)</span>
+        </legend>
+        {flyerPreview ? (
+          <div className="event-form__flyer-preview">
+            <img src={flyerPreview} alt="Flyer preview" />
+          </div>
+        ) : null}
+        <div className="event-form__flyer-actions">
+          <button type="button" className="btn-secondary" disabled={busy} onClick={() => fileRef.current?.click()}>
+            {flyerPreview ? 'Replace Flyer' : 'Upload a Flyer'}
+          </button>
+          {flyerPreview ? (
+            <button type="button" className="event-form__text-btn" disabled={busy} onClick={clearFlyer}>
+              Remove Flyer
+            </button>
+          ) : null}
+        </div>
+        <input
+          ref={fileRef}
+          id={`${idp}-flyer`}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          hidden
+          onChange={(e) => {
+            chooseFlyer(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+        <p className="event-form__hint">
+          JPEG, PNG, or WebP, up to 15 MB. On iPhone, pick a photo from your library.
+        </p>
+      </fieldset>
+
       <label>
         <span>
-          Link <span className="event-form__optional">(optional)</span>
+          Or paste a link <span className="event-form__optional">(optional)</span>
         </span>
         <input
           id={`${idp}-link`}
@@ -236,7 +341,9 @@ function EventForm({
           aria-invalid={invalid('link')}
           aria-describedby={invalid('link') ? errId : undefined}
         />
-        <span className="event-form__hint">For a sign-up sheet, flyer, or broadcast page.</span>
+        <span className="event-form__hint">
+          For a sign-up sheet or broadcast page. If you also upload a flyer, the photo is what people see on the events page.
+        </span>
       </label>
 
       {error ? (
@@ -284,6 +391,7 @@ function AdminEventRow({
         <p className="admin-event__meta">
           {event.timeLabel}
           {event.location ? ` · ${event.location}` : ''}
+          {event.hasFlyer ? ' · Flyer' : event.link ? ' · Link' : ''}
         </p>
       </div>
       <div className="admin-event__actions" role="group" aria-label={`Actions for ${event.title}`}>
@@ -335,14 +443,15 @@ export function AdminEvents() {
     setEditing(next)
   }
 
-  async function onSaved(e: WardEvent, created: boolean) {
+  async function onSaved(e: WardEvent, created: boolean, warning?: string) {
     setEditing(null)
     setDirty(false)
+    const base = created
+      ? `Added “${e.title}”. ${e.upcoming ? 'It’s on the public events page now.' : 'It’s in the past, so it’s under Past Events.'}`
+      : `Saved “${e.title}”.`
     setToast({
-      message: created
-        ? `Added “${e.title}”. ${e.upcoming ? 'It’s on the public events page now.' : 'It’s in the past, so it’s under Past Events.'}`
-        : `Saved “${e.title}”.`,
-      variant: 'success',
+      message: warning ? `${base} The flyer could not be saved: ${warning}` : base,
+      variant: warning ? 'error' : 'success',
     })
     await load()
     window.requestAnimationFrame(() =>

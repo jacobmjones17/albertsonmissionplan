@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AddToCalendar } from '../components/AddToCalendar'
+import { ImageLightbox } from '../components/ImageLightbox'
 import { EventDateBadge } from '../components/EventDateBadge'
 import { PageHero } from '../components/PageHero'
 import {
@@ -41,6 +42,8 @@ function ClockIcon() {
 function EventCard({ event, today, past = false }: { event: WardEvent; today: string; past?: boolean }) {
   const rel = past ? '' : relativeDay(today, event.date)
   const titleId = `event-${event.id}-title`
+  const [flyerOpen, setFlyerOpen] = useState(false)
+  const flyerSrc = event.hasFlyer ? event.flyerUrl || event.flyerThumbUrl : undefined
   return (
     <article className={`event-card${past ? ' event-card--past' : ''}`} id={`event-${event.id}`} aria-labelledby={titleId}>
       <EventDateBadge date={event.date} muted={past} />
@@ -78,6 +81,34 @@ function EventCard({ event, today, past = false }: { event: WardEvent; today: st
           ) : null}
         </p>
         {event.description ? <p className="event-card__desc">{event.description}</p> : null}
+        {flyerSrc ? (
+          <>
+            <button
+              type="button"
+              className="event-card__flyer"
+              onClick={() => setFlyerOpen(true)}
+              aria-label={`View flyer for ${event.title}`}
+            >
+              <img
+                src={event.flyerThumbUrl || flyerSrc}
+                alt=""
+                width={event.flyerWidth || undefined}
+                height={event.flyerHeight || undefined}
+              />
+              <span className="event-card__flyer-label">View flyer</span>
+            </button>
+            <ImageLightbox
+              open={flyerOpen}
+              src={flyerSrc}
+              thumbSrc={event.flyerThumbUrl}
+              alt={`Flyer for ${event.title}`}
+              width={event.flyerWidth}
+              height={event.flyerHeight}
+              title={event.title}
+              onClose={() => setFlyerOpen(false)}
+            />
+          </>
+        ) : null}
         {!past || event.link ? (
           <div className="event-card__actions">
             {!past ? <AddToCalendar event={event} /> : null}
